@@ -11,3 +11,24 @@ categories = ["network-programming"]
 license = "MIT"
 
 [dependencies]
+netscan = "0.1.1"
+default-net = "0.1.0"
+pnet = "0.26"
+ipnet = "2.3"
+log = "0.4"
+clap = "2.33"
+regex = "1"
+chrono = "0.4"
+crossterm = "0.19"
+sudo = "0.6"
+dns-lookup = "1.0"
+reqwest = { version = "0.10", features = ["blocking"] }
+
+[dependencies.rusqlite]
+version = "0.24"
+features = ["bundled"]
+
+[target.'cfg(target_os = "windows")'.dependencies]
+[dependencies.winapi]
+version = "0.3.9"
+features = ["handleapi", "processthreadsapi", "winnt", "securitybaseapi", "impl-default"]
