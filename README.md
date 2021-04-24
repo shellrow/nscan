@@ -1,2 +1,2 @@
 # nscan
-Cross-platform network scanning tool for host and service discovery
+Cross-platform network scan tool for host and service discovery
