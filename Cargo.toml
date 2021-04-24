@@ -1,0 +1,13 @@
+[package]
+name = "nscan"
+version = "0.1.0"
+authors = ["shellrow <81893184+shellrow@users.noreply.github.com>"]
+edition = "2018"
+description = "Cross-platform network scan tool for host and service discovery"
+repository = "https://github.com/shellrow/nscan"
+readme = "README.md"
+keywords = ["network","security","scan","cli"]
+categories = ["network-programming"]
+license = "MIT"
+
+[dependencies]
