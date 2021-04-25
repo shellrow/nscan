@@ -11,7 +11,7 @@ categories = ["network-programming"]
 license = "MIT"
 
 [dependencies]
-netscan = "0.1.1"
+netscan = "0.1.2"
 default-net = "0.1.1"
 pnet = "0.26"
 ipnet = "2.3"
