@@ -5,8 +5,9 @@ use std::path::Path;
 use super::interface;
 
 pub fn validate_port_opt(v: String) -> Result<(), String> {
-    let re = Regex::new(r"\S+:\d+-\d+$").unwrap();
-    if !re.is_match(&v) {
+    let re_range = Regex::new(r"\S+:\d+-\d+$").unwrap();
+    let re_csv = Regex::new(r"\S+:[0-9]+(?:,[0-9]+)*$").unwrap();
+    if !re_range.is_match(&v) && !re_csv.is_match(&v) && v.to_string().contains(":") {
         return Err(String::from("Please specify ip address and port number."));
     }
     let a_vec: Vec<&str> = v.split(":").collect();
@@ -61,6 +62,18 @@ pub fn validate_timeout(v: String) -> Result<(), String> {
         },
     }
     Ok(())
+}
+
+pub fn validate_waittime(v: String) -> Result<(), String> {
+    let wait_time = v.parse::<u64>();
+    match wait_time {
+        Ok(_) => {
+            Ok(())
+        },
+        Err(_) => {
+            return Err(String::from("Invalid wait time value"));
+        },
+    }
 }
 
 pub fn validate_interface(v: String) -> Result<(), String> {

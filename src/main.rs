@@ -15,6 +15,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 use std::fs::read_to_string;
 use std::collections::HashMap;
+use std::time::Duration;
 use chrono::{Local, DateTime};
 use ipnet::{Ipv4Net};
 use clap::{App, AppSettings, Arg, ArgGroup, SubCommand};
@@ -105,7 +106,7 @@ fn main() {
         if let Some(v) = matches.value_of("port") {
             let mut opt = option::PortOption::new();
             opt.set_option(v.to_string());
-            if let Some(w) = matches.value_of("word") {
+            if let Some(w) = matches.value_of("list") {
                 opt.set_file_path(w.to_string());
             }
             if let Some(i) = matches.value_of("interface") {
@@ -113,6 +114,9 @@ fn main() {
             }
             if let Some(t) = matches.value_of("timeout") {
                 opt.set_timeout(t.to_string());
+            }
+            if let Some(a) = matches.value_of("waittime") {
+                opt.set_wait_time(a.to_string());
             }
             if let Some(s) = matches.value_of("save") {
                 opt.set_save_path(s.to_string());
@@ -127,11 +131,14 @@ fn main() {
         if let Some(v) = matches.value_of("host") {
             let mut opt = option::HostOption::new();
             opt.set_option(v.to_string());
-            if let Some(w) = matches.value_of("word") {
+            if let Some(w) = matches.value_of("list") {
                 opt.set_file_path(w.to_string());
             }
             if let Some(t) = matches.value_of("timeout") {
                 opt.set_timeout(t.to_string());
+            }
+            if let Some(a) = matches.value_of("waittime") {
+                opt.set_wait_time(a.to_string());
             }
             if let Some(s) = matches.value_of("save") {
                 opt.set_save_path(s.to_string());
@@ -151,11 +158,11 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
         .author(CRATE_AUTHOR_GITHUB)
         .about(crate_description!())
         .arg(Arg::with_name("port")
-            .help("Port Scan - Ex: -p 192.168.1.8:1-1000")
+            .help("Port Scan - Ex: -p 192.168.1.8:1-1024 (or 192.168.1.8:22,80,443)")
             .short("p")
             .long("port")
             .takes_value(true)
-            .value_name("ip_addr:port_range")
+            .value_name("ip_addr:port")
             .validator(validator::validate_port_opt)
         )
         .arg(Arg::with_name("host")
@@ -174,6 +181,14 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .value_name("duration")
             .validator(validator::validate_timeout)
         )
+        .arg(Arg::with_name("waittime")
+            .help("Set waittime in ms (default:100ms) - Ex: -a 200")
+            .short("a")
+            .long("waittime")
+            .takes_value(true)
+            .value_name("duration")
+            .validator(validator::validate_waittime)
+        )
         .arg(Arg::with_name("interface")
             .help("Specify network interface by name - Ex: -i en0")
             .short("i")
@@ -182,10 +197,10 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .value_name("name")
             .validator(validator::validate_interface)
         )
-        .arg(Arg::with_name("word")
-            .help("Use word list - Ex: -w common.txt")
-            .short("w")
-            .long("word")
+        .arg(Arg::with_name("list")
+            .help("Use list - Ex: -l common-ports.txt")
+            .short("l")
+            .long("list")
             .takes_value(true)
             .value_name("file_path")
             .validator(validator::validate_filepath)
@@ -273,9 +288,29 @@ fn handle_port_scan(opt: option::PortOption) {
         Err(e) => panic!("Error creating scanner: {}", e),
     };
     port_scanner.set_target_ipaddr(&opt.ip_addr);
-    port_scanner.set_range(opt.start_port, opt.end_port);
+    if opt.use_list {
+        let data = read_to_string(opt.list_path.to_string());
+        let text = match data {
+            Ok(content) => content,
+            Err(e) => {panic!("Could not open or find file: {}", e);}
+        };
+        let port_list: Vec<&str> = text.trim().split("\n").collect();
+        for port in port_list {
+            match port.parse::<u16>(){
+                Ok(p) =>{
+                    port_scanner.add_target_port(p);
+                },
+                Err(_) =>{},
+            }
+        }
+    }else{
+        for p in opt.port_list.clone() {
+            port_scanner.add_target_port(p);
+        }
+    }
     port_scanner.set_scan_type(PortScanType::SynScan);
     port_scanner.set_timeout(opt.timeout);
+    port_scanner.set_wait_time(opt.wait_time);
     port_scanner.run_scan();
     let result = port_scanner.get_result();
     match result.scan_status {
@@ -297,6 +332,9 @@ fn handle_port_scan(opt: option::PortOption) {
     }
     sys::print_fix32("", sys::FillStr::Hyphen);
     println!("Scan Time: {:?}", result.scan_time);
+    if port_scanner.get_wait_time() > Duration::from_millis(0) {
+        println!("(Including {:?} of wait time)", port_scanner.get_wait_time());
+    }
     if !opt.save_path.is_empty() {
         let s_result = port_scanner.get_result();
         save_port_result(&conn, &opt, s_result);
@@ -348,14 +386,14 @@ fn handle_host_scan(opt: option::HostOption) {
                 std::process::exit(0);
             }
         }
-    }else if opt.use_wordlist {
-        let data = read_to_string(opt.wordlist_path.to_string());
+    }else if opt.use_list {
+        let data = read_to_string(opt.list_path.to_string());
         let text = match data {
             Ok(content) => content,
             Err(e) => {panic!("Could not open or find file: {}", e);}
         };
-        let word_list: Vec<&str> = text.trim().split("\n").collect();
-        for host in word_list {
+        let host_list: Vec<&str> = text.trim().split("\n").collect();
+        for host in host_list {
             let addr = IpAddr::from_str(&host);
             match addr {
                 Ok(_) => {
@@ -368,6 +406,7 @@ fn handle_host_scan(opt: option::HostOption) {
         }
     }
     host_scanner.set_timeout(opt.timeout);
+    host_scanner.set_wait_time(opt.wait_time);
     host_scanner.run_scan();
     let result = host_scanner.get_result();
     match result.scan_status {
@@ -409,6 +448,9 @@ fn handle_host_scan(opt: option::HostOption) {
     }
     sys::print_fix32("", sys::FillStr::Hyphen);
     println!("Scan Time: {:?}", result.scan_time);
+    if host_scanner.get_wait_time() > Duration::from_millis(0) {
+        println!("(Including {:?} of wait time)", host_scanner.get_wait_time());
+    }
     if !opt.save_path.is_empty() {
         save_host_result(&opt, result_map);
     }
