@@ -12,7 +12,7 @@ license = "MIT"
 
 [dependencies]
 netscan = "0.1.1"
-default-net = "0.1.0"
+default-net = "0.1.1"
 pnet = "0.26"
 ipnet = "2.3"
 log = "0.4"
