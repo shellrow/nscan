@@ -109,6 +109,18 @@ impl PortOption {
         let wait_time: u64 = ms_str.parse().unwrap();
         self.wait_time = Duration::from_millis(wait_time);
     }
+    pub fn set_scan_type(&mut self, port_scan_type: String){
+        let port_scan_type = port_scan_type.as_str();
+        let scan_type = match port_scan_type {
+            "SYN" => {PortScanType::SynScan},
+            "CONNECT" => {PortScanType::ConnectScan},
+            "FIN" => {PortScanType::FinScan},
+            "XMAS" => {PortScanType::XmasScan},
+            "NULL" => {PortScanType::NullScan},
+            _ => {PortScanType::SynScan},
+        };
+        self.scan_type = scan_type;
+    }
     pub fn set_save_path(&mut self, save_path: String){
         self.save_path = save_path;
     }
@@ -133,6 +145,7 @@ impl PortOption {
             PortScanType::FinScan => {println!("{}Scan Type: Fin Scan", sys::SPACE4);},
             PortScanType::XmasScan => {println!("{}Scan Type: Xmas Scan", sys::SPACE4);},
             PortScanType::NullScan => {println!("{}Scan Type: Null Scan", sys::SPACE4);},
+            PortScanType::ConnectScan => {println!("{}Scan Type: Connect Scan", sys::SPACE4);},
         }
         sys::print_fix32("", sys::FillStr::Hyphen);
     }

@@ -86,3 +86,12 @@ pub fn validate_interface(v: String) -> Result<(), String> {
         },
     }
 }
+
+pub fn validate_portscantype(v: String) -> Result<(), String> {
+    let valid_scan_types = vec!["SYN","CONNECT","FIN","XMAS","NULL"];
+    if valid_scan_types.contains(&v.as_str()) {
+        Ok(())
+    }else{
+        Err(String::from("Invalid PortScanType"))
+    }
+}

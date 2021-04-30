@@ -29,8 +29,9 @@ use util::db;
 use crossterm::style::Colorize;
 //use dns_lookup::lookup_host;
 
-const CRATE_UPDATE_DATE: &str = "2021/4/25";
+const CRATE_UPDATE_DATE: &str = "2021/4/30";
 const CRATE_AUTHOR_GITHUB: &str = "shellrow <https://github.com/shellrow>";
+const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 #[cfg(target_os = "windows")]
 fn get_os_type() -> String{"windows".to_owned()}
@@ -49,6 +50,7 @@ fn main() {
     }
     let app = get_app_settings();
     let matches = app.get_matches();
+    let mut require_admin = true;
     //Update
     if let Some(sub_matches) = matches.subcommand_matches("update") {
         show_banner();
@@ -99,7 +101,12 @@ fn main() {
     //Scan
     show_banner_with_starttime();
     if matches.is_present("port"){
-        if !sys::check_root() {
+        if let Some(p) = matches.value_of("portscantype") {
+            if p == "CONNECT" {
+                require_admin = false;
+            }
+        }
+        if require_admin && !sys::check_root() {
             println!("{} This feature requires administrator privileges. ","error:".red());
             std::process::exit(0);
         }
@@ -117,6 +124,9 @@ fn main() {
             }
             if let Some(a) = matches.value_of("waittime") {
                 opt.set_wait_time(a.to_string());
+            }
+            if let Some(p) = matches.value_of("portscantype") {
+                opt.set_scan_type(p.to_string());
             }
             if let Some(s) = matches.value_of("save") {
                 opt.set_save_path(s.to_string());
@@ -189,6 +199,14 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .value_name("duration")
             .validator(validator::validate_waittime)
         )
+        .arg(Arg::with_name("portscantype")
+            .help("Set port scan type (default:SYN) - Ex: -P SYN")
+            .short("P")
+            .long("portscantype")
+            .takes_value(true)
+            .value_name("scantype")
+            .validator(validator::validate_portscantype)
+        )
         .arg(Arg::with_name("interface")
             .help("Specify network interface by name - Ex: -i en0")
             .short("i")
@@ -260,6 +278,7 @@ fn show_banner() {
 
 fn show_banner_with_starttime() {
     println!("{} {} {}", crate_name!(), crate_version!(), get_os_type());
+    println!("{}", CRATE_REPOSITORY);
     println!();
     let local_datetime: DateTime<Local> = Local::now();
     println!("Scan started at {}", local_datetime);
@@ -308,7 +327,7 @@ fn handle_port_scan(opt: option::PortOption) {
             port_scanner.add_target_port(p);
         }
     }
-    port_scanner.set_scan_type(PortScanType::SynScan);
+    port_scanner.set_scan_type(opt.scan_type);
     port_scanner.set_timeout(opt.timeout);
     port_scanner.set_wait_time(opt.wait_time);
     port_scanner.run_scan();
@@ -321,19 +340,24 @@ fn handle_port_scan(opt: option::PortOption) {
     println!();
     sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
     for port in result.open_ports {
-        match db::get_service(&conn, &port, "tcp"){
+        match db::get_service(&conn, &port.to_string(), "tcp"){
             Ok(service) => {
                 print_service(service);
             },
             Err(_) => {
-                println!("{}{}{}Unknown service", SPACE4, port.cyan(), SPACE4);
+                println!("{}{}{}Unknown service", SPACE4, port.to_string().cyan(), SPACE4);
             }, 
         };
     }
     sys::print_fix32("", sys::FillStr::Hyphen);
     println!("Scan Time: {:?}", result.scan_time);
-    if port_scanner.get_wait_time() > Duration::from_millis(0) {
-        println!("(Including {:?} of wait time)", port_scanner.get_wait_time());
+    match port_scanner.get_scan_type() {
+        PortScanType::ConnectScan => {},
+        _=> {
+            if port_scanner.get_wait_time() > Duration::from_millis(0) {
+                println!("(Including {:?} of wait time)", port_scanner.get_wait_time());
+            }
+        },
     }
     if !opt.save_path.is_empty() {
         let s_result = port_scanner.get_result();
@@ -478,7 +502,7 @@ fn save_port_result(conn: &rusqlite::Connection, opt: &option::PortOption, resul
     data = format!("{}\nEND_PORT:{}",data, opt.end_port.to_string());
     data = format!("{}\n[RESULTS]",data);
     for port in result.open_ports {
-        match db::get_service(&conn, &port, "tcp"){
+        match db::get_service(&conn, &port.to_string(), "tcp"){
             Ok(service) => {
                 data = format!("{}\n{},{},{},{}", data, service.port_number,service.protocol,service.service_name,service.description);
             },
