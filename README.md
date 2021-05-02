@@ -6,9 +6,10 @@ Aim to be simple and fast.
 ## Basic Usage
 ```
 USAGE:
-    nscan [OPTIONS]
+    nscan [FLAGS] [OPTIONS]
 
 FLAGS:
+    -d, --detail     Get details (service version and OS)
     -h, --help       Prints help information
     -V, --version    Prints version information
 
@@ -24,13 +25,14 @@ OPTIONS:
 ```
 
 ## Example
+Simple port scan  
 ```
 shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8:1-1024
 Password:
-nscan 0.2.0 macos
+nscan 0.3.0 macos
 https://github.com/shellrow/nscan
 
-Scan started at 2021-05-02 17:55:50.142328 +09:00
+Scan started at 2021-05-02 17:55:50.142328
 
 ----Port Scan Options-------------------------------------------
     IP Address: 192.168.1.8
@@ -46,6 +48,36 @@ Scanning... Done
      443    https
 ----------------------------------------------------------------
 Scan Time: 1.784271557s
+(Including 100ms of wait time)
+```
+
+Service version detection  
+```
+shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8:22,80,443,5900 -d     
+nscan 0.3.0 macos
+https://github.com/shellrow/nscan
+
+Scan started at 2021-05-03 02:27:09.971587
+
+----Port Scan Options-------------------------------------------
+    IP Address: 192.168.1.8
+    Port List: [22, 80, 443, 5900]
+    Scan Type: Syn Scan
+----------------------------------------------------------------
+
+Scanning... Done
+
+----Scan Reports------------------------------------------------
+      22    ssh
+            SSH-2.0-OpenSSH_7.6p1 Ubuntu-4ubuntu0.3
+      80    http
+            Apache/2.4.29 (Ubuntu)
+     443    https
+            Apache/2.4.29 (Ubuntu)
+    5900    rfb
+            RFB 003.008
+----------------------------------------------------------------
+Scan Time: 117.966904ms
 (Including 100ms of wait time)
 ```
 

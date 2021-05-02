@@ -15,6 +15,7 @@ pub struct PortOption{
     pub if_name: String,
     pub timeout: Duration,
     pub wait_time: Duration,
+    pub include_detail: bool,
     pub save_path: String,
 }
 
@@ -25,6 +26,7 @@ pub struct HostOption{
     pub list_path: String,
     pub timeout: Duration,
     pub wait_time: Duration,
+    pub include_detail: bool,
     pub save_path: String,
 }
 
@@ -43,6 +45,7 @@ impl PortOption {
             if_name: String::new(),
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(100),
+            include_detail: false,
             save_path: String::new(),
         };
         return port_option;
@@ -121,6 +124,9 @@ impl PortOption {
         };
         self.scan_type = scan_type;
     }
+    pub fn set_include_detail(&mut self, include: bool){
+        self.include_detail = include;
+    }
     pub fn set_save_path(&mut self, save_path: String){
         self.save_path = save_path;
     }
@@ -160,6 +166,7 @@ impl HostOption {
             list_path: String::new(),
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(100),
+            include_detail: false,
             save_path: String::new(),
         };
         return host_option;
@@ -189,6 +196,9 @@ impl HostOption {
     pub fn set_wait_time(&mut self, ms_str: String){
         let wait_time: u64 = ms_str.parse().unwrap();
         self.wait_time = Duration::from_millis(wait_time);
+    }
+    pub fn set_include_detail(&mut self, include: bool){
+        self.include_detail = include;
     }
     pub fn set_save_path(&mut self, save_path: String){
         self.save_path = save_path;

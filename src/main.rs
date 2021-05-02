@@ -27,6 +27,7 @@ use default_net;
 use util::{option, validator};
 use util::sys::{self, SPACE4};
 use util::db;
+use util::service;
 use crossterm::style::Colorize;
 //use dns_lookup::lookup_host;
 
@@ -82,6 +83,9 @@ fn main() {
             if let Some(p) = matches.value_of("portscantype") {
                 opt.set_scan_type(p.to_string());
             }
+            if matches.is_present("detail") {
+                opt.set_include_detail(true);
+            }
             if let Some(s) = matches.value_of("save") {
                 opt.set_save_path(s.to_string());
             }
@@ -103,6 +107,9 @@ fn main() {
             }
             if let Some(a) = matches.value_of("waittime") {
                 opt.set_wait_time(a.to_string());
+            }
+            if matches.is_present("detail") {
+                opt.set_include_detail(true);
             }
             if let Some(s) = matches.value_of("save") {
                 opt.set_save_path(s.to_string());
@@ -176,6 +183,12 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .takes_value(true)
             .value_name("file_path")
             .validator(validator::validate_filepath)
+        )
+        .arg(Arg::with_name("detail")
+            .help("Get details (service version and OS)")
+            .short("d")
+            .long("detail")
+            .takes_value(false)
         )
         .arg(Arg::with_name("save")
             .help("Save scan result to file - Ex: -s result.txt")
@@ -258,13 +271,22 @@ fn handle_port_scan(opt: option::PortOption) {
     println!();
     sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
     let tcp_map = db::get_tcp_map();
+    //let detail_map = service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone());
+    let detail_map: HashMap<u16, String> = match opt.include_detail {
+        true => service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone()),
+        false => HashMap::new(),
+    };
     for port in result.open_ports {
+        let service_version: String = match detail_map.get(&port) {
+            Some(v) => v.to_string(),
+            None => String::from("None"),
+        };
         match tcp_map.get(&port.to_string()) {
             Some(service_name) => {
-                print_service(port.to_string(), service_name.to_string());
+                print_service(port.to_string(), service_name.to_string(), service_version);
             },
             None => {
-                print_service(port.to_string(), String::from("Unknown service"));
+                print_service(port.to_string(), String::from("Unknown service"), service_version);
             },
         }
     }
@@ -399,9 +421,12 @@ fn handle_host_scan(opt: option::HostOption) {
     }
 }
 
-fn print_service(port: String, service_name: String){
+fn print_service(port: String, service_name: String, service_version: String){
     print!("{}{}", " ".repeat(8 - port.to_string().len()),port.to_string().cyan());
     println!("{}{}", SPACE4, service_name);
+    if !service_version.is_empty() && service_version != "None" {
+        println!("{}{}", SPACE4.repeat(3), service_version);
+    }
 }
 
 fn print_host_info(ip_addr: String, mac_addr: String, vendor_name: String){
