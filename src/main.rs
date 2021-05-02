@@ -18,7 +18,8 @@ use std::collections::HashMap;
 use std::time::Duration;
 use chrono::{Local, DateTime};
 use ipnet::{Ipv4Net};
-use clap::{App, AppSettings, Arg, ArgGroup, SubCommand};
+use clap::{App, AppSettings, Arg, ArgGroup};
+//use clap::SubCommand;
 use netscan::ScanStatus;
 use netscan::{PortScanner, HostScanner};
 use netscan::PortScanType;
@@ -29,7 +30,7 @@ use util::db;
 use crossterm::style::Colorize;
 //use dns_lookup::lookup_host;
 
-const CRATE_UPDATE_DATE: &str = "2021/4/30";
+const CRATE_UPDATE_DATE: &str = "2021/5/2";
 const CRATE_AUTHOR_GITHUB: &str = "shellrow <https://github.com/shellrow>";
 const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
@@ -51,53 +52,6 @@ fn main() {
     let app = get_app_settings();
     let matches = app.get_matches();
     let mut require_admin = true;
-    //Update
-    if let Some(sub_matches) = matches.subcommand_matches("update") {
-        show_banner();
-        print!("Updating... ");
-        stdout().flush().unwrap();
-        if sub_matches.is_present("database"){
-            match db::update_db() {
-                Ok(_) =>{
-                    println!("{}", "Done".green());
-                    println!("nscan database has been updated.");
-                },
-                Err(_) => {
-                    println!("{}", "Failed".red());
-                },
-            }
-        }else if sub_matches.is_present("service"){
-            if let Some(v) = sub_matches.value_of("service") {
-                db::init_db();
-                match db::update_service(&v.to_string()) {
-                    Ok(_) =>{
-                        println!("{}", "Done".green());
-                        println!("Service data has been updated.");
-                    },
-                    Err(_) => {
-                        println!("{}", "Failed".red());
-                    },
-                }
-            }
-        }else if sub_matches.is_present("oui"){
-            if let Some(v) = sub_matches.value_of("oui") {
-                db::init_db();
-                match db::update_oui(&v.to_string()) {
-                    Ok(_) =>{
-                        println!("{}", "Done".green());
-                        println!("OUI data has been updated.");
-                    },
-                    Err(_) => {
-                        println!("{}", "Failed".red());
-                    },
-                }
-            }
-        }else{
-            println!();
-            println!("Error: Update mode not specified. 'nscan update --help' for available options");
-        }
-        std::process::exit(0);
-    }
     //Scan
     show_banner_with_starttime();
     if matches.is_present("port"){
@@ -230,30 +184,6 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .takes_value(true)
             .value_name("file_path")
         )
-        .subcommand(SubCommand::with_name("update")
-            .about("Update nscan database")
-            .arg(Arg::with_name("database")
-                .help("Update entire database")
-                .short("d")
-                .long("database")
-            )
-            .arg(Arg::with_name("service")
-                .help("Update service data")
-                .short("s")
-                .long("service")
-                .takes_value(true)
-                .value_name("file_path")
-                .validator(validator::validate_filepath)
-            )
-            .arg(Arg::with_name("oui")
-                .help("Update oui data")
-                .short("o")
-                .long("oui")
-                .takes_value(true)
-                .value_name("file_path")
-                .validator(validator::validate_filepath)
-            )
-        )
         .group(ArgGroup::with_name("mode")
             .args(&["port", "host"])
         )
@@ -271,11 +201,6 @@ fn show_app_desc() {
     println!();
 }
 
-fn show_banner() {
-    println!("{} {} {}", crate_name!(), crate_version!(), get_os_type());
-    println!();
-}
-
 fn show_banner_with_starttime() {
     println!("{} {} {}", crate_name!(), crate_version!(), get_os_type());
     println!("{}", CRATE_REPOSITORY);
@@ -287,13 +212,6 @@ fn show_banner_with_starttime() {
 
 // handler 
 fn handle_port_scan(opt: option::PortOption) {
-    let conn = match db::get_db_connection() {
-        Ok(conn) => conn,
-        Err(e) => {
-            println!("{}: {}", "Error".red(), e);
-            return;
-        },
-    };
     opt.show_options();
     println!();
     print!("Scanning... ");
@@ -339,15 +257,16 @@ fn handle_port_scan(opt: option::PortOption) {
     }
     println!();
     sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
+    let tcp_map = db::get_tcp_map();
     for port in result.open_ports {
-        match db::get_service(&conn, &port.to_string(), "tcp"){
-            Ok(service) => {
-                print_service(service);
+        match tcp_map.get(&port.to_string()) {
+            Some(service_name) => {
+                print_service(port.to_string(), service_name.to_string());
             },
-            Err(_) => {
-                println!("{}{}{}Unknown service", SPACE4, port.to_string().cyan(), SPACE4);
-            }, 
-        };
+            None => {
+                print_service(port.to_string(), String::from("Unknown service"));
+            },
+        }
     }
     sys::print_fix32("", sys::FillStr::Hyphen);
     println!("Scan Time: {:?}", result.scan_time);
@@ -361,18 +280,11 @@ fn handle_port_scan(opt: option::PortOption) {
     }
     if !opt.save_path.is_empty() {
         let s_result = port_scanner.get_result();
-        save_port_result(&conn, &opt, s_result);
+        save_port_result(&&opt, s_result, &tcp_map);
     }
 }
 
 fn handle_host_scan(opt: option::HostOption) {
-    let conn = match db::get_db_connection() {
-        Ok(conn) => conn,
-        Err(e) => {
-            println!("{}: {}", "Error".red(), e);
-            return;
-        },
-    };
     opt.show_options();
     println!();
     print!("Scanning...");
@@ -397,11 +309,6 @@ fn handle_host_scan(opt: option::HostOption) {
                     IpAddr::V6(_ipv6_addr) => {
                         error!("Currently not supported.");
                         std::process::exit(0);
-                        /*
-                        let net: Ipv6Net = Ipv6Net::new(ipv6_addr, 24).unwrap();
-                        let nw_addr = Ipv6Net::new(net.network(), 24).unwrap();
-                        let hosts: Vec<Ipv6Addr> = nw_addr.hosts().collect();
-                        */
                     },
                 }
             },
@@ -440,29 +347,41 @@ fn handle_host_scan(opt: option::HostOption) {
     }
     println!();
     let default_interface = default_net::get_default_interface().unwrap();
-    let mut result_map: HashMap<String, Option<db::Oui>> = HashMap::new();
+    let mut result_map: HashMap<String, String> = HashMap::new();
     let interfaces = pnet::datalink::interfaces();
     let interface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == default_interface.index).next().expect("Failed to get Interface");
     sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
+    let oui_map = db::get_oui_map();
     for host in result.up_hosts {
         match host.parse::<Ipv4Addr>(){
             Ok(ipaddr) => {
-                let mac_addr: pnet::datalink::MacAddr = util::arp::get_mac_through_arp(&interface, ipaddr);
-                match db::get_vendor_info(&conn, &mac_addr.to_string()){
-                    Ok(oui) => {
-                        print_host_info(ipaddr.to_string(), mac_addr.to_string(), oui.clone());
-                        result_map.insert(ipaddr.to_string(), Some(oui));
-                    },
-                    Err(_) => {
-                        print!("{}{}{}", SPACE4, ipaddr.to_string().cyan(), " ".repeat(16 - ipaddr.to_string().len()));
-                        print!("{}{}", SPACE4, mac_addr);
-                        if ipaddr.to_string() == default_interface.ipv4[0].to_string() {
-                            println!(" Own device");
-                        }else{
-                            println!(" Unknown");
-                        }
-                        result_map.insert(ipaddr.to_string(), None);
-                    },
+                let mac_addr: String = util::arp::get_mac_through_arp(&interface, ipaddr).to_string();
+                if mac_addr.len() < 17 {
+                    print!("{}{}{}", SPACE4, ipaddr.to_string().cyan(), " ".repeat(16 - ipaddr.to_string().len()));
+                    println!("{}{} Unknown", SPACE4, mac_addr);
+                    result_map.insert(ipaddr.to_string(), format!("{} Unknown", mac_addr));
+                }else{
+                    let prefix8 = mac_addr[0..8].to_uppercase();
+                    match oui_map.get(&prefix8) {
+                        Some(vendor_name) => {
+                            if prefix8 == "00:00:00".to_string() {
+                                print_host_info(ipaddr.to_string(), mac_addr.clone(), String::from("Unknown"));
+                                result_map.insert(ipaddr.to_string(), format!("{} Unknown", mac_addr));
+                            }else{
+                                print_host_info(ipaddr.to_string(), mac_addr.clone(), vendor_name.to_string());
+                                result_map.insert(ipaddr.to_string(), format!("{} {}", mac_addr, vendor_name));
+                            }
+                        },
+                        None => {
+                            if ipaddr.to_string() == default_interface.ipv4[0].to_string() {
+                                print_host_info(ipaddr.to_string(), mac_addr.clone(), String::from("Own device"));
+                                result_map.insert(ipaddr.to_string(), format!("{} Own device", mac_addr));
+                            }else{
+                                print_host_info(ipaddr.to_string(), mac_addr.clone(), String::from("Unknown"));
+                                result_map.insert(ipaddr.to_string(), format!("{} Unknown", mac_addr));
+                            }
+                        },
+                    }
                 }
             },
             Err(_) => {
@@ -480,33 +399,27 @@ fn handle_host_scan(opt: option::HostOption) {
     }
 }
 
-fn print_service(service: db::Service){
-    print!("{}{}", " ".repeat(8 - service.port_number.len()),service.port_number.cyan());
-    println!("{}{}", SPACE4, service.service_name);
+fn print_service(port: String, service_name: String){
+    print!("{}{}", " ".repeat(8 - port.to_string().len()),port.to_string().cyan());
+    println!("{}{}", SPACE4, service_name);
 }
 
-fn print_host_info(ip_addr: String, mac_addr: String, oui: db::Oui){
-    print!("{}{}{}", SPACE4, ip_addr.to_string().cyan(), " ".repeat(16 - ip_addr.len()));
-    print!("{}{}", SPACE4, mac_addr);
-    if oui.mac_prefix == "00:00:00".to_string() {
-        println!(" Unknown");
-    }else{
-        println!("{}", oui.vendor_name_detail);
-    }
+fn print_host_info(ip_addr: String, mac_addr: String, vendor_name: String){
+    print!("{}{}{}", SPACE4, ip_addr.to_string().cyan(), " ".repeat(16 - ip_addr.to_string().len()));
+    print!("{}{} ", SPACE4, mac_addr);
+    println!("{}", vendor_name);
 }
 
-fn save_port_result(conn: &rusqlite::Connection, opt: &option::PortOption, result: netscan::PortScanResult) {
+fn save_port_result(opt: &option::PortOption, result: netscan::PortScanResult, tcp_map: &HashMap<String, String>) {
     let mut data = "[OPTIONS]".to_string();
     data = format!("{}\nIP_ADDR:{}",data, opt.ip_addr.to_string());
-    data = format!("{}\nSTART_PORT:{}",data, opt.start_port.to_string());
-    data = format!("{}\nEND_PORT:{}",data, opt.end_port.to_string());
     data = format!("{}\n[RESULTS]",data);
     for port in result.open_ports {
-        match db::get_service(&conn, &port.to_string(), "tcp"){
-            Ok(service) => {
-                data = format!("{}\n{},{},{},{}", data, service.port_number,service.protocol,service.service_name,service.description);
+        match tcp_map.get(&port.to_string()) {
+            Some(service_name) => {
+                data = format!("{}\n{},tcp,{}", data, port.to_string(),service_name);
             },
-            Err(_) => {
+            None => {
                 data = format!("{}\n{},Unknown service", data, port);
             }, 
         };
@@ -515,19 +428,12 @@ fn save_port_result(conn: &rusqlite::Connection, opt: &option::PortOption, resul
     sys::save_file(opt.save_path.to_string(), data);
 }
 
-fn save_host_result(opt: &option::HostOption, result_map: HashMap<String, Option<db::Oui>>){
+fn save_host_result(opt: &option::HostOption, result_map: HashMap<String, String>){
     let mut data = "[OPTIONS]".to_string();
     data = format!("{}\nNETWORK: {}",data, opt.ip_addr.to_string());
-    data = format!("{}\n[RESULTS]",data);
+    data = format!("{}\n[RESULTS]\n",data);
     for (ip, oui) in result_map{
-        match oui {
-            Some(oui) => {
-                data = format!("{}\n{},{},{}",data, ip, oui.mac_addr,oui.vendor_name_detail);
-            },
-            None => {
-                data = format!("{}\n{},Unknown",data, ip);
-            },
-        }
+        data = format!("{}{} {}\n",data, ip, oui);
     }
     data = format!("{}\n",data);
     sys::save_file(opt.save_path.to_string(), data);

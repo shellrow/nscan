@@ -1,6 +1,6 @@
 [package]
 name = "nscan"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["shellrow <81893184+shellrow@users.noreply.github.com>"]
 edition = "2018"
 description = "Cross-platform network scan tool for host and service discovery"
@@ -23,10 +23,6 @@ crossterm = "0.19"
 sudo = "0.6"
 dns-lookup = "1.0"
 reqwest = { version = "0.10", features = ["blocking"] }
-
-[dependencies.rusqlite]
-version = "0.24"
-features = ["bundled"]
 
 [target.'cfg(target_os = "windows")'.dependencies]
 [dependencies.winapi]
