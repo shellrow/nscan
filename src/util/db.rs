@@ -34,7 +34,7 @@ pub fn get_default_ports() -> Vec<u16> {
     let rs_nscan_default_ports: Vec<&str> = NSCAN_DEFAULT_PORTS.trim().split("\n").collect();
     let mut default_ports: Vec<u16> = vec![];
     for r in rs_nscan_default_ports {
-        match r.parse::<u16>() {
+        match r.trim_end().parse::<u16>() {
             Ok(port) => {
                 default_ports.push(port);
             },
