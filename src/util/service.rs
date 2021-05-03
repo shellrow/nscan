@@ -85,7 +85,6 @@ fn head_request_secure(ipaddr:String) -> String {
         Ok(host) => host,
         Err(_) => ipaddr,
     };
-    //let client = reqwest::blocking::Client::new();
     let client = match reqwest::blocking::Client::builder().danger_accept_invalid_certs(true).build() {
         Ok(c) => c,
         Err(_) => {

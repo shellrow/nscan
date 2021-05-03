@@ -25,59 +25,62 @@ OPTIONS:
 ```
 
 ## Example
-Simple port scan  
+Port scan and service version detection  
+If you omit the port specification, use nscan-default-ports  
 ```
-shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8:1-1024
-Password:
+shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8 -d
 nscan 0.3.0 macos
 https://github.com/shellrow/nscan
 
-Scan started at 2021-05-02 17:55:50.142328
+Scan started at 2021-05-03 21:20:20.636720
 
 ----Port Scan Options-------------------------------------------
     IP Address: 192.168.1.8
-    Port Range: 1-1024
+    Port List: nscan-default-ports (1005 ports)
     Scan Type: Syn Scan
 ----------------------------------------------------------------
 
-Scanning... Done
+Scanning ports... Done
+Detecting service version... Done
 
 ----Scan Reports------------------------------------------------
+3 open port(s) / scanned 1005 port(s) 
+    PORT    SERVICE
       22    ssh
+            SSH-2.0-OpenSSH_7.9p1 Raspbian-10+deb10u2
       80    http
-     443    https
+            Apache/2.4.38 (Raspbian)
+    5900    rfb
+            RFB 005.000
 ----------------------------------------------------------------
-Scan Time: 1.784271557s
+Scan Time: 1.654746198s
 (Including 100ms of wait time)
 ```
 
-Service version detection  
+Host scan  
 ```
-shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8:22,80,443,5900 -d     
+shellrow@MacBook-Pro nscan % sudo nscan -n 192.168.1.0    
 nscan 0.3.0 macos
 https://github.com/shellrow/nscan
 
-Scan started at 2021-05-03 02:27:09.971587
+Scan started at 2021-05-03 21:22:28.344630
 
-----Port Scan Options-------------------------------------------
-    IP Address: 192.168.1.8
-    Port List: [22, 80, 443, 5900]
-    Scan Type: Syn Scan
+----Host Scan Options-------------------------------------------
+    Target Network: 192.168.1.0
 ----------------------------------------------------------------
 
 Scanning... Done
 
 ----Scan Reports------------------------------------------------
-      22    ssh
-            SSH-2.0-OpenSSH_7.6p1 Ubuntu-4ubuntu0.3
-      80    http
-            Apache/2.4.29 (Ubuntu)
-     443    https
-            Apache/2.4.29 (Ubuntu)
-    5900    rfb
-            RFB 003.008
+5 host(s) up / 254 IP address(es)
+    IP ADDR             MAC ADDR
+    192.168.1.1         00:80:87:77:a1:b1 OkiElect
+    192.168.1.4         27:8c:fd:b7:a2:b2 Own device
+    192.168.1.8         b8:27:eb:f1:a3:b3 Raspberr
+    192.168.1.16        30:9c:23:d6:a4:b4 Micro-St
+    192.168.1.32        74:d4:35:b2:a5:b5 Giga-Byt
 ----------------------------------------------------------------
-Scan Time: 117.966904ms
+Scan Time: 543.253681ms
 (Including 100ms of wait time)
 ```
 

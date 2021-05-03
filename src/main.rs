@@ -19,7 +19,6 @@ use std::time::Duration;
 use chrono::{Local, DateTime};
 use ipnet::{Ipv4Net};
 use clap::{App, AppSettings, Arg, ArgGroup};
-//use clap::SubCommand;
 use netscan::ScanStatus;
 use netscan::{PortScanner, HostScanner};
 use netscan::PortScanType;
@@ -30,7 +29,7 @@ use util::db;
 use util::service;
 use crossterm::style::Colorize;
 
-const CRATE_UPDATE_DATE: &str = "2021/5/3";
+const CRATE_UPDATE_DATE: &str = "2021-05-03";
 const CRATE_AUTHOR_GITHUB: &str = "shellrow <https://github.com/shellrow>";
 const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
@@ -61,7 +60,7 @@ fn main() {
             }
         }
         if require_admin && !sys::check_root() {
-            println!("{} This feature requires administrator privileges. ","error:".red());
+            println!("{} This feature requires administrator privileges. ","Error:".red());
             std::process::exit(0);
         }
         if let Some(v) = matches.value_of("port") {
@@ -92,7 +91,7 @@ fn main() {
         }
     }else if matches.is_present("host") {
         if !sys::check_root() {
-            println!("{} This feature requires administrator privileges. ","error:".red());
+            println!("{} This feature requires administrator privileges. ","Error:".red());
             std::process::exit(0);
         }
         if let Some(v) = matches.value_of("host") {
@@ -268,7 +267,6 @@ fn handle_port_scan(opt: option::PortOption) {
         _ => {println!("{}", "Error".red())},
     }
     let tcp_map = db::get_tcp_map();
-    //let detail_map = service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone());
     let detail_map: HashMap<u16, String> = match opt.include_detail {
         true => {
             print!("Detecting service version... ");
@@ -281,7 +279,13 @@ fn handle_port_scan(opt: option::PortOption) {
         println!("{}", "Done".green());
     }
     println!();
+    if result.open_ports.len() == 0 {
+        println!("No open port found on target.");
+        return;
+    }
     sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
+    println!("{} open port(s) / scanned {} port(s) ", result.open_ports.len(), opt.port_list.len());
+    println!("{}PORT{}SERVICE", SPACE4, SPACE4);
     for port in result.open_ports {
         let service_version: String = match detail_map.get(&port) {
             Some(v) => v.to_string(),
@@ -315,7 +319,7 @@ fn handle_port_scan(opt: option::PortOption) {
 fn handle_host_scan(opt: option::HostOption) {
     opt.show_options();
     println!();
-    print!("Scanning...");
+    print!("Scanning... ");
     stdout().flush().unwrap();
     let mut host_scanner = match HostScanner::new(){
         Ok(scanner) => (scanner),
@@ -374,11 +378,17 @@ fn handle_host_scan(opt: option::HostOption) {
         _ => {println!("{}", "Error".red())},
     }
     println!();
+    if result.up_hosts.len() == 0 {
+        println!("No up-host found.");
+        return;
+    }
     let default_interface = default_net::get_default_interface().unwrap();
     let mut result_map: HashMap<String, String> = HashMap::new();
     let interfaces = pnet::datalink::interfaces();
     let interface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == default_interface.index).next().expect("Failed to get Interface");
     sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
+    println!("{} host(s) up / {} IP address(es)", result.up_hosts.len(), host_scanner.get_target_hosts().len());
+    println!("{}IP ADDR {}MAC ADDR", SPACE4, SPACE4.repeat(3));
     let oui_map = db::get_oui_map();
     for host in result.up_hosts {
         match host.parse::<Ipv4Addr>(){
@@ -443,15 +453,15 @@ fn print_host_info(ip_addr: String, mac_addr: String, vendor_name: String){
 
 fn save_port_result(opt: &option::PortOption, result: netscan::PortScanResult, tcp_map: &HashMap<String, String>) {
     let mut data = "[OPTIONS]".to_string();
-    data = format!("{}\nIP_ADDR:{}",data, opt.ip_addr.to_string());
+    data = format!("{}\nIP_ADDR:{}",data,opt.ip_addr);
     data = format!("{}\n[RESULTS]",data);
     for port in result.open_ports {
         match tcp_map.get(&port.to_string()) {
             Some(service_name) => {
-                data = format!("{}\n{},tcp,{}", data, port.to_string(),service_name);
+                data = format!("{}\n{} tcp {}", data, port.to_string(),service_name);
             },
             None => {
-                data = format!("{}\n{},Unknown service", data, port);
+                data = format!("{}\n{} tcp Unknown", data, port);
             }, 
         };
     }
@@ -461,7 +471,11 @@ fn save_port_result(opt: &option::PortOption, result: netscan::PortScanResult, t
 
 fn save_host_result(opt: &option::HostOption, result_map: HashMap<String, String>){
     let mut data = "[OPTIONS]".to_string();
-    data = format!("{}\nNETWORK: {}",data, opt.ip_addr.to_string());
+    if opt.list_path.is_empty() {
+        data = format!("{}\nTARGET_NETWORK:{}",data, opt.ip_addr);
+    }else{
+        data = format!("{}\nLIST_PATH:{}",data, opt.list_path);
+    }
     data = format!("{}\n[RESULTS]\n",data);
     for (ip, oui) in result_map{
         data = format!("{}{} {}\n",data, ip, oui);

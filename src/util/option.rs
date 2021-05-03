@@ -155,7 +155,7 @@ impl PortOption {
                 println!("{}Port Range: {}-{}", sys::SPACE4, self.start_port, self.end_port);
             }else{
                 if self.default_scan {
-                    println!("{}Port List: Default(1-1024)", sys::SPACE4);
+                    println!("{}Port List: nscan-default-ports (1005 ports)", sys::SPACE4);
                 }else{
                     println!("{}Port List: {:?}", sys::SPACE4, self.port_list);
                 }
