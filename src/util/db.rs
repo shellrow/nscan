@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 pub const NSCAN_OUI: &str = include_str!("../../data/nscan-oui.txt");
 pub const NSCAN_TCP_PORT: &str = include_str!("../../data/nscan-tcp-port.txt");
+pub const NSCAN_DEFAULT_PORTS: &str = include_str!("../../data/nscan-default-ports.txt");
 
 pub fn get_oui_map() -> HashMap<String, String> {
     let rs_nscan_oui: Vec<&str> = NSCAN_OUI.trim().split("\n").collect();
@@ -27,4 +28,18 @@ pub fn get_tcp_map() -> HashMap<String, String> {
         }
     }
     return tcp_map;
+}
+
+pub fn get_default_ports() -> Vec<u16> {
+    let rs_nscan_default_ports: Vec<&str> = NSCAN_DEFAULT_PORTS.trim().split("\n").collect();
+    let mut default_ports: Vec<u16> = vec![];
+    for r in rs_nscan_default_ports {
+        match r.parse::<u16>() {
+            Ok(port) => {
+                default_ports.push(port);
+            },
+            Err(_) => {},
+        }
+    }
+    return default_ports;
 }

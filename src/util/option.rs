@@ -1,6 +1,7 @@
 use netscan::PortScanType;
-use super::sys;
+use super::{sys, db};
 use std::time::Duration;
+use dns_lookup::lookup_host;
 
 pub struct PortOption{
     pub ip_addr: String,
@@ -52,7 +53,7 @@ impl PortOption {
     }
     pub fn set_option(&mut self, arg_value: String){
         let a_vec: Vec<&str> = arg_value.split(":").collect();
-        let addr = a_vec[0].to_string();
+        let host = a_vec[0].to_string();
         if a_vec.len() > 1 {
             let port_opt = a_vec[1].to_string();
             if port_opt.contains("-") {
@@ -86,12 +87,26 @@ impl PortOption {
                 }
             }
         }else{
-            for i in 1..1025 {
-                self.port_list.push(i);
-            }
+            self.port_list = db::get_default_ports();
             self.default_scan = true;
         }
-        self.ip_addr = addr;
+        if sys::is_ipaddr(host.clone()) {
+            self.ip_addr = host;
+        }else {
+            match lookup_host(&host) {
+                Ok(addrs) => {
+                    for addr in addrs {
+                        if addr.is_ipv4() {
+                            self.ip_addr = addr.to_string();
+                            break;
+                        }
+                    }
+                },
+                Err(_) => {
+                    self.ip_addr = host;
+                },
+            }
+        }
     }
     pub fn set_file_path(&mut self, file_path: String){
         if !file_path.is_empty() {

@@ -2,22 +2,34 @@ use regex::Regex;
 use std::str::FromStr;
 use std::net::IpAddr;
 use std::path::Path;
+use dns_lookup::lookup_host;
 use super::interface;
 
 pub fn validate_port_opt(v: String) -> Result<(), String> {
-    let re_range = Regex::new(r"\S+:\d+-\d+$").unwrap();
-    let re_csv = Regex::new(r"\S+:[0-9]+(?:,[0-9]+)*$").unwrap();
-    if !re_range.is_match(&v) && !re_csv.is_match(&v) && v.to_string().contains(":") {
-        return Err(String::from("Please specify ip address and port number."));
+    let re_addr_range = Regex::new(r"\S+:\d+-\d+$").unwrap();
+    let re_addr_csv = Regex::new(r"\S+:[0-9]+(?:,[0-9]+)*$").unwrap();
+    let re_host_range = Regex::new(r"[\w\-._]+\.[A-Za-z]+:\d+-\d+$").unwrap();
+    let re_host_csv = Regex::new(r"[\w\-._]+\.[A-Za-z]+:[0-9]+(?:,[0-9]+)*$").unwrap();
+    if v.to_string().contains(":") {
+        if !re_addr_range.is_match(&v) && !re_addr_csv.is_match(&v) && !re_host_range.is_match(&v) && !re_host_csv.is_match(&v) {
+            return Err(String::from("Please specify ip address(or hostname) and port number."));
+        }
     }
     let a_vec: Vec<&str> = v.split(":").collect();
-    let addr = IpAddr::from_str(a_vec[0]);
-    match addr {
+    let ipaddr = IpAddr::from_str(a_vec[0]);
+    match ipaddr {
         Ok(_) => {
             return Ok(())
         },
         Err(_) => {
-            return Err(String::from("Please specify ip address"));
+            match lookup_host(a_vec[0]) {
+                Ok(_) => {
+                    return Ok(())
+                },
+                Err(_) => {
+                    return Err(String::from("Please specify ip address or hostname"));
+                },
+            }
         }
     }
 }

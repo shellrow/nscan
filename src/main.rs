@@ -29,9 +29,8 @@ use util::sys::{self, SPACE4};
 use util::db;
 use util::service;
 use crossterm::style::Colorize;
-//use dns_lookup::lookup_host;
 
-const CRATE_UPDATE_DATE: &str = "2021/5/2";
+const CRATE_UPDATE_DATE: &str = "2021/5/3";
 const CRATE_AUTHOR_GITHUB: &str = "shellrow <https://github.com/shellrow>";
 const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
@@ -227,7 +226,7 @@ fn show_banner_with_starttime() {
 fn handle_port_scan(opt: option::PortOption) {
     opt.show_options();
     println!();
-    print!("Scanning... ");
+    print!("Scanning ports... ");
     stdout().flush().unwrap();
     let mut if_name: Option<&str> = None;
     if !opt.if_name.is_empty(){
@@ -268,14 +267,21 @@ fn handle_port_scan(opt: option::PortOption) {
         ScanStatus::Timeout => {println!("{}", "Timed out".yellow())},
         _ => {println!("{}", "Error".red())},
     }
-    println!();
-    sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
     let tcp_map = db::get_tcp_map();
     //let detail_map = service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone());
     let detail_map: HashMap<u16, String> = match opt.include_detail {
-        true => service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone()),
+        true => {
+            print!("Detecting service version... ");
+            stdout().flush().unwrap();
+            service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone())
+        },
         false => HashMap::new(),
     };
+    if detail_map.len() > 0 {
+        println!("{}", "Done".green());
+    }
+    println!();
+    sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
     for port in result.open_ports {
         let service_version: String = match detail_map.get(&port) {
             Some(v) => v.to_string(),

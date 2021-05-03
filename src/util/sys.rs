@@ -52,6 +52,18 @@ pub fn print_fix32(msg: &str, fill_str: FillStr){
     }
 }
 
+pub fn is_ipaddr(host: String) -> bool {
+    let ipaddr = IpAddr::from_str(&host);
+    match ipaddr {
+        Ok(_) => {
+            return true;
+        },
+        Err(_) => {
+            return false;
+        }
+    }
+}
+
 #[cfg(any(unix, macos))]
 pub fn check_root() -> bool{
     let user_privilege = sudo::check();
