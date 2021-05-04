@@ -1,6 +1,6 @@
 [netscan-url]: https://github.com/shellrow/netscan
 # nscan
-Network scan tool for host and service discovery. Written in Rust.  
+Cross-platform network scan tool for host and service discovery. Written in Rust.  
 Aim to be simple and fast.  
 
 ## Basic Usage
@@ -94,7 +94,7 @@ Scan Time: 543.253681ms
 Please check my [repository][netscan-url] for detail
 
 ## Security Notes
-`A(--acceptinvalidcerts)` flag allow you to trust invalid certificates and attempt TLS connection.  
+`-A(--acceptinvalidcerts)` flag allow you to trust invalid certificates and attempt TLS connection.  
 This flag should not be used unless you are explicitly aware of it, such as when the service you are managing uses self-signed certificate.
 
 ## Additional Notes
