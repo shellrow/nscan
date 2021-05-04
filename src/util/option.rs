@@ -17,6 +17,7 @@ pub struct PortOption{
     pub timeout: Duration,
     pub wait_time: Duration,
     pub include_detail: bool,
+    pub accept_invalid_certs: bool,
     pub save_path: String,
 }
 
@@ -47,6 +48,7 @@ impl PortOption {
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(100),
             include_detail: false,
+            accept_invalid_certs: false,
             save_path: String::new(),
         };
         return port_option;
@@ -141,6 +143,9 @@ impl PortOption {
     }
     pub fn set_include_detail(&mut self, include: bool){
         self.include_detail = include;
+    }
+    pub fn set_accept_invalid_certs(&mut self, accept: bool){
+        self.accept_invalid_certs = accept;
     }
     pub fn set_save_path(&mut self, save_path: String){
         self.save_path = save_path;

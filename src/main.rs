@@ -29,7 +29,7 @@ use util::db;
 use util::service;
 use crossterm::style::Colorize;
 
-const CRATE_UPDATE_DATE: &str = "2021-05-03";
+const CRATE_UPDATE_DATE: &str = "2021-05-04";
 const CRATE_AUTHOR_GITHUB: &str = "shellrow <https://github.com/shellrow>";
 const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
@@ -83,6 +83,9 @@ fn main() {
             }
             if matches.is_present("detail") {
                 opt.set_include_detail(true);
+            }
+            if matches.is_present("acceptinvalidcerts") {
+                opt.set_accept_invalid_certs(true);
             }
             if let Some(s) = matches.value_of("save") {
                 opt.set_save_path(s.to_string());
@@ -188,6 +191,12 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .long("detail")
             .takes_value(false)
         )
+        .arg(Arg::with_name("acceptinvalidcerts")
+            .help("Accept invalid certs (This introduces significant vulnerabilities)")
+            .short("A")
+            .long("acceptinvalidcerts")
+            .takes_value(false)
+        )
         .arg(Arg::with_name("save")
             .help("Save scan result to file - Ex: -s result.txt")
             .short("s")
@@ -271,7 +280,7 @@ fn handle_port_scan(opt: option::PortOption) {
         true => {
             print!("Detecting service version... ");
             stdout().flush().unwrap();
-            service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone())
+            service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone(), opt.accept_invalid_certs)
         },
         false => HashMap::new(),
     };

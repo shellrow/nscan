@@ -5,12 +5,12 @@ use std::io::{BufReader, BufWriter};
 use std::net::{ToSocketAddrs,TcpStream};
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
-use reqwest::header::SERVER;
 use dns_lookup::lookup_addr;
+use native_tls::TlsConnector;
 use std::io::prelude::*;
 use rayon::prelude::*;
 
-pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>) -> HashMap<u16, String> {
+pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>, accept_invalid_certs: bool) -> HashMap<u16, String> {
     let service_map: Arc<Mutex<HashMap<u16, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let conn_timeout = Duration::from_millis(50);
     ports.into_par_iter().for_each(|port| 
@@ -20,7 +20,7 @@ pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>) -> HashMap<u16, 
             if let Some(addr) = addrs.find(|x| (*x).is_ipv4()) {
                 match TcpStream::connect_timeout(&addr, conn_timeout) {
                     Ok(stream) => {
-                        stream.set_read_timeout(Some(Duration::from_secs(2))).expect("Failed to set read timeout.");
+                        stream.set_read_timeout(Some(Duration::from_secs(5))).expect("Failed to set read timeout.");
                         let mut reader = BufReader::new(&stream);
                         let mut writer = BufWriter::new(&stream);
                         let msg: String;
@@ -31,7 +31,8 @@ pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>) -> HashMap<u16, 
                                 msg = parse_header(header);
                             },
                             443 => {
-                                msg = head_request_secure(ipaddr.to_string());
+                                let header = head_request_secure(ipaddr.to_string(), accept_invalid_certs);
+                                msg = parse_header(header);
                             },
                             _ => {
                                 msg = read_response(&mut reader).replace("\r\n", "");
@@ -68,15 +69,19 @@ fn write_head_request(writer: &mut BufWriter<&TcpStream>, ipaddr:String) {
 
 fn parse_header(response_header: String) -> String {
     let header_fields: Vec<&str>  = response_header.split("\r\n").collect();
+    if header_fields.len() == 1 {
+        return response_header;
+    }
+    let mut result_vec: Vec<String> = vec![];
     for field in header_fields {
-        if field.contains("Server:") {
-            return field.replace("Server: ", "");
+        if field.contains("Server:") || field.contains("Location:") {
+            result_vec.push(field.to_string());
         }
     }
-    return String::new();
+    return result_vec.iter().map(|s| s.trim()).collect::<Vec<_>>().join("\n            ");
 }
 
-fn head_request_secure(ipaddr:String) -> String {
+fn head_request_secure(ipaddr:String, accept_invalid_certs: bool) -> String {
     let ip_addr: std::net::IpAddr = match IpAddr::from_str(&ipaddr) {
         Ok(ip) => ip,
         Err(_) => return String::new(),
@@ -85,31 +90,40 @@ fn head_request_secure(ipaddr:String) -> String {
         Ok(host) => host,
         Err(_) => ipaddr,
     };
-    let client = match reqwest::blocking::Client::builder().danger_accept_invalid_certs(true).build() {
-        Ok(c) => c,
-        Err(_) => {
-            return String::new();
-        },
+    let connector = if accept_invalid_certs {
+        match TlsConnector::builder().danger_accept_invalid_certs(true).build() {
+            Ok(c) => c,
+            Err(e) => return e.to_string(),
+        }
+    }else{
+        match TlsConnector::new() {
+            Ok(c) => c,
+            Err(e) => return e.to_string(),
+        }
     };
-    let url: String = format!("https://{}/", host);
-    match client.head(&url).send() {
-        Ok(res) => {
-            if res.status().is_success() {
-                if let Some(server) = res.headers().get(SERVER){
-                    match server.to_str() {
-                        Ok(server_info) => {
-                            return server_info.to_string();
-                        },
-                        Err(_) => {
-                            return String::new();
-                        },
-                    }
-                }
-            }
-        },
-        Err(e) => {
-            return e.to_string();
-        },
+    let stream = match TcpStream::connect(format!("{}:443", host)) {
+        Ok(s) => s,
+        Err(e) => return e.to_string(),
+    };
+    match stream.set_read_timeout(Some(Duration::from_secs(20))) {
+        Ok(_) => {},
+        Err(e) => return e.to_string(),
     }
-    return String::new();
+    let mut stream = match connector.connect(&host, stream) {
+        Ok(s) => s,
+        Err(e) => return e.to_string(),
+    };
+    let msg = format!("HEAD / HTTP/1.1\r\nHost: {}\r\nAccept: */*\r\n\r\n", host);
+    match stream.write(msg.as_bytes()){
+        Ok(_) => {},
+        Err(e) => return e.to_string(),
+    }
+    let mut res = vec![];
+    match stream.read_to_end(&mut res){
+        Ok(_) => {
+            let result = String::from_utf8_lossy(&res);
+            return result.to_string();
+        },
+        Err(e) => return e.to_string(),
+    };
 }
