@@ -1,7 +1,24 @@
+[crates-badge]: https://img.shields.io/crates/v/nscan.svg
+[crates-url]: https://crates.io/crates/nscan
+[license-badge]: https://img.shields.io/crates/l/nscan.svg
 [netscan-url]: https://github.com/shellrow/netscan
-# nscan
+
+# nscan [![Crates.io][crates-badge]][crates-url] ![License][license-badge]
 Cross-platform network scan tool for host and service discovery. Written in Rust.  
 Aim to be simple and fast.  
+
+## Installation
+### Cargo Install
+```
+cargo install nscan
+```
+
+### Download from GitHub Releases 
+There are releases for following OS/architectures  
+in the [Releases](https://github.com/shellrow/nscan/releases) section.  
+- x86_64-unknown-linux-gnu
+- x86_64-apple-darwin
+- x86_64-pc-windows-msvc 
 
 ## Basic Usage
 ```
