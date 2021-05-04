@@ -85,7 +85,7 @@ Scan Time: 543.253681ms
 (Including 100ms of wait time)
 ```
 
-## Supported platformss
+## Supported platforms
 - Linux
 - macOS (OS X)
 - Windows
