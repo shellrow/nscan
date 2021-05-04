@@ -1,6 +1,6 @@
 [netscan-url]: https://github.com/shellrow/netscan
 # nscan
-Cross-platform network scan tool for host and service discovery.  
+Network scan tool for host and service discovery. Written in Rust.  
 Aim to be simple and fast.  
 
 ## Basic Usage
@@ -9,9 +9,10 @@ USAGE:
     nscan [FLAGS] [OPTIONS]
 
 FLAGS:
-    -d, --detail     Get details (service version and OS)
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    -d, --detail                Get details (service version and OS)
+    -A, --acceptinvalidcerts    Accept invalid certs (This introduces significant vulnerabilities)
+    -h, --help                  Prints help information
+    -V, --version               Prints version information
 
 OPTIONS:
     -p, --port <ip_addr:port>        Port Scan - Ex: -p 192.168.1.8:1-1024 (or 192.168.1.8:22,80,443)
@@ -29,10 +30,10 @@ Port scan and service version detection
 If you omit the port specification, use nscan-default-ports  
 ```
 shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8 -d
-nscan 0.3.0 macos
+nscan 0.4.0 macos
 https://github.com/shellrow/nscan
 
-Scan started at 2021-05-03 21:20:20.636720
+Scan started at 2021-05-04 23:58:40.139326
 
 ----Port Scan Options-------------------------------------------
     IP Address: 192.168.1.8
@@ -49,21 +50,21 @@ Detecting service version... Done
       22    ssh
             SSH-2.0-OpenSSH_7.9p1 Raspbian-10+deb10u2
       80    http
-            Apache/2.4.38 (Raspbian)
+            Server: Apache/2.4.38 (Raspbian)
     5900    rfb
             RFB 005.000
 ----------------------------------------------------------------
-Scan Time: 1.654746198s
+Scan Time: 1.732023441s
 (Including 100ms of wait time)
 ```
 
 Host scan  
 ```
 shellrow@MacBook-Pro nscan % sudo nscan -n 192.168.1.0    
-nscan 0.3.0 macos
+nscan 0.4.0 macos
 https://github.com/shellrow/nscan
 
-Scan started at 2021-05-03 21:22:28.344630
+Scan started at 2021-05-04 23:58:12.324610
 
 ----Host Scan Options-------------------------------------------
     Target Network: 192.168.1.0
@@ -84,5 +85,17 @@ Scan Time: 543.253681ms
 (Including 100ms of wait time)
 ```
 
+## Supported platformss
+- Linux
+- macOS (OS X)
+- Windows
+
 ## About netscan (lib)
 Please check my [repository][netscan-url] for detail
+
+## Security Notes
+`A(--acceptinvalidcerts)` flag allow you to trust invalid certificates and attempt TLS connection.  
+This flag should not be used unless you are explicitly aware of it, such as when the service you are managing uses self-signed certificate.
+
+## Additional Notes
+This tool is intended for network analysis.  
