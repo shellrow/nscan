@@ -14,11 +14,8 @@ cargo install nscan
 ```
 
 ### Download from GitHub Releases 
-There are releases for following OS/architectures  
-in the [Releases](https://github.com/shellrow/nscan/releases) section.  
-- x86_64-unknown-linux-gnu
-- x86_64-apple-darwin
-- x86_64-pc-windows-msvc 
+Pre-built binaries for several OS/architectures are available  
+in [Releases](https://github.com/shellrow/nscan/releases) section.  
 
 ## Basic Usage
 ```
