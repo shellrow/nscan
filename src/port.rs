@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 use rayon::prelude::*;
 use std::net::{ToSocketAddrs,TcpStream};
 use crate::PortScanner;
+use std::sync::mpsc::Sender;
 
 /// Type of port scan 
 /// 
@@ -46,7 +47,8 @@ pub fn scan_ports(interface: &pnet::datalink::NetworkInterface, scan_options: &P
     // run port scan
     match scan_options.scan_type {
         PortScanType::ConnectScan => {
-            run_connect_scan(scan_options, &open_ports, &stop, &scan_status);
+            let thread_tx: Arc<Mutex<Sender<usize>>> = Arc::new(Mutex::new(scanner.thread_tx.clone()));
+            run_connect_scan(scan_options, &open_ports, &stop, &scan_status, thread_tx);
         },
         _ => {
             let (mut tx, mut rx) = match pnet::datalink::channel(&interface, Default::default()) {
@@ -226,11 +228,12 @@ fn append_packet_info(_l3: &dyn EndPoints, l4: &dyn EndPoints, scan_options: &Po
     }
 }
 
-fn run_connect_scan(scan_options: &PortScanOptions, open_ports: &Arc<Mutex<Vec<u16>>>, stop: &Arc<Mutex<bool>>, scan_status: &Arc<Mutex<ScanStatus>>){
+fn run_connect_scan(scan_options: &PortScanOptions, open_ports: &Arc<Mutex<Vec<u16>>>, stop: &Arc<Mutex<bool>>, scan_status: &Arc<Mutex<ScanStatus>>, thread_tx: Arc<Mutex<Sender<usize>>>){
     let ip_addr = scan_options.dst_ip.clone();
     let ports = scan_options.target_ports.clone();
     let conn_timeout = Duration::from_millis(50);
     let start_time = Instant::now();
+    let cnt: Arc<Mutex<usize>> = Arc::new(Mutex::new(1));
     ports.into_par_iter().for_each(|port| 
         {
             let socket_addr_str = format!("{}:{}", ip_addr, port);
@@ -248,6 +251,8 @@ fn run_connect_scan(scan_options: &PortScanOptions, open_ports: &Arc<Mutex<Vec<u
                 *stop.lock().unwrap() = true;
                 return;
             }
+            thread_tx.lock().unwrap().send(*cnt.lock().unwrap()).unwrap();
+            *cnt.lock().unwrap() += 1;
         }
     );
     *scan_status.lock().unwrap() = ScanStatus::Done;
