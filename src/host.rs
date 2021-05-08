@@ -1,5 +1,6 @@
 use crate::icmp;
 use crate::status::ScanStatus;
+use crate::HostScanner;
 use std::{thread, time};
 use std::time::{Duration, Instant};
 use std::net::IpAddr;
@@ -14,7 +15,7 @@ pub struct HostScanOptions {
     pub wait_time: Duration,
 }
 
-pub fn scan_hosts(scan_options: &HostScanOptions) ->(Vec<String>, ScanStatus)
+pub fn scan_hosts(scan_options: &HostScanOptions, scanner: &mut HostScanner) ->(Vec<String>, ScanStatus)
 {
     let mut result = vec![];
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
@@ -25,7 +26,7 @@ pub fn scan_hosts(scan_options: &HostScanOptions) ->(Vec<String>, ScanStatus)
         Ok((tx, rx)) => (tx, rx),
         Err(e) => panic!("Error happened {}", e),
     };
-    rayon::join(|| send_icmp_packet(&mut tx, &scan_options, &stop),
+    rayon::join(|| send_icmp_packet(&mut tx, &scan_options, &stop, scanner),
                 || receive_packets(&mut rx, &scan_options, &stop, &up_hosts, &scan_status)
     );
     up_hosts.lock().unwrap().sort();
@@ -35,13 +36,16 @@ pub fn scan_hosts(scan_options: &HostScanOptions) ->(Vec<String>, ScanStatus)
     return (result, *scan_status.lock().unwrap());
 }
 
-fn send_icmp_packet(tx: &mut pnet::transport::TransportSender, scan_options: &HostScanOptions, stop: &Arc<Mutex<bool>>){
+fn send_icmp_packet(tx: &mut pnet::transport::TransportSender, scan_options: &HostScanOptions, stop: &Arc<Mutex<bool>>, scanner: &mut HostScanner){
+    let mut cnt: usize = 1;
     for host in &scan_options.target_hosts{
         thread::sleep(time::Duration::from_millis(1));
         let mut buf = vec![0; 16];
         let mut icmp_packet = pnet::packet::icmp::echo_request::MutableEchoRequestPacket::new(&mut buf[..]).unwrap();
         icmp::build_icmp_packet(&mut icmp_packet);
         let _result = tx.send_to(icmp_packet, *host);
+        scanner.thread_tx.send(cnt).unwrap();
+        cnt += 1;
     }
     thread::sleep(scan_options.wait_time);
     *stop.lock().unwrap() = true;

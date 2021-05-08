@@ -4,20 +4,24 @@ use std::str::FromStr;
 use std::fs::read_to_string;
 use std::collections::HashMap;
 use std::time::Duration;
+use std::sync::mpsc::{self, Sender, Receiver};
+use std::thread;
+use std::convert::TryInto;
+use std::time::Instant;
 use ipnet::{Ipv4Net};
-use netscan::{ScanStatus, PortScanType};
+use netscan::ScanStatus;
 use netscan::{PortScanner, HostScanner};
 use netscan::arp;
 use default_net;
 use super::{option, db, service};
 use super::sys::{self, SPACE4};
 use crossterm::style::Colorize;
+use indicatif::{ProgressBar, ProgressStyle};
 
 pub fn handle_port_scan(opt: option::PortOption) {
     opt.show_options();
     println!();
-    print!("Scanning ports... ");
-    stdout().flush().unwrap();
+    println!("Scanning ports... ");
     let mut if_name: Option<&str> = None;
     if !opt.if_name.is_empty(){
         if_name = Some(&opt.if_name);
@@ -50,25 +54,88 @@ pub fn handle_port_scan(opt: option::PortOption) {
     port_scanner.set_scan_type(opt.scan_type);
     port_scanner.set_timeout(opt.timeout);
     port_scanner.set_wait_time(opt.wait_time);
-    port_scanner.run_scan();
+    let (tx, rx): (Sender<usize>, Receiver<usize>) = mpsc::channel();
+    port_scanner.set_thread_sender(tx);
+    let port_scanner = thread::spawn(move || {
+        port_scanner.run_scan();
+        port_scanner
+    });
+    let pb = ProgressBar::new(opt.port_list.len().try_into().unwrap());
+    let pb_style = ProgressStyle::default_bar().template("[{elapsed_precise}] {wide_bar} {pos}/{len} {msg}");
+    pb.set_style(pb_style);
+    pb.set_message(format!("..."));
+    loop {
+        match rx.recv(){
+            Ok(count) => {
+                if count == opt.port_list.len() {
+                    pb.finish_with_message("Done");
+                    break;
+                }else if count == 0 {
+                    pb.finish_with_message("Timed out");
+                    break;
+                }else{
+                    pb.set_position(count.try_into().unwrap());
+                }
+            },
+            Err(e) => {
+                println!("{}",e);
+                break;
+            },
+        }
+    }
+    let mut port_scanner = port_scanner.join().unwrap();
     let result = port_scanner.get_result();
     match result.scan_status {
-        ScanStatus::Done => {println!("{}", "Done".green())},
-        ScanStatus::Timeout => {println!("{}", "Timed out".yellow())},
-        _ => {println!("{}", "Error".red())},
+        ScanStatus::Error => {println!("{}", "An error occurred during scan".red());},
+        _ => {},
     }
     let tcp_map = db::get_tcp_map();
+    let d_start_time = Instant::now();
     let detail_map: HashMap<u16, String> = match opt.include_detail {
         true => {
-            print!("Detecting service version... ");
-            stdout().flush().unwrap();
-            service::detect_service_version(port_scanner.get_target_ipaddr(), result.open_ports.clone(), opt.accept_invalid_certs)
+            println!("Detecting service version... ");
+            let target_ip = port_scanner.get_target_ipaddr().clone();
+            let open_ports = result.open_ports.clone();
+            let accept_invalid_certs = opt.accept_invalid_certs.clone();
+            let mut cnt: usize = 0;
+            let (tx, rx): (Sender<usize>, Receiver<usize>) = mpsc::channel();
+            let d_result = thread::spawn(move || {
+                service::detect_service_version(target_ip, open_ports, accept_invalid_certs, tx)
+            });
+            let pb = ProgressBar::new(result.open_ports.len().try_into().unwrap());
+            let pb_style = ProgressStyle::default_bar()
+                //.template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}")
+                .template("[{elapsed_precise}] {wide_bar} {pos}/{len} {msg}");
+                //progress_chars("##-");
+            pb.set_style(pb_style);
+            pb.set_message(format!("..."));
+            loop {
+                match rx.recv(){
+                    Ok(count) => {
+                        if count == 0 {
+                            pb.finish_with_message("Done");
+                            break;
+                        }else{
+                            pb.inc(1);
+                            cnt += 1;
+                        }
+                    },
+                    Err(e) => {
+                        println!("{}",e);
+                        break;
+                    },
+                }
+                if cnt == result.open_ports.len() {
+                    pb.finish_with_message("Done");
+                    break;
+                }
+            }
+            let detail_map = d_result.join().unwrap();
+            detail_map
         },
         false => HashMap::new(),
     };
-    if detail_map.len() > 0 {
-        println!("{}", "Done".green());
-    }
+    let detection_time = Instant::now().duration_since(d_start_time);
     println!();
     if result.open_ports.len() == 0 {
         println!("No open port found on target.");
@@ -92,14 +159,9 @@ pub fn handle_port_scan(opt: option::PortOption) {
         }
     }
     sys::print_fix32("", sys::FillStr::Hyphen);
-    println!("Scan Time: {:?}", result.scan_time);
-    match port_scanner.get_scan_type() {
-        PortScanType::ConnectScan => {},
-        _=> {
-            if port_scanner.get_wait_time() > Duration::from_millis(0) {
-                println!("(Including {:?} of wait time)", port_scanner.get_wait_time());
-            }
-        },
+    println!("Port Scan Time: {:?}", result.scan_time);
+    if detail_map.len() > 0 {
+        println!("Service Detection Time: {:?}", detection_time);
     }
     if !opt.save_path.is_empty() {
         let s_result = port_scanner.get_result();

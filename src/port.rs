@@ -9,6 +9,7 @@ use pnet::packet::Packet;
 use std::time::{Duration, Instant};
 use rayon::prelude::*;
 use std::net::{ToSocketAddrs,TcpStream};
+use crate::PortScanner;
 
 /// Type of port scan 
 /// 
@@ -35,7 +36,7 @@ pub struct PortScanOptions {
     pub send_rate: Duration,
 }
 
-pub fn scan_ports(interface: &pnet::datalink::NetworkInterface, scan_options: &PortScanOptions) -> (Vec<u16>, ScanStatus)
+pub fn scan_ports(interface: &pnet::datalink::NetworkInterface, scan_options: &PortScanOptions, scanner: &mut PortScanner) -> (Vec<u16>, ScanStatus)
 {
     let mut result = vec![];
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
@@ -53,7 +54,7 @@ pub fn scan_ports(interface: &pnet::datalink::NetworkInterface, scan_options: &P
                 Ok(_) => panic!("Unknown channel type"),
                 Err(e) => panic!("Error happened {}", e),
             };
-            rayon::join(|| send_packets(&mut tx, &scan_options, &stop),
+            rayon::join(|| send_packets(&mut tx, &scan_options, &stop, scanner),
                         || receive_packets(&mut rx, &scan_options, &open_ports, &close_ports, &stop, &scan_status)
             );
         },
@@ -75,6 +76,12 @@ pub fn scan_ports(interface: &pnet::datalink::NetworkInterface, scan_options: &P
             }
         },
     }
+    match *scan_status.lock().unwrap() {
+        ScanStatus::Timeout | ScanStatus::Error => {
+            scanner.thread_tx.send(0).unwrap();
+        },
+        _ => {},
+    }
     result.sort();
     return (result, *scan_status.lock().unwrap());
 }
@@ -95,12 +102,15 @@ fn build_packet(scan_options: &PortScanOptions, tmp_packet: &mut [u8], target_po
     }
 }
 
-fn send_packets(tx: &mut Box<dyn pnet::datalink::DataLinkSender>, scan_options: &PortScanOptions, stop: &Arc<Mutex<bool>>) {
+fn send_packets(tx: &mut Box<dyn pnet::datalink::DataLinkSender>, scan_options: &PortScanOptions, stop: &Arc<Mutex<bool>>, scanner: &mut PortScanner) {
+    let mut cnt: usize = 1;
     for port in &scan_options.target_ports {
         thread::sleep(scan_options.send_rate);
         tx.build_and_send(1, 66, &mut |packet: &mut [u8]| {
             build_packet(&scan_options, packet, *port);
         });
+        scanner.thread_tx.send(cnt).unwrap();
+        cnt += 1;
     }
     thread::sleep(scan_options.wait_time);
     *stop.lock().unwrap() = true;

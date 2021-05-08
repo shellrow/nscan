@@ -15,6 +15,7 @@ mod host;
 
 use std::net::{IpAddr, Ipv4Addr};
 use std::time::{Duration, Instant};
+use std::sync::mpsc::{self, Sender, Receiver};
 use default_net;
 
 pub use port::PortScanType;
@@ -40,6 +41,8 @@ pub struct HostScanner {
     wait_time: Duration,
     /// Result of host scan  
     scan_result: HostScanResult,
+    /// Thread sender
+    thread_tx: Sender<usize>, 
 }
 
 /// Structure for port scan  
@@ -66,6 +69,8 @@ pub struct PortScanner {
     send_rate: Duration,
     /// Result of port scan  
     scan_result: PortScanResult,
+    /// Thread sender
+    thread_tx: Sender<usize>, 
 }
 
 /// Result of HostScanner::run_scan  
@@ -93,6 +98,7 @@ pub struct PortScanResult {
 impl HostScanner{
     /// Construct new HostScanner  
     pub fn new() -> NewHostScannerResult {
+        let (tx, _rx): (Sender<usize>, Receiver<usize>) = mpsc::channel();
         let ini_scan_result = HostScanResult{
             up_hosts: vec![],
             scan_time: Duration::from_millis(1),
@@ -104,6 +110,7 @@ impl HostScanner{
             timeout: Duration::from_millis(10000),
             wait_time: Duration::from_millis(300),
             scan_result: ini_scan_result,
+            thread_tx: tx,
         };
         Ok(host_scanner)
     }
@@ -157,7 +164,7 @@ impl HostScanner{
             wait_time: self.wait_time,
         };
         let start_time = Instant::now();
-        let (uphosts, status) = host::scan_hosts(&hs_options);
+        let (uphosts, status) = host::scan_hosts(&hs_options, self);
         self.scan_result.up_hosts = uphosts;
         self.scan_result.scan_status = status;
         self.scan_result.scan_time = Instant::now().duration_since(start_time);
@@ -173,6 +180,7 @@ impl PortScanner{
     /// 
     /// Specify None for default. `PortScanner::new(None)`
     pub fn new(_if_name: Option<&str>) -> NewPortScannerResult{
+        let (tx, _rx): (Sender<usize>, Receiver<usize>) = mpsc::channel();
         let ini_scan_result = PortScanResult{
             open_ports: vec![],
             scan_time: Duration::from_millis(1),
@@ -189,6 +197,7 @@ impl PortScanner{
             wait_time: Duration::from_millis(100),
             send_rate: Duration::from_millis(1),
             scan_result: ini_scan_result,
+            thread_tx: tx, 
         };
         if let Some(if_name) = _if_name {
             let if_index = interface::get_interface_index_by_name(if_name.to_string());
@@ -249,6 +258,10 @@ impl PortScanner{
     /// Set source port number 
     pub fn set_src_port(&mut self, src_port: u16){
         self.src_port_num = src_port;
+    }
+    /// Set source port number 
+    pub fn set_thread_sender(&mut self, tx: Sender<usize>){
+        self.thread_tx = tx;
     }
     /// Get network interface index
     pub fn get_if_index(&mut self) -> u32 {
@@ -336,7 +349,7 @@ impl PortScanner{
             send_rate: self.send_rate,
         };
         let start_time = Instant::now();
-        let (open_ports, status) = port::scan_ports(&interface, &ps_options);
+        let (open_ports, status) = port::scan_ports(&interface, &ps_options, self);
         self.scan_result.open_ports = open_ports;
         self.scan_result.scan_status = status;
         self.scan_result.scan_time = Instant::now().duration_since(start_time);

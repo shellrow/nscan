@@ -215,4 +215,3 @@ fn show_banner_with_starttime() {
     println!("Scan started at {}", local_datetime);
     println!();
 }
-

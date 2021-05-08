@@ -9,9 +9,11 @@ use dns_lookup::lookup_addr;
 use native_tls::TlsConnector;
 use std::io::prelude::*;
 use rayon::prelude::*;
+use std::sync::mpsc::Sender;
 
-pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>, accept_invalid_certs: bool) -> HashMap<u16, String> {
+pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>, accept_invalid_certs: bool, thread_tx: Sender<usize>) -> HashMap<u16, String> {
     let service_map: Arc<Mutex<HashMap<u16, String>>> = Arc::new(Mutex::new(HashMap::new()));
+    let thread_tx: Arc<Mutex<Sender<usize>>> = Arc::new(Mutex::new(thread_tx));
     let conn_timeout = Duration::from_millis(50);
     ports.into_par_iter().for_each(|port| 
         {
@@ -43,8 +45,10 @@ pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>, accept_invalid_c
                     Err(_) => {},
                 }
             }
+            thread_tx.lock().unwrap().send(1).unwrap();
         }
     );
+    thread_tx.lock().unwrap().send(0).unwrap();
     let result_map: HashMap<u16, String> = service_map.lock().unwrap().clone();
     return result_map;
 }
