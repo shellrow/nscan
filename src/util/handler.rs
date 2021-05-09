@@ -1,9 +1,7 @@
-use std::io::{stdout, Write};
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 use std::fs::read_to_string;
 use std::collections::HashMap;
-use std::time::Duration;
 use std::sync::mpsc::{self, Sender, Receiver};
 use std::thread;
 use std::convert::TryInto;
@@ -14,13 +12,15 @@ use netscan::{PortScanner, HostScanner};
 use netscan::arp;
 use default_net;
 use super::{option, db, service};
-use super::sys::{self, SPACE4};
+use super::sys;
 use crossterm::style::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
+use term_table::{Table, TableStyle};
+use term_table::table_cell::{TableCell,Alignment};
+use term_table::row::Row;
 
 pub fn handle_port_scan(opt: option::PortOption) {
     opt.show_options();
-    println!();
     println!("Scanning ports... ");
     let mut if_name: Option<&str> = None;
     if !opt.if_name.is_empty(){
@@ -141,28 +141,58 @@ pub fn handle_port_scan(opt: option::PortOption) {
         println!("No open port found on target.");
         return;
     }
-    sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
-    println!("{} open port(s) / scanned {} port(s) ", result.open_ports.len(), opt.port_list.len());
-    println!("{}PORT{}SERVICE", SPACE4, SPACE4);
+    let mut table = Table::new();
+    table.max_column_width = 40;
+    table.style = TableStyle::simple();
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Scan Reports", 3, Alignment::Center)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment(format!("{} open port(s) / scanned {} port(s) ", result.open_ports.len(), opt.port_list.len()), 3, Alignment::Center)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("PORT", 1, Alignment::Left),
+        TableCell::new_with_alignment("SERVICE", 1, Alignment::Left),
+        TableCell::new_with_alignment("SERVICE VERSION", 1, Alignment::Left)
+    ]));
     for port in result.open_ports {
         let service_version: String = match detail_map.get(&port) {
             Some(v) => v.to_string(),
             None => String::from("None"),
         };
-        match tcp_map.get(&port.to_string()) {
+        let service = match tcp_map.get(&port.to_string()) {
             Some(service_name) => {
-                print_service(port.to_string(), service_name.to_string(), service_version);
+                service_name.to_string()
             },
             None => {
-                print_service(port.to_string(), String::from("Unknown service"), service_version);
+                String::from("Unknown service")
             },
-        }
+        };
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment(format!("{}", port), 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("{}", service), 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("{}", service_version.trim_end()), 1, Alignment::Left)
+        ]));
     }
-    sys::print_fix32("", sys::FillStr::Hyphen);
-    println!("Port Scan Time: {:?}", result.scan_time);
+    println!("{}", table.render());
+
+    let mut table = Table::new();
+    table.max_column_width = 40;
+    table.style = TableStyle::simple();
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Performance", 2, Alignment::Center)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Port Scan Time", 1, Alignment::Left),
+        TableCell::new_with_alignment(format!("{:?}", result.scan_time), 1, Alignment::Left)
+    ]));
     if detail_map.len() > 0 {
-        println!("Service Detection Time: {:?}", detection_time);
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Service Detection Time", 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("{:?}", detection_time), 1, Alignment::Left)
+        ]));
     }
+    println!("{}", table.render());
     if !opt.save_path.is_empty() {
         let s_result = port_scanner.get_result();
         save_port_result(&&opt, s_result, &tcp_map);
@@ -172,8 +202,6 @@ pub fn handle_port_scan(opt: option::PortOption) {
 pub fn handle_host_scan(opt: option::HostOption) {
     opt.show_options();
     println!();
-    print!("Scanning... ");
-    stdout().flush().unwrap();
     let mut host_scanner = match HostScanner::new(){
         Ok(scanner) => (scanner),
         Err(e) => panic!("Error creating scanner: {}", e),
@@ -221,14 +249,43 @@ pub fn handle_host_scan(opt: option::HostOption) {
             }
         }
     }
+    let target_hosts = host_scanner.get_target_hosts();
     host_scanner.set_timeout(opt.timeout);
     host_scanner.set_wait_time(opt.wait_time);
-    host_scanner.run_scan();
+    let (tx, rx): (Sender<usize>, Receiver<usize>) = mpsc::channel();
+    host_scanner.set_thread_sender(tx);
+    let host_scanner = thread::spawn(move || {
+        host_scanner.run_scan();
+        host_scanner
+    });
+    let pb = ProgressBar::new(target_hosts.len().try_into().unwrap());
+    let pb_style = ProgressStyle::default_bar().template("[{elapsed_precise}] {wide_bar} {pos}/{len} {msg}");
+    pb.set_style(pb_style);
+    pb.set_message(format!("..."));
+    loop {
+        match rx.recv(){
+            Ok(count) => {
+                if count == target_hosts.len() {
+                    pb.finish_with_message("Done");
+                    break;
+                }else if count == 0 {
+                    pb.finish_with_message("Timed out");
+                    break;
+                }else{
+                    pb.set_position(count.try_into().unwrap());
+                }
+            },
+            Err(e) => {
+                println!("{}",e);
+                break;
+            },
+        }
+    }
+    let mut host_scanner = host_scanner.join().unwrap();
     let result = host_scanner.get_result();
     match result.scan_status {
-        ScanStatus::Done => {println!("{}", "Done".green())},
-        ScanStatus::Timeout => {println!("{}", "Timed out".yellow())},
-        _ => {println!("{}", "Error".red())},
+        ScanStatus::Error => {println!("{}", "Error".red())},
+        _ => {},
     }
     println!();
     if result.up_hosts.len() == 0 {
@@ -239,36 +296,66 @@ pub fn handle_host_scan(opt: option::HostOption) {
     let mut result_map: HashMap<String, String> = HashMap::new();
     let interfaces = pnet::datalink::interfaces();
     let interface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == default_interface.index).next().expect("Failed to get Interface");
-    sys::print_fix32("Scan Reports", sys::FillStr::Hyphen);
-    println!("{} host(s) up / {} IP address(es)", result.up_hosts.len(), host_scanner.get_target_hosts().len());
-    println!("{}IP ADDR {}MAC ADDR", SPACE4, SPACE4.repeat(3));
+    let mut table = Table::new();
+    table.max_column_width = 40;
+    table.style = TableStyle::simple();
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Scan Reports", 3, Alignment::Center)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment(format!("{} host(s) up / {} IP address(es)", result.up_hosts.len(), host_scanner.get_target_hosts().len()), 3, Alignment::Center)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("IP ADDR", 1, Alignment::Left),
+        TableCell::new_with_alignment("MAC ADDR", 1, Alignment::Left),
+        TableCell::new_with_alignment("VENDOR NAME", 1, Alignment::Left)
+    ]));
     let oui_map = db::get_oui_map();
     for host in result.up_hosts {
         match host.parse::<Ipv4Addr>(){
             Ok(ipaddr) => {
                 let mac_addr: String = arp::get_mac_through_arp(&interface, ipaddr).to_string();
                 if mac_addr.len() < 17 {
-                    print!("{}{}{}", SPACE4, ipaddr.to_string().cyan(), " ".repeat(16 - ipaddr.to_string().len()));
-                    println!("{}{} Unknown", SPACE4, mac_addr);
+                    table.add_row(Row::new(vec![
+                        TableCell::new_with_alignment(ipaddr.to_string(), 1, Alignment::Left),
+                        TableCell::new_with_alignment(mac_addr.clone(), 1, Alignment::Left),
+                        TableCell::new_with_alignment("Unknown", 1, Alignment::Left)
+                    ]));
                     result_map.insert(ipaddr.to_string(), format!("{} Unknown", mac_addr));
                 }else{
                     let prefix8 = mac_addr[0..8].to_uppercase();
                     match oui_map.get(&prefix8) {
                         Some(vendor_name) => {
                             if prefix8 == "00:00:00".to_string() {
-                                print_host_info(ipaddr.to_string(), mac_addr.clone(), String::from("Unknown"));
+                                table.add_row(Row::new(vec![
+                                    TableCell::new_with_alignment(ipaddr.to_string(), 1, Alignment::Left),
+                                    TableCell::new_with_alignment(mac_addr.clone(), 1, Alignment::Left),
+                                    TableCell::new_with_alignment("Unknown", 1, Alignment::Left)
+                                ]));
                                 result_map.insert(ipaddr.to_string(), format!("{} Unknown", mac_addr));
                             }else{
-                                print_host_info(ipaddr.to_string(), mac_addr.clone(), vendor_name.to_string());
+                                table.add_row(Row::new(vec![
+                                    TableCell::new_with_alignment(ipaddr.to_string(), 1, Alignment::Left),
+                                    TableCell::new_with_alignment(mac_addr.clone(), 1, Alignment::Left),
+                                    TableCell::new_with_alignment(vendor_name.to_string(), 1, Alignment::Left)
+                                ]));
                                 result_map.insert(ipaddr.to_string(), format!("{} {}", mac_addr, vendor_name));
                             }
                         },
                         None => {
                             if ipaddr.to_string() == default_interface.ipv4[0].to_string() {
-                                print_host_info(ipaddr.to_string(), mac_addr.clone(), String::from("Own device"));
+                                table.add_row(Row::new(vec![
+                                    TableCell::new_with_alignment(ipaddr.to_string(), 1, Alignment::Left),
+                                    TableCell::new_with_alignment(mac_addr.clone(), 1, Alignment::Left),
+                                    TableCell::new_with_alignment("Own device", 1, Alignment::Left)
+                                ]));
                                 result_map.insert(ipaddr.to_string(), format!("{} Own device", mac_addr));
                             }else{
-                                print_host_info(ipaddr.to_string(), mac_addr.clone(), String::from("Unknown"));
+                                table.add_row(Row::new(vec![
+                                    TableCell::new_with_alignment(ipaddr.to_string(), 1, Alignment::Left),
+                                    TableCell::new_with_alignment(mac_addr.clone(), 1, Alignment::Left),
+                                    TableCell::new_with_alignment("Unknown", 1, Alignment::Left)
+                                ]));
                                 result_map.insert(ipaddr.to_string(), format!("{} Unknown", mac_addr));
                             }
                         },
@@ -276,33 +363,46 @@ pub fn handle_host_scan(opt: option::HostOption) {
                 }
             },
             Err(_) => {
-                println!("{}{}", SPACE4, host.cyan());
+                table.add_row(Row::new(vec![
+                    TableCell::new_with_alignment(host.to_string(), 1, Alignment::Left),
+                    TableCell::new_with_alignment("", 1, Alignment::Left),
+                    TableCell::new_with_alignment("", 1, Alignment::Left)
+                ]));
             },
         }
     }
-    sys::print_fix32("", sys::FillStr::Hyphen);
-    println!("Scan Time: {:?}", result.scan_time);
-    if host_scanner.get_wait_time() > Duration::from_millis(0) {
-        println!("(Including {:?} of wait time)", host_scanner.get_wait_time());
-    }
+    println!("{}", table.render());
+
+    let mut table = Table::new();
+    table.max_column_width = 40;
+    table.style = TableStyle::simple();
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Performance", 2, Alignment::Center)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Scan Time", 1, Alignment::Left),
+        TableCell::new_with_alignment(format!("{:?}", result.scan_time), 1, Alignment::Left)
+    ]));
+    println!("{}", table.render());
+    
     if !opt.save_path.is_empty() {
         save_host_result(&opt, result_map);
     }
 }
 
-fn print_service(port: String, service_name: String, service_version: String){
+/* fn print_service(port: String, service_name: String, service_version: String){
     print!("{}{}", " ".repeat(8 - port.to_string().len()),port.to_string().cyan());
     println!("{}{}", SPACE4, service_name);
     if !service_version.is_empty() && service_version != "None" {
         println!("{}{}", SPACE4.repeat(3), service_version);
     }
-}
+} */
 
-fn print_host_info(ip_addr: String, mac_addr: String, vendor_name: String){
+/* fn print_host_info(ip_addr: String, mac_addr: String, vendor_name: String){
     print!("{}{}{}", SPACE4, ip_addr.to_string().cyan(), " ".repeat(16 - ip_addr.to_string().len()));
     print!("{}{} ", SPACE4, mac_addr);
     println!("{}", vendor_name);
-}
+} */
 
 fn save_port_result(opt: &option::PortOption, result: netscan::PortScanResult, tcp_map: &HashMap<String, String>) {
     let mut data = "[OPTIONS]".to_string();

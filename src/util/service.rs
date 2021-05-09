@@ -82,7 +82,7 @@ fn parse_header(response_header: String) -> String {
             result_vec.push(field.to_string());
         }
     }
-    return result_vec.iter().map(|s| s.trim()).collect::<Vec<_>>().join("\n            ");
+    return result_vec.iter().map(|s| s.trim()).collect::<Vec<_>>().join("\n");
 }
 
 fn head_request_secure(ipaddr:String, accept_invalid_certs: bool) -> String {

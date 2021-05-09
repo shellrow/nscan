@@ -2,6 +2,9 @@ use netscan::PortScanType;
 use super::{sys, db};
 use std::time::Duration;
 use dns_lookup::lookup_host;
+use term_table::{Table, TableStyle};
+use term_table::table_cell::{TableCell,Alignment};
+use term_table::row::Row;
 
 pub struct PortOption{
     pub ip_addr: String,
@@ -151,29 +154,53 @@ impl PortOption {
         self.save_path = save_path;
     }
     pub fn show_options(&self){
-        sys::print_fix32("Port Scan Options", sys::FillStr::Hyphen);
-        println!("{}IP Address: {}", sys::SPACE4, self.ip_addr);
+        let mut table = Table::new();
+        table.max_column_width = 40;
+        table.style = TableStyle::simple();
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Port Scan Options", 2, Alignment::Center)
+        ]));
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("IP Address", 1, Alignment::Left),
+            TableCell::new_with_alignment(self.ip_addr.to_string(), 1, Alignment::Left)
+        ]));
         if self.use_list {
-            println!("{}Port List (file path): {}", sys::SPACE4, self.list_path);
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("Port List (file path)", 1, Alignment::Left),
+                TableCell::new_with_alignment(self.list_path.to_string(), 1, Alignment::Left)
+            ]));
         }else{
             if self.start_port < self.end_port {
-                println!("{}Port Range: {}-{}", sys::SPACE4, self.start_port, self.end_port);
+                table.add_row(Row::new(vec![
+                    TableCell::new_with_alignment("Port Range", 1, Alignment::Left),
+                    TableCell::new_with_alignment(format!("{}-{}", self.start_port, self.end_port), 1, Alignment::Left)
+                ]));
             }else{
                 if self.default_scan {
-                    println!("{}Port List: nscan-default-ports (1005 ports)", sys::SPACE4);
+                    table.add_row(Row::new(vec![
+                        TableCell::new_with_alignment("Port List", 1, Alignment::Left),
+                        TableCell::new_with_alignment("nscan-default-ports (1005 ports)", 1, Alignment::Left)
+                    ]));
                 }else{
-                    println!("{}Port List: {:?}", sys::SPACE4, self.port_list);
+                    table.add_row(Row::new(vec![
+                        TableCell::new_with_alignment("Port List", 1, Alignment::Left),
+                        TableCell::new_with_alignment(format!("{:?}", self.port_list), 1, Alignment::Left)
+                    ]));
                 }
             }
         }
-        match self.scan_type {
-            PortScanType::SynScan => {println!("{}Scan Type: Syn Scan", sys::SPACE4);},
-            PortScanType::FinScan => {println!("{}Scan Type: Fin Scan", sys::SPACE4);},
-            PortScanType::XmasScan => {println!("{}Scan Type: Xmas Scan", sys::SPACE4);},
-            PortScanType::NullScan => {println!("{}Scan Type: Null Scan", sys::SPACE4);},
-            PortScanType::ConnectScan => {println!("{}Scan Type: Connect Scan", sys::SPACE4);},
-        }
-        sys::print_fix32("", sys::FillStr::Hyphen);
+        let scan_type = match self.scan_type {
+            PortScanType::SynScan => {String::from("Syn Scan")},
+            PortScanType::FinScan => {String::from("Fin Scan")},
+            PortScanType::XmasScan => {String::from("Xmas Scan")},
+            PortScanType::NullScan => {String::from("Null Scan")},
+            PortScanType::ConnectScan => {String::from("Connect Scan")},
+        };
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Scan Type", 1, Alignment::Left),
+            TableCell::new_with_alignment(scan_type, 1, Alignment::Left)
+        ]));
+        println!("{}", table.render());
     }
 }
 
@@ -224,12 +251,27 @@ impl HostOption {
         self.save_path = save_path;
     }
     pub fn show_options(&self){
-        sys::print_fix32("Host Scan Options", sys::FillStr::Hyphen);
+        let mut table = Table::new();
+        table.max_column_width = 40;
+        table.style = TableStyle::simple();
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Host Scan Options", 2, Alignment::Center)
+        ]));
         if self.scan_host_addr {
-            println!("{}Target Network: {}", sys::SPACE4, self.ip_addr);
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("Target Network", 1, Alignment::Left),
+                TableCell::new_with_alignment(self.ip_addr.to_string(), 1, Alignment::Left)
+            ]));
         }else{
-            println!("{}Target: Specified in list {}", sys::SPACE4, self.list_path);
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("Target Hosts", 1, Alignment::Left),
+                TableCell::new_with_alignment(self.list_path.to_string(), 1, Alignment::Left)
+            ]));
         }
-        sys::print_fix32("", sys::FillStr::Hyphen);
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Scan Type", 1, Alignment::Left),
+            TableCell::new_with_alignment("ICMP", 1, Alignment::Left)
+        ]));
+        println!("{}", table.render());
     }
 }

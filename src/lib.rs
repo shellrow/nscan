@@ -138,6 +138,10 @@ impl HostScanner{
     pub fn set_src_ipaddr(&mut self, src_ipaddr:IpAddr){
         self.src_ipaddr = src_ipaddr;
     }
+    /// Set source port number 
+    pub fn set_thread_sender(&mut self, tx: Sender<usize>){
+        self.thread_tx = tx;
+    }
     /// Get source IP Address
     pub fn get_src_ipaddr(&mut self) -> IpAddr {
         return self.src_ipaddr.clone();

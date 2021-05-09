@@ -33,6 +33,12 @@ pub fn scan_hosts(scan_options: &HostScanOptions, scanner: &mut HostScanner) ->(
     for host in up_hosts.lock().unwrap().iter(){
         result.push(host.to_string());
     }
+    match *scan_status.lock().unwrap() {
+        ScanStatus::Timeout | ScanStatus::Error => {
+            scanner.thread_tx.send(0).unwrap();
+        },
+        _ => {},
+    }
     return (result, *scan_status.lock().unwrap());
 }
 
