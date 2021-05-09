@@ -13,7 +13,6 @@ use std::env;
 use chrono::{Local, DateTime};
 use clap::{App, AppSettings, Arg, ArgGroup};
 use util::{option, validator, sys, handler};
-use crossterm::style::Colorize;
 
 const CRATE_UPDATE_DATE: &str = "2021-05-08";
 const CRATE_AUTHOR_GITHUB: &str = "shellrow <https://github.com/shellrow>";
@@ -46,7 +45,7 @@ fn main() {
             }
         }
         if require_admin && !sys::check_root() {
-            println!("{} This feature requires administrator privileges. ","Error:".red());
+            println!("Error: This feature requires administrator privileges. ");
             std::process::exit(0);
         }
         if let Some(v) = matches.value_of("port") {
@@ -80,7 +79,7 @@ fn main() {
         }
     }else if matches.is_present("host") {
         if !sys::check_root() {
-            println!("{} This feature requires administrator privileges. ","Error:".red());
+            println!("Error: This feature requires administrator privileges.");
             std::process::exit(0);
         }
         if let Some(v) = matches.value_of("host") {

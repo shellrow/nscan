@@ -6,14 +6,15 @@ use std::sync::mpsc::{self, Sender, Receiver};
 use std::thread;
 use std::convert::TryInto;
 use std::time::Instant;
-use ipnet::{Ipv4Net};
+
 use netscan::ScanStatus;
 use netscan::{PortScanner, HostScanner};
 use netscan::arp;
 use default_net;
 use super::{option, db, service};
 use super::sys;
-use crossterm::style::Colorize;
+
+use ipnet::Ipv4Net;
 use indicatif::{ProgressBar, ProgressStyle};
 use term_table::{Table, TableStyle};
 use term_table::table_cell::{TableCell,Alignment};
@@ -86,7 +87,7 @@ pub fn handle_port_scan(opt: option::PortOption) {
     let mut port_scanner = port_scanner.join().unwrap();
     let result = port_scanner.get_result();
     match result.scan_status {
-        ScanStatus::Error => {println!("{}", "An error occurred during scan".red());},
+        ScanStatus::Error => {println!("An error occurred during scan");},
         _ => {},
     }
     let tcp_map = db::get_tcp_map();
@@ -104,9 +105,7 @@ pub fn handle_port_scan(opt: option::PortOption) {
             });
             let pb = ProgressBar::new(result.open_ports.len().try_into().unwrap());
             let pb_style = ProgressStyle::default_bar()
-                //.template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}")
                 .template("[{elapsed_precise}] {wide_bar} {pos}/{len} {msg}");
-                //progress_chars("##-");
             pb.set_style(pb_style);
             pb.set_message(format!("..."));
             loop {
@@ -175,7 +174,6 @@ pub fn handle_port_scan(opt: option::PortOption) {
         ]));
     }
     println!("{}", table.render());
-
     let mut table = Table::new();
     table.max_column_width = 40;
     table.style = TableStyle::simple();
@@ -201,7 +199,7 @@ pub fn handle_port_scan(opt: option::PortOption) {
 
 pub fn handle_host_scan(opt: option::HostOption) {
     opt.show_options();
-    println!();
+    println!("Scanning... ");
     let mut host_scanner = match HostScanner::new(){
         Ok(scanner) => (scanner),
         Err(e) => panic!("Error creating scanner: {}", e),
@@ -284,7 +282,7 @@ pub fn handle_host_scan(opt: option::HostOption) {
     let mut host_scanner = host_scanner.join().unwrap();
     let result = host_scanner.get_result();
     match result.scan_status {
-        ScanStatus::Error => {println!("{}", "Error".red())},
+        ScanStatus::Error => {println!("An error occurred during scan")},
         _ => {},
     }
     println!();
@@ -372,7 +370,6 @@ pub fn handle_host_scan(opt: option::HostOption) {
         }
     }
     println!("{}", table.render());
-
     let mut table = Table::new();
     table.max_column_width = 40;
     table.style = TableStyle::simple();
@@ -384,25 +381,10 @@ pub fn handle_host_scan(opt: option::HostOption) {
         TableCell::new_with_alignment(format!("{:?}", result.scan_time), 1, Alignment::Left)
     ]));
     println!("{}", table.render());
-    
     if !opt.save_path.is_empty() {
         save_host_result(&opt, result_map);
     }
 }
-
-/* fn print_service(port: String, service_name: String, service_version: String){
-    print!("{}{}", " ".repeat(8 - port.to_string().len()),port.to_string().cyan());
-    println!("{}{}", SPACE4, service_name);
-    if !service_version.is_empty() && service_version != "None" {
-        println!("{}{}", SPACE4.repeat(3), service_version);
-    }
-} */
-
-/* fn print_host_info(ip_addr: String, mac_addr: String, vendor_name: String){
-    print!("{}{}{}", SPACE4, ip_addr.to_string().cyan(), " ".repeat(16 - ip_addr.to_string().len()));
-    print!("{}{} ", SPACE4, mac_addr);
-    println!("{}", vendor_name);
-} */
 
 fn save_port_result(opt: &option::PortOption, result: netscan::PortScanResult, tcp_map: &HashMap<String, String>) {
     let mut data = "[OPTIONS]".to_string();

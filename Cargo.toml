@@ -30,7 +30,6 @@ sudo = "0.6"
 dns-lookup = "1.0"
 native-tls = "0.2"
 clap = "2.33"
-crossterm = "0.19"
 indicatif = "0.16"
 term-table = "1.3"
 
