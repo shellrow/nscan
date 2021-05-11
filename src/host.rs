@@ -2,32 +2,28 @@ use crate::icmp;
 use crate::status::ScanStatus;
 use crate::HostScanner;
 use std::{thread, time};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
 use pnet::transport::TransportChannelType::Layer4;
 use pnet::transport::TransportProtocol::Ipv4;
 use pnet::transport::icmp_packet_iter;
+use std::sync::mpsc::Sender;
 
-pub struct HostScanOptions {
-    pub target_hosts: Vec<IpAddr>,
-    pub timeout: Duration,
-    pub wait_time: Duration,
-}
-
-pub fn scan_hosts(scan_options: &HostScanOptions, scanner: &mut HostScanner) ->(Vec<String>, ScanStatus)
+pub fn scan_hosts(scanner: &HostScanner, thread_tx: Sender<usize>) ->(Vec<String>, ScanStatus)
 {
     let mut result = vec![];
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     let up_hosts:Arc<Mutex<Vec<IpAddr>>> = Arc::new(Mutex::new(vec![]));
     let scan_status: Arc<Mutex<ScanStatus>> = Arc::new(Mutex::new(ScanStatus::Ready));
     let protocol = Layer4(Ipv4(pnet::packet::ip::IpNextHeaderProtocols::Icmp));
+    let s_thread_tx = thread_tx.clone();
     let (mut tx, mut rx) = match pnet::transport::transport_channel(4096, protocol) {
         Ok((tx, rx)) => (tx, rx),
         Err(e) => panic!("Error happened {}", e),
     };
-    rayon::join(|| send_icmp_packet(&mut tx, &scan_options, &stop, scanner),
-                || receive_packets(&mut rx, &scan_options, &stop, &up_hosts, &scan_status)
+    rayon::join(|| send_icmp_packet(&mut tx, &stop, scanner, s_thread_tx),
+                || receive_packets(&mut rx, scanner, &stop, &up_hosts, &scan_status)
     );
     up_hosts.lock().unwrap().sort();
     for host in up_hosts.lock().unwrap().iter(){
@@ -35,32 +31,32 @@ pub fn scan_hosts(scan_options: &HostScanOptions, scanner: &mut HostScanner) ->(
     }
     match *scan_status.lock().unwrap() {
         ScanStatus::Timeout | ScanStatus::Error => {
-            scanner.thread_tx.send(0).unwrap();
+            thread_tx.send(0).unwrap();
         },
         _ => {},
     }
     return (result, *scan_status.lock().unwrap());
 }
 
-fn send_icmp_packet(tx: &mut pnet::transport::TransportSender, scan_options: &HostScanOptions, stop: &Arc<Mutex<bool>>, scanner: &mut HostScanner){
+fn send_icmp_packet(tx: &mut pnet::transport::TransportSender, stop: &Arc<Mutex<bool>>, scanner: &HostScanner, thread_tx: Sender<usize>){
     let mut cnt: usize = 1;
-    for host in &scan_options.target_hosts{
+    for host in &scanner.target_hosts{
         thread::sleep(time::Duration::from_millis(1));
         let mut buf = vec![0; 16];
         let mut icmp_packet = pnet::packet::icmp::echo_request::MutableEchoRequestPacket::new(&mut buf[..]).unwrap();
         icmp::build_icmp_packet(&mut icmp_packet);
         let _result = tx.send_to(icmp_packet, *host);
-        scanner.thread_tx.send(cnt).unwrap();
+        thread_tx.send(cnt).unwrap();
         cnt += 1;
     }
-    thread::sleep(scan_options.wait_time);
+    thread::sleep(scanner.wait_time);
     *stop.lock().unwrap() = true;
 }
 
 #[cfg(any(unix, macos))]
 fn receive_packets(
     rx: &mut pnet::transport::TransportReceiver, 
-    scan_options: &HostScanOptions,
+    scanner: &HostScanner,
     stop: &Arc<Mutex<bool>>, 
     up_hosts: &Arc<Mutex<Vec<IpAddr>>>, 
     scan_status: &Arc<Mutex<ScanStatus>>){
@@ -70,7 +66,7 @@ fn receive_packets(
         match iter.next_with_timeout(time::Duration::from_millis(100)) {
             Ok(r) => {
                 if let Some((_packet, addr)) = r {
-                    if scan_options.target_hosts.contains(&addr) && !up_hosts.lock().unwrap().contains(&addr) {
+                    if scanner.target_hosts.contains(&addr) && !up_hosts.lock().unwrap().contains(&addr) {
                         up_hosts.lock().unwrap().push(addr);
                     }
                 }else{
@@ -85,7 +81,7 @@ fn receive_packets(
             *scan_status.lock().unwrap() = ScanStatus::Done;
             break;
         }
-        if Instant::now().duration_since(start_time) > scan_options.timeout {
+        if Instant::now().duration_since(start_time) > scanner.timeout {
             *scan_status.lock().unwrap() = ScanStatus::Timeout;
             break;
         }

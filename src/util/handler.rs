@@ -56,9 +56,8 @@ pub fn handle_port_scan(opt: option::PortOption) {
     port_scanner.set_timeout(opt.timeout);
     port_scanner.set_wait_time(opt.wait_time);
     let (tx, rx): (Sender<usize>, Receiver<usize>) = mpsc::channel();
-    port_scanner.set_thread_sender(tx);
     let port_scanner = thread::spawn(move || {
-        port_scanner.run_scan();
+        port_scanner.run_scan(tx);
         port_scanner
     });
     let pb = ProgressBar::new(opt.port_list.len().try_into().unwrap());
@@ -251,9 +250,8 @@ pub fn handle_host_scan(opt: option::HostOption) {
     host_scanner.set_timeout(opt.timeout);
     host_scanner.set_wait_time(opt.wait_time);
     let (tx, rx): (Sender<usize>, Receiver<usize>) = mpsc::channel();
-    host_scanner.set_thread_sender(tx);
     let host_scanner = thread::spawn(move || {
-        host_scanner.run_scan();
+        host_scanner.run_scan(tx);
         host_scanner
     });
     let pb = ProgressBar::new(target_hosts.len().try_into().unwrap());
