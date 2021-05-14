@@ -1,5 +1,4 @@
 pub mod sys;
-pub mod interface;
 pub mod db;
 pub mod validator;
 pub mod option;

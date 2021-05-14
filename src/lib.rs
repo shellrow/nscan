@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-mod interface;
+pub mod interface;
 pub mod arp;
 mod ethernet;
 mod ipv4;

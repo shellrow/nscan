@@ -36,7 +36,6 @@ fn main() {
     let app = get_app_settings();
     let matches = app.get_matches();
     let mut require_admin = true;
-    //Scan
     show_banner_with_starttime();
     if matches.is_present("port"){
         if let Some(p) = matches.value_of("portscantype") {
