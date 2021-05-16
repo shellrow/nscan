@@ -91,7 +91,7 @@ fn receive_packets(
 #[cfg(target_os = "windows")]
 fn receive_packets(
     rx: &mut pnet::transport::TransportReceiver, 
-    scan_options: &HostScanOptions,
+    scanner: &HostScanner,
     stop: &Arc<Mutex<bool>>, 
     up_hosts: &Arc<Mutex<Vec<IpAddr>>>, 
     scan_status: &Arc<Mutex<ScanStatus>>){
@@ -100,7 +100,7 @@ fn receive_packets(
     loop {
         match iter.next() {
             Ok((_packet, addr)) => {
-                if scan_options.target_hosts.contains(&addr) && !up_hosts.lock().unwrap().contains(&addr) {
+                if scanner.target_hosts.contains(&addr) && !up_hosts.lock().unwrap().contains(&addr) {
                     up_hosts.lock().unwrap().push(addr);
                 }
             },
@@ -112,7 +112,7 @@ fn receive_packets(
             *scan_status.lock().unwrap() = ScanStatus::Done;
             break;
         }
-        if Instant::now().duration_since(start_time) > scan_options.timeout {
+        if Instant::now().duration_since(start_time) > scanner.timeout {
             *scan_status.lock().unwrap() = ScanStatus::Timeout;
             break;
         }
