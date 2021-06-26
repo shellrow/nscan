@@ -332,7 +332,7 @@ impl PortScanner{
         self.src_ipaddr = iface_ip;
         let temp_scanner = self.clone();
         let start_time = Instant::now();
-        let (open_ports, status) = port::scan_ports(&interface, &temp_scanner, tx);
+        let (open_ports, status) = port::scan_ports(interface, temp_scanner, tx);
         self.scan_result.open_ports = open_ports;
         self.scan_result.scan_status = status;
         self.scan_result.scan_time = Instant::now().duration_since(start_time);
