@@ -48,7 +48,7 @@ pub fn scan_ports(interface: pnet::datalink::NetworkInterface, scanner: PortScan
             let mut cnt: usize = 1;
             for port in scanner.dst_ports.clone() {
                 let iface = interface.clone();
-                let sc1 = scanner.clone();
+                let sc = scanner.clone();
                 let send_stat: JoinHandle<u16> = thread::spawn(move || {
                     let (mut tx, mut _rx) = match pnet::datalink::channel(&iface, Default::default()) {
                         Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => (tx, rx),
@@ -60,7 +60,7 @@ pub fn scan_ports(interface: pnet::datalink::NetworkInterface, scanner: PortScan
                         },
                     };
                     tx.build_and_send(1, 66, &mut |packet: &mut [u8]| {
-                        build_packet(&sc1, packet, port);
+                        build_packet(&sc, packet, port);
                     });
                     return 0;
                 });
@@ -75,10 +75,25 @@ pub fn scan_ports(interface: pnet::datalink::NetworkInterface, scanner: PortScan
                 s_progress_tx.send(cnt).unwrap();
                 cnt += 1;
             }
-            // [WIP] Retransmit tcp packets
-            /* for port in retrans_ports{
-                println!("{}", port);
-            } */
+            for port in retrans_ports{
+                let iface = interface.clone();
+                let sc = scanner.clone();
+                let _send_stat: JoinHandle<u16> = thread::spawn(move || {
+                    let (mut tx, mut _rx) = match pnet::datalink::channel(&iface, Default::default()) {
+                        Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => (tx, rx),
+                        Ok(_) => {
+                            return 1;
+                        },
+                        Err(_) => {
+                            return 1;
+                        },
+                    };
+                    tx.build_and_send(1, 66, &mut |packet: &mut [u8]| {
+                        build_packet(&sc, packet, port);
+                    });
+                    return 0;
+                });
+            }
             thread::sleep(scanner.wait_time);
             match thread_tx.send(0) {
                 Ok(_) =>{},
