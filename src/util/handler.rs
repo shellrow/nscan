@@ -55,6 +55,7 @@ pub fn handle_port_scan(opt: option::PortOption) {
     port_scanner.set_scan_type(opt.scan_type);
     port_scanner.set_timeout(opt.timeout);
     port_scanner.set_wait_time(opt.wait_time);
+    port_scanner.set_multi_thread_enabled(opt.multi_thread_enabled);
     let (tx, rx): (Sender<usize>, Receiver<usize>) = mpsc::channel();
     let port_scanner = thread::spawn(move || {
         port_scanner.run_scan(tx);

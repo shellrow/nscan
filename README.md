@@ -23,6 +23,7 @@ USAGE:
     nscan [FLAGS] [OPTIONS]
 
 FLAGS:
+    -S, --singlethread          Run port scan in single-thread (default is multi-thread)
     -d, --detail                Get details (service version and OS)
     -A, --acceptinvalidcerts    Accept invalid certs (This introduces significant vulnerabilities)
     -h, --help                  Prints help information
@@ -47,7 +48,7 @@ shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8 -d
 nscan 0.6.0 macos
 https://github.com/shellrow/nscan
 
-Scan started at 2021-06-26 20:36:14.804831
+Scan started at 2021-06-27 02:03:16.422970
 
 +------------------------------------------------+
 |                Port Scan Options               |
@@ -82,9 +83,9 @@ Detecting service version...
 +----------------------------------------+
 |               Performance              |
 +-------------------------+--------------+
-| Port Scan Time          | 276.394561ms |
+| Port Scan Time          | 440.466082ms |
 +-------------------------+--------------+
-| Service Detection Time  | 5.071955157s |
+| Service Detection Time  | 5.065088811s |
 +-------------------------+--------------+
 ```
 
@@ -136,6 +137,9 @@ Scanning...
 - Linux
 - macOS (OS X)
 - Windows
+
+## Scan performance  
+By default, nscan's port scan runs in multi-threaded mode, but you can also run it in single-threaded mode if you have performance issues depending on environment.  
 
 ## About netscan (lib)
 Please check my [repository][netscan-url] for detail

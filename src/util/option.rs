@@ -22,6 +22,7 @@ pub struct PortOption{
     pub include_detail: bool,
     pub accept_invalid_certs: bool,
     pub save_path: String,
+    pub multi_thread_enabled: bool,
 }
 
 pub struct HostOption{
@@ -53,6 +54,7 @@ impl PortOption {
             include_detail: false,
             accept_invalid_certs: false,
             save_path: String::new(),
+            multi_thread_enabled: true,
         };
         return port_option;
     }
@@ -149,6 +151,9 @@ impl PortOption {
     }
     pub fn set_accept_invalid_certs(&mut self, accept: bool){
         self.accept_invalid_certs = accept;
+    }
+    pub fn set_multi_thread_enabled(&mut self, opt: bool){
+        self.multi_thread_enabled = opt;
     }
     pub fn set_save_path(&mut self, save_path: String){
         self.save_path = save_path;

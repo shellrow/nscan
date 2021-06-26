@@ -74,6 +74,9 @@ fn main() {
             if let Some(s) = matches.value_of("save") {
                 opt.set_save_path(s.to_string());
             }
+            if matches.is_present("singlethread") {
+                opt.set_multi_thread_enabled(false);
+            }
             handler::handle_port_scan(opt);
         }
     }else if matches.is_present("host") {
@@ -128,6 +131,12 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .takes_value(true)
             .value_name("ip_addr")
             .validator(validator::validate_host_opt)
+        )
+        .arg(Arg::with_name("singlethread")
+            .help("Run port scan in single-thread (default is multi-thread)")
+            .short("S")
+            .long("singlethread")
+            .takes_value(false)
         )
         .arg(Arg::with_name("timeout")
             .help("Set timeout in ms - Ex: -t 10000")

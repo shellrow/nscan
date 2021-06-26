@@ -76,6 +76,8 @@ pub struct PortScanner {
     send_rate: Duration,
     /// Result of port scan  
     scan_result: PortScanResult,
+    /// Multi-thread or Single-thread
+    multi_thread_enabled: bool,
 }
 
 /// Result of HostScanner::run_scan  
@@ -198,6 +200,7 @@ impl PortScanner{
             wait_time: Duration::from_millis(100),
             send_rate: Duration::from_millis(1),
             scan_result: ini_scan_result,
+            multi_thread_enabled: true,
         };
         if let Some(if_name) = _if_name {
             let if_index = interface::get_interface_index_by_name(if_name.to_string());
@@ -258,6 +261,10 @@ impl PortScanner{
     /// Set source port number 
     pub fn set_src_port(&mut self, src_port: u16){
         self.src_port = src_port;
+    }
+    /// Set multi-thread enabled / disabled  
+    pub fn set_multi_thread_enabled(&mut self, opt: bool){
+        self.multi_thread_enabled = opt;
     }
     /// Get network interface index
     pub fn get_if_index(&mut self) -> u32 {
