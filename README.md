@@ -44,7 +44,7 @@ OPTIONS:
 Port scan and service version detection  
 If you omit the port specification, use nscan-default-ports.  
 ```
-shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8 -d
+shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8 -d -m
 nscan 0.6.0 macos
 https://github.com/shellrow/nscan
 
@@ -139,7 +139,7 @@ Scanning...
 - Windows
 
 ## Scan performance  
-By default, nscan's port scan runs in multi-threaded mode, but you can also run it in single-threaded mode if you have performance issues depending on environment.  
+nscan supports multi-threaded port scanning, but some environments (especially VMs) may experience performance problems.  
 
 ## About netscan (lib)
 Please check my [repository][netscan-url] for detail

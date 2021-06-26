@@ -54,7 +54,7 @@ impl PortOption {
             include_detail: false,
             accept_invalid_certs: false,
             save_path: String::new(),
-            multi_thread_enabled: true,
+            multi_thread_enabled: false,
         };
         return port_option;
     }

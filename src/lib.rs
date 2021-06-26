@@ -200,7 +200,7 @@ impl PortScanner{
             wait_time: Duration::from_millis(100),
             send_rate: Duration::from_millis(1),
             scan_result: ini_scan_result,
-            multi_thread_enabled: true,
+            multi_thread_enabled: false,
         };
         if let Some(if_name) = _if_name {
             let if_index = interface::get_interface_index_by_name(if_name.to_string());
@@ -312,7 +312,13 @@ impl PortScanner{
             },
             _ => {
                 let default_gateway = default_net::get_default_gateway();
-                default_gateway.mac.expect("Failed to get gateway mac").parse::<pnet::datalink::MacAddr>().unwrap()
+                if let Some(dst_mac) = default_gateway.mac {
+                    dst_mac.parse::<pnet::datalink::MacAddr>().unwrap()
+                }else{
+                    println!("Failed to get gateway MAC address");
+                    std::process::exit(0);
+                }
+                //default_gateway.mac.expect("Failed to get gateway mac").parse::<pnet::datalink::MacAddr>().unwrap()
             },
         };
         let interfaces = pnet::datalink::interfaces();
