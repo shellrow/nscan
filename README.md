@@ -41,13 +41,13 @@ OPTIONS:
 
 ## Example
 Port scan and service version detection  
-If you omit the port specification, use nscan-default-ports  
+If you omit the port specification, use nscan-default-ports.  
 ```
 shellrow@MacBook-Pro nscan % sudo nscan -p 192.168.1.8 -d
-nscan 0.5.0 macos
+nscan 0.6.0 macos
 https://github.com/shellrow/nscan
 
-Scan started at 2021-05-09 15:51:12.905837
+Scan started at 2021-06-26 20:36:14.804831
 
 +------------------------------------------------+
 |                Port Scan Options               |
@@ -60,7 +60,7 @@ Scan started at 2021-05-09 15:51:12.905837
 +-------------+----------------------------------+
 
 Scanning ports... 
-[00:00:01] ██████████████████████████████████████████████████████████████████████████ 1005/1005 Done
+[00:00:00] ██████████████████████████████████████████████████████████████████████████ 1005/1005 Done
 Detecting service version... 
 [00:00:05] ████████████████████████████████████████████████████████████████████████████████ 3/3 Done
 
@@ -82,7 +82,7 @@ Detecting service version...
 +----------------------------------------+
 |               Performance              |
 +-------------------------+--------------+
-| Port Scan Time          | 1.768467039s |
+| Port Scan Time          | 276.394561ms |
 +-------------------------+--------------+
 | Service Detection Time  | 5.071955157s |
 +-------------------------+--------------+
@@ -91,10 +91,10 @@ Detecting service version...
 Host scan  
 ```
 shellrow@MacBook-Pro nscan % sudo nscan -n 192.168.1.0
-nscan 0.5.0 macos
+nscan 0.6.0 macos
 https://github.com/shellrow/nscan
 
-Scan started at 2021-05-09 15:50:08.604885
+Scan started at 2021-06-26 20:48:06.204886
 
 +------------------------------+
 |       Host Scan Options      |
@@ -128,7 +128,7 @@ Scanning...
 +--------------------------+
 |        Performance       |
 +-----------+--------------+
-| Scan Time | 540.693817ms |
+| Scan Time | 542.996373ms |
 +-----------+--------------+
 ```
 
@@ -143,6 +143,3 @@ Please check my [repository][netscan-url] for detail
 ## Security Notes
 `-A(--acceptinvalidcerts)` flag allow you to trust invalid certificates and attempt TLS connection.  
 This flag should not be used unless you are explicitly aware of it, such as when the service you are managing uses self-signed certificate.
-
-## Additional Notes
-This tool is intended for network analysis.  
