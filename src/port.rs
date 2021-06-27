@@ -1,7 +1,7 @@
 use crate::{tcp, ipv4, ethernet};
 use crate::packet::EndPoints;
 use crate::status::ScanStatus;
-use std::thread::{self, JoinHandle};
+use std::thread;
 use std::sync::{Arc, Mutex};
 use pnet::packet::Packet;
 use std::time::{Duration, Instant};
@@ -45,56 +45,52 @@ pub fn scan_ports(interface: pnet::datalink::NetworkInterface, scanner: PortScan
                 receive_packets(&mut rx, &sc, thread_rx)
             });
             if scanner.multi_thread_enabled {
-                let mut retrans_ports: Vec<u16> = vec![];
-                let mut cnt: usize = 1;
-                for port in scanner.dst_ports.clone() {
-                    let iface = interface.clone();
-                    let sc = scanner.clone();
-                    let send_stat: JoinHandle<u16> = thread::spawn(move || {
+                let ports = scanner.dst_ports.clone();
+                let progress_tx: Arc<Mutex<Sender<usize>>> = Arc::new(Mutex::new(progress_tx.clone()));
+                let cnt: Arc<Mutex<usize>> = Arc::new(Mutex::new(1));
+                let retrans_ports: Arc<Mutex<Vec<u16>>> = Arc::new(Mutex::new(vec![]));
+                ports.into_par_iter().for_each(|port| 
+                    {
+                        let iface = interface.clone();
+                        let sc = scanner.clone();
                         let (mut tx, mut _rx) = match pnet::datalink::channel(&iface, Default::default()) {
                             Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => (tx, rx),
                             Ok(_) => {
-                                return 1;
+                                retrans_ports.lock().unwrap().push(port);
+                                panic!();
                             },
                             Err(_) => {
-                                return 1;
+                                retrans_ports.lock().unwrap().push(port);
+                                panic!();
                             },
                         };
                         tx.build_and_send(1, 66, &mut |packet: &mut [u8]| {
                             build_packet(&sc, packet, port);
                         });
-                        return 0;
-                    });
-                    match send_stat.join() {
-                        Ok(send_stat) => {
-                            if send_stat != 0 {
-                                retrans_ports.push(port);
-                            }
-                        },
-                        Err(_) => {},
+                        progress_tx.lock().unwrap().send(*cnt.lock().unwrap()).unwrap();
+                        *cnt.lock().unwrap() += 1;
                     }
-                    s_progress_tx.send(cnt).unwrap();
-                    cnt += 1;
+                );
+                let mut ports: Vec<u16> = vec![];
+                for port in retrans_ports.lock().unwrap().iter(){
+                    ports.push(port.clone());
                 }
-                for port in retrans_ports{
-                    let iface = interface.clone();
-                    let sc = scanner.clone();
-                    let _send_stat: JoinHandle<u16> = thread::spawn(move || {
+                ports.into_par_iter().for_each(|port| 
+                    {
+                        let iface = interface.clone();
+                        let sc = scanner.clone();
                         let (mut tx, mut _rx) = match pnet::datalink::channel(&iface, Default::default()) {
                             Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => (tx, rx),
-                            Ok(_) => {
-                                return 1;
-                            },
-                            Err(_) => {
-                                return 1;
-                            },
+                            Ok(_) => panic!(),
+                            Err(_) => panic!(),
                         };
                         tx.build_and_send(1, 66, &mut |packet: &mut [u8]| {
                             build_packet(&sc, packet, port);
                         });
-                        return 0;
-                    });
-                }
+                        progress_tx.lock().unwrap().send(*cnt.lock().unwrap()).unwrap();
+                        *cnt.lock().unwrap() += 1;
+                    }
+                );
             }else{
                 let sc = scanner.clone();
                 let (mut tx, mut _rx) = match pnet::datalink::channel(&iface, Default::default()) {
