@@ -8,6 +8,7 @@ use sudo::RunningAs;
 
 #[cfg(target_os = "windows")]
 use super::win;
+pub const SPACE4: &str = "    ";
 
 #[allow(dead_code)]
 pub enum FillStr{
@@ -33,6 +34,21 @@ pub fn get_network_address(ip_str: String) -> Result<String, String>{
         Err(_) => {
             Err(String::from("Invalid IP Address"))
         }
+    }
+}
+
+pub fn print_fix32(msg: &str, fill_str: FillStr){
+    if msg.len() >= 64 {
+        println!("{}", msg);
+        return;
+    }
+    match fill_str {
+        FillStr::Hyphen => {
+            println!("----{}{}",msg,"-".repeat(60 - msg.len()));
+        },
+        FillStr::Equal => {
+            println!("===={}{}",msg,"=".repeat(60 - msg.len()));
+        },
     }
 }
 
