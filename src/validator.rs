@@ -3,7 +3,7 @@ use std::str::FromStr;
 use std::net::IpAddr;
 use std::path::Path;
 use dns_lookup::lookup_host;
-use super::interface;
+use crate::interface;
 
 pub fn validate_port_opt(v: String) -> Result<(), String> {
     let re_addr_range = Regex::new(r"\S+:\d+-\d+$").unwrap();
@@ -105,5 +105,17 @@ pub fn validate_portscantype(v: String) -> Result<(), String> {
         Ok(())
     }else{
         Err(String::from("Invalid PortScanType"))
+    }
+}
+
+pub fn is_ipaddr(host: String) -> bool {
+    let ipaddr = IpAddr::from_str(&host);
+    match ipaddr {
+        Ok(_) => {
+            return true;
+        },
+        Err(_) => {
+            return false;
+        }
     }
 }
