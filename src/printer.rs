@@ -2,7 +2,86 @@ use term_table::{Table, TableStyle};
 use term_table::table_cell::{TableCell,Alignment};
 use term_table::row::Row;
 use crossterm::style::Colorize;
+use netscan::PortScanType;
 use crate::result::{PortResult, HostResult};
+use crate::option::{PortOption, HostOption};
+
+pub fn print_port_option(port_option: PortOption) {
+    let mut table = Table::new();
+    table.max_column_width = 60;
+    table.separate_rows = false;
+    table.style = TableStyle::blank();
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Scan Options".cyan(), 1, Alignment::Left)
+    ]));
+    if !port_option.dst_host_name.is_empty() {
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Target Host:", 1, Alignment::Left),
+            TableCell::new_with_alignment(port_option.dst_host_name, 1, Alignment::Left)
+        ]));
+    }else{
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Target Host:", 1, Alignment::Left),
+            TableCell::new_with_alignment(port_option.dst_ip_addr, 1, Alignment::Left)
+        ]));
+    }
+    if port_option.default_scan {
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Target Port:", 1, Alignment::Left),
+            TableCell::new_with_alignment("Default 1005 ports", 1, Alignment::Left)
+        ]));
+    } else {
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Target Port:", 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("{} ports", port_option.dst_ports.len()), 1, Alignment::Left)
+        ]));
+    }
+    match port_option.scan_type {
+        PortScanType::SynScan => {
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
+                TableCell::new_with_alignment("TCP SYN Scan", 1, Alignment::Left)
+            ]));
+        },
+        PortScanType::ConnectScan => {
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
+                TableCell::new_with_alignment("TCP Connect Scan", 1, Alignment::Left)
+            ]));
+        },
+    }
+    if port_option.include_detail {
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Service Probe:", 1, Alignment::Left),
+            TableCell::new_with_alignment("True", 1, Alignment::Left)
+        ]));
+    } else {
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Service Probe:", 1, Alignment::Left),
+            TableCell::new_with_alignment("False", 1, Alignment::Left)
+        ]));
+    }
+    println!("{}", table.render());
+}
+
+pub fn print_host_option(host_option: HostOption) {
+    let mut table = Table::new();
+    table.max_column_width = 60;
+    table.separate_rows = false;
+    table.style = TableStyle::blank();
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Scan Options".cyan(), 1, Alignment::Left)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Target:", 1, Alignment::Left),
+        TableCell::new_with_alignment(format!("{} IPs", host_option.dst_hosts.len()), 1, Alignment::Left)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
+        TableCell::new_with_alignment("ICMP Scan", 1, Alignment::Left)
+    ]));
+    println!("{}", table.render());
+}
 
 pub fn print_port_result(port_result: PortResult) {
     let mut table = Table::new();
@@ -10,7 +89,7 @@ pub fn print_port_result(port_result: PortResult) {
     table.separate_rows = false;
     table.style = TableStyle::blank();
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Scan Result".cyan(), 1, Alignment::Left)
+        TableCell::new_with_alignment("Scan Results".cyan(), 1, Alignment::Left)
     ]));
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Port Number", 1, Alignment::Left),
@@ -69,7 +148,7 @@ pub fn print_host_result(host_result: HostResult) {
     table.separate_rows = false;
     table.style = TableStyle::blank();
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Scan Result".cyan(), 1, Alignment::Left)
+        TableCell::new_with_alignment("Scan Results".cyan(), 1, Alignment::Left)
     ]));
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("IP Address", 1, Alignment::Left),

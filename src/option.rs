@@ -5,6 +5,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use ipnet::{Ipv4Net};
 use crate::define;
 
+#[derive(Clone)]
 pub struct PortOption {
     pub src_port: u16,
     pub dst_ip_addr: String,
@@ -20,6 +21,7 @@ pub struct PortOption {
     pub save_file_path: String,
 }
 
+#[derive(Clone)]
 pub struct HostOption {
     pub dst_hosts: Vec<String>,
     pub timeout: Duration,

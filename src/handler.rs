@@ -13,6 +13,7 @@ use crate::printer;
 
 pub fn handle_port_scan(opt: option::PortOption) {
     let mut port_info_list: Vec<PortInfo> = vec![];
+    printer::print_port_option(opt.clone());
     let if_name: Option<&str> = if opt.interface_name.is_empty() {
         None
     }else{
@@ -78,6 +79,7 @@ pub fn handle_port_scan(opt: option::PortOption) {
 
 pub fn handle_host_scan(opt: option::HostOption) {
     let mut host_info_list: Vec<HostInfo> = vec![];
+    printer::print_host_option(opt.clone());
     let mut host_scanner = match HostScanner::new(){
         Ok(scanner) => (scanner),
         Err(e) => panic!("Error creating scanner: {}", e),
@@ -102,7 +104,7 @@ pub fn handle_host_scan(opt: option::HostOption) {
     }
     let mut vendor_map: HashMap<String, (String, String)> = HashMap::new();
     if opt.include_detail {
-        print!("Getting vendor information... ");
+        print!("Probing vendor information... ");
         stdout().flush().unwrap();
         let oui_map = db::get_oui_map();
         let default_index = default_net::get_default_interface_index().unwrap();
