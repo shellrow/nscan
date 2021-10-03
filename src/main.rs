@@ -13,6 +13,9 @@ mod handler;
 mod interface;
 mod validator;
 mod network;
+mod probe;
+mod result;
+mod printer;
 
 use std::env;
 use chrono::{Local, DateTime};

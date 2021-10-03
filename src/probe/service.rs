@@ -25,7 +25,7 @@ pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>, accept_invalid_c
                         let mut writer = BufWriter::new(&stream);
                         let msg: String;
                         match port {
-                            80 => {
+                            80 | 8088 => {
                                 write_head_request(&mut writer, ipaddr.to_string());
                                 let header = read_response(&mut reader);
                                 msg = parse_header(header);
