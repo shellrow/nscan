@@ -52,13 +52,15 @@ pub fn handle_port_scan(opt: option::PortOption) {
     }
     let probe_time: Duration = Instant::now().duration_since(probe_start_time);
     let tcp_map = db::get_tcp_map();
-    for port in result.open_ports {
+    for port in result.open_ports { 
+        let svc: String = service_map.get(&port).unwrap_or(&String::from("None")).to_string();
+        let svc_vec: Vec<&str>  = svc.split("\t").collect();
         let port_info: PortInfo = PortInfo {
             port_number: port.clone(),
             port_status: String::from("Open"),
             service_name: tcp_map.get(&port.to_string()).unwrap_or(&String::from("None")).to_string(),
-            service_version: service_map.get(&port).unwrap_or(&String::from("None")).to_string(),
-            remark: String::new(),
+            service_version: svc_vec[0].to_string(),
+            remark: {if svc_vec.len() > 1 {svc_vec[1].to_string()} else {String::from("None")} },
         };
         port_info_list.push(port_info);
     }
