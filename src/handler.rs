@@ -51,7 +51,7 @@ pub fn handle_port_scan(opt: option::PortOption) {
         service_map = probe::service::detect_service_version(opt.dst_ip_addr.parse::<Ipv4Addr>().unwrap(), result.open_ports.clone(), opt.accept_invalid_certs);
         println!("{}", "Done".green());
     }
-    let probe_time: Duration = Instant::now().duration_since(probe_start_time);
+    let probe_time: Duration = if opt.include_detail {Instant::now().duration_since(probe_start_time)} else {Duration::from_nanos(0)};
     let tcp_map = db::get_tcp_map();
     for port in result.open_ports { 
         let svc: String = service_map.get(&port).unwrap_or(&String::from("None")).to_string();
@@ -74,6 +74,10 @@ pub fn handle_port_scan(opt: option::PortOption) {
     printer::print_port_result(port_result.clone());
     if !opt.save_file_path.is_empty() {
         printer::save_port_result(port_result);
+    }
+    // Note
+    if !opt.include_detail {
+        println!("To perform service detection, specify the -d flag");
     }
 }
 
@@ -103,23 +107,30 @@ pub fn handle_host_scan(opt: option::HostOption) {
         std::process::exit(0);
     }
     let mut vendor_map: HashMap<String, (String, String)> = HashMap::new();
-    if opt.include_detail {
-        print!("Probing vendor information... ");
-        stdout().flush().unwrap();
-        let oui_map = db::get_oui_map();
-        let default_index = default_net::get_default_interface_index().unwrap();
-        let interfaces = pnet::datalink::interfaces();
-        let iface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == default_index).next().expect("Failed to get Interface");
-        for host in result.up_hosts.clone() {
-            let mac_addr = network::get_mac_through_arp(&iface, host.parse::<Ipv4Addr>().unwrap()).to_string();
-            if mac_addr.len() > 16 {
-                let prefix8 = mac_addr[0..8].to_uppercase();
-                vendor_map.insert(host, (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("None")).to_string()));
-            }else{
-                vendor_map.insert(host, (mac_addr, String::from("None")));
+    print!("Probing vendor information... ");
+    stdout().flush().unwrap();
+    let oui_map = db::get_oui_map();
+    match default_net::get_default_interface_index() {
+        Some(default_index) => {
+            let interfaces = pnet::datalink::interfaces();
+            let iface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == default_index).next().expect("Failed to get Interface");
+            for host in result.up_hosts.clone() {
+                let mac_addr = network::get_mac_through_arp(&iface, host.parse::<Ipv4Addr>().unwrap()).to_string();
+                if mac_addr.len() > 16 {
+                    let prefix8 = mac_addr[0..8].to_uppercase();
+                    vendor_map.insert(host, (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("None")).to_string()));
+                }else{
+                    vendor_map.insert(host, (mac_addr, String::from("None")));
+                }
             }
-        }
-        println!("{}", "Done".green());
+            println!("{}", "Done".green());
+        },
+        None => {
+            println!("{}", "Failed".red());
+        },
+    }
+    if opt.include_detail {
+        // ToDo
     }
     let probe_start_time = Instant::now();
     for host in result.up_hosts {

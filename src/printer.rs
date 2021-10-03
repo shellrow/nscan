@@ -3,6 +3,7 @@ use term_table::table_cell::{TableCell,Alignment};
 use term_table::row::Row;
 use crossterm::style::Colorize;
 use netscan::PortScanType;
+use std::time::Duration;
 use crate::result::{PortResult, HostResult};
 use crate::option::{PortOption, HostOption};
 
@@ -131,10 +132,17 @@ pub fn print_port_result(port_result: PortResult) {
         TableCell::new_with_alignment("Port Scan:", 1, Alignment::Left),
         TableCell::new_with_alignment(format!("{:?}", port_result.port_scan_time), 1, Alignment::Left)
     ]));
-    table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Probe:", 1, Alignment::Left),
-        TableCell::new_with_alignment(format!("{:?}", port_result.probe_time), 1, Alignment::Left)
-    ]));
+    if port_result.probe_time == Duration::from_nanos(0) {
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Probe:", 1, Alignment::Left),
+            TableCell::new_with_alignment("(Skipped)", 1, Alignment::Left)
+        ]));
+    }else{
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Probe:", 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("{:?}", port_result.probe_time), 1, Alignment::Left)
+        ]));
+    }
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Total:", 1, Alignment::Left),
         TableCell::new_with_alignment(format!("{:?}", port_result.total_scan_time), 1, Alignment::Left)

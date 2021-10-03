@@ -41,7 +41,7 @@ impl PortOption {
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(100),
             include_detail: false,
-            default_scan: true,
+            default_scan: false,
             interface_name: String::new(),
             accept_invalid_certs: false,
             save_file_path: String::new(),
