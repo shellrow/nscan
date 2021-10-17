@@ -199,7 +199,7 @@ pub fn print_host_result(host_result: HostResult) {
         TableCell::new_with_alignment("Performance".cyan(), 2, Alignment::Left)
     ]));
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Port Scan:", 1, Alignment::Left),
+        TableCell::new_with_alignment("Host Scan:", 1, Alignment::Left),
         TableCell::new_with_alignment(format!("{:?}", host_result.host_scan_time), 1, Alignment::Left)
     ]));
     table.add_row(Row::new(vec![
