@@ -14,3 +14,10 @@ pub fn privileged() -> bool {
         },
     }
 }
+
+pub fn escalate_if_needed() {
+    match sudo::escalate_if_needed() {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+}

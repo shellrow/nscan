@@ -10,6 +10,10 @@ pub fn privileged() -> bool {
     _is_elevated().unwrap_or(false)
 }
 
+pub fn escalate_if_needed() {
+    
+}
+
 fn _is_elevated() -> Result<bool, Error> {
     let token = QueryAccessToken::from_current_process()?;
     token.is_elevated()
