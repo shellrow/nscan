@@ -39,7 +39,7 @@ fn main() {
     }
     let app = get_app_settings();
     let matches = app.get_matches();
-    let mut require_admin = true;
+    let mut require_admin = if get_os_type() == "windows"{false}else{true};
     //Scan
     show_banner_with_starttime();
     os::escalate_if_needed();
@@ -56,7 +56,7 @@ fn main() {
         let opt = parser::parse_port_args(matches);
         handler::handle_port_scan(opt);
     }else if matches.is_present("host") {
-        if !os::privileged() {
+        if require_admin && !os::privileged() {
             println!("{} This feature requires administrator privileges. ","Error:".red());
             std::process::exit(0);
         }
