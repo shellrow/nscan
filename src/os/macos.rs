@@ -15,6 +15,7 @@ pub fn privileged() -> bool {
     }
 }
 
+#[allow(dead_code)]
 pub fn escalate_if_needed() {
     match sudo::escalate_if_needed() {
         Ok(_) => {},

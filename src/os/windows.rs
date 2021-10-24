@@ -10,6 +10,7 @@ pub fn privileged() -> bool {
     _is_elevated().unwrap_or(false)
 }
 
+#[allow(dead_code)]
 pub fn escalate_if_needed() {
     
 }

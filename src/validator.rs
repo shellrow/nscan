@@ -89,7 +89,13 @@ pub fn validate_waittime(v: String) -> Result<(), String> {
 }
 
 pub fn validate_interface(v: String) -> Result<(), String> {
-    match interface::get_interface_index_by_name(v) {
+    let ip_addr = match IpAddr::from_str(&v) {
+        Ok(ip_addr) => ip_addr,
+        Err(_) => {
+            return Err(String::from("Please specify ip address"));
+        }
+    };
+    match interface::get_interface_index_by_ip(ip_addr) {
         Some(_)=>{
             Ok(())
         },

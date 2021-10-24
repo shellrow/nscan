@@ -42,7 +42,7 @@ fn main() {
     let mut require_admin = if get_os_type() == "windows"{false}else{true};
     //Scan
     show_banner_with_starttime();
-    os::escalate_if_needed();
+    //os::escalate_if_needed();
     if matches.is_present("port"){
         if let Some(p) = matches.value_of("portscantype") {
             if p == "CONNECT" {
