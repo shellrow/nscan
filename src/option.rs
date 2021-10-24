@@ -7,6 +7,7 @@ use crate::define;
 
 #[derive(Clone)]
 pub struct PortOption {
+    pub src_ip: String,
     pub src_port: u16,
     pub dst_ip_addr: String,
     pub dst_host_name: String,
@@ -16,13 +17,13 @@ pub struct PortOption {
     pub wait_time: Duration,
     pub include_detail: bool,
     pub default_scan: bool,
-    pub interface_name: String,
     pub accept_invalid_certs: bool,
     pub save_file_path: String,
 }
 
 #[derive(Clone)]
 pub struct HostOption {
+    pub src_ip: String,
     pub dst_hosts: Vec<String>,
     pub timeout: Duration,
     pub wait_time: Duration,
@@ -33,6 +34,7 @@ pub struct HostOption {
 impl PortOption {
     pub fn new() -> PortOption {
         PortOption {
+            src_ip: String::new(),
             src_port: 65432,
             dst_ip_addr: String::new(),
             dst_host_name: String::new(),
@@ -42,7 +44,6 @@ impl PortOption {
             wait_time: Duration::from_millis(100),
             include_detail: false,
             default_scan: false,
-            interface_name: String::new(),
             accept_invalid_certs: false,
             save_file_path: String::new(),
         }
@@ -111,8 +112,8 @@ impl PortOption {
     pub fn set_default_scan(&mut self, v: bool) {
         self.default_scan = v;
     }
-    pub fn set_interface_name(&mut self, v: String) {
-        self.interface_name = v;
+    pub fn set_src_ip(&mut self, v: String) {
+        self.src_ip = v;
     }
     pub fn set_accept_invalid_certs(&mut self, v: bool) {
         self.accept_invalid_certs = v;
@@ -125,6 +126,7 @@ impl PortOption {
 impl HostOption {
     pub fn new() -> HostOption {
         HostOption {
+            src_ip: String::new(),
             dst_hosts: vec![],
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(200),
@@ -182,5 +184,8 @@ impl HostOption {
     }
     pub fn set_save_file_path(&mut self, v: String) {
         self.save_file_path = v;
+    }
+    pub fn set_src_ip(&mut self, v: String) {
+        self.src_ip = v;
     }
 }

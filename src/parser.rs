@@ -53,7 +53,7 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
             opt.set_dst_ports_from_list(w.to_string());
         }
         if let Some(i) = matches.value_of("interface") {
-            opt.set_interface_name(i.to_string());
+            opt.set_src_ip(i.to_string());
         }
         if let Some(t) = matches.value_of("timeout") {
             opt.set_timeout(t.parse::<u64>().unwrap_or(30000));
@@ -103,6 +103,9 @@ pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
         }
         if let Some(s) = matches.value_of("save") {
             opt.set_save_file_path(s.to_string());
+        }
+        if let Some(i) = matches.value_of("interface") {
+            opt.set_src_ip(i.to_string());
         }
     }
     return opt;
