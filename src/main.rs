@@ -31,7 +31,8 @@ fn get_os_type() -> String{"linux".to_owned()}
 #[cfg(target_os = "macos")]
 fn get_os_type() -> String{"macos".to_owned()}
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         show_app_desc();
