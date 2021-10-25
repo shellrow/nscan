@@ -40,3 +40,31 @@ pub fn get_default_ports() -> Vec<u16> {
     }
     return default_ports;
 }
+
+pub fn get_http_ports() -> Vec<u16> {
+    let rs_nscan_http_ports: Vec<&str> = define::NSCAN_HTTP.trim().split("\n").collect();
+    let mut http_ports: Vec<u16> = vec![];
+    for r in rs_nscan_http_ports {
+        match r.trim_end().parse::<u16>() {
+            Ok(port) => {
+                http_ports.push(port);
+            },
+            Err(_) => {},
+        }
+    }
+    return http_ports;
+}
+
+pub fn get_https_ports() -> Vec<u16> {
+    let rs_nscan_https_ports: Vec<&str> = define::NSCAN_HTTPS.trim().split("\n").collect();
+    let mut https_ports: Vec<u16> = vec![];
+    for r in rs_nscan_https_ports {
+        match r.trim_end().parse::<u16>() {
+            Ok(port) => {
+                https_ports.push(port);
+            },
+            Err(_) => {},
+        }
+    }
+    return https_ports;
+}

@@ -9,10 +9,13 @@ use dns_lookup::lookup_addr;
 use native_tls::TlsConnector;
 use std::io::prelude::*;
 use rayon::prelude::*;
+use crate::db;
 
 pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>, accept_invalid_certs: bool) -> HashMap<u16, String> {
     let service_map: Arc<Mutex<HashMap<u16, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let conn_timeout = Duration::from_millis(50);
+    let nscan_http_ports = db::get_http_ports();
+    let nscan_https_ports = db::get_https_ports();
     ports.into_par_iter().for_each(|port| 
         {
             let socket_addr_str = format!("{}:{}", ipaddr, port);
@@ -24,19 +27,15 @@ pub fn detect_service_version(ipaddr:Ipv4Addr, ports: Vec<u16>, accept_invalid_c
                         let mut reader = BufReader::new(&stream);
                         let mut writer = BufWriter::new(&stream);
                         let msg: String;
-                        match port {
-                            80 | 8088 => {
-                                write_head_request(&mut writer, ipaddr.to_string());
-                                let header = read_response(&mut reader);
-                                msg = parse_header(header);
-                            },
-                            443 => {
-                                let header = head_request_secure(ipaddr.to_string(), accept_invalid_certs);
-                                msg = parse_header(header);
-                            },
-                            _ => {
-                                msg = read_response(&mut reader).replace("\r\n", "");
-                            },
+                        if nscan_http_ports.contains(&port) {
+                            write_head_request(&mut writer, ipaddr.to_string());
+                            let header = read_response(&mut reader);
+                            msg = parse_header(header);
+                        }else if nscan_https_ports.contains(&port) {
+                            let header = head_request_secure(ipaddr.to_string(), port, accept_invalid_certs);
+                            msg = parse_header(header);
+                        }else{
+                            msg = read_response(&mut reader).replace("\r\n", "");
                         }
                         service_map.lock().unwrap().insert(port, msg);
                     },
@@ -81,7 +80,7 @@ fn parse_header(response_header: String) -> String {
     return result_vec.iter().map(|s| s.trim()).collect::<Vec<_>>().join("\t");
 }
 
-fn head_request_secure(ipaddr:String, accept_invalid_certs: bool) -> String {
+fn head_request_secure(ipaddr: String, port: u16, accept_invalid_certs: bool) -> String {
     let ip_addr: std::net::IpAddr = match IpAddr::from_str(&ipaddr) {
         Ok(ip) => ip,
         Err(_) => return String::new(),
@@ -101,7 +100,7 @@ fn head_request_secure(ipaddr:String, accept_invalid_certs: bool) -> String {
             Err(e) => return e.to_string(),
         }
     };
-    let stream = match TcpStream::connect(format!("{}:443", host)) {
+    let stream = match TcpStream::connect(format!("{}:{}", host, port)) {
         Ok(s) => s,
         Err(e) => return e.to_string(),
     };

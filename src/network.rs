@@ -80,3 +80,14 @@ pub fn get_mac_through_arp(interface: &pnet::datalink::NetworkInterface, target_
     }
     return target_mac_addr;
 }
+
+pub fn is_global_addr(ip_addr: IpAddr) -> bool {
+    match ip_addr {
+        IpAddr::V4(ip) => {
+            !(ip.is_loopback() || ip.is_private())
+        },
+        IpAddr::V6(ip) => {
+            !(ip.is_loopback() || ((ip.segments()[0] & 0xfe00) == 0xfc00))
+        },
+    }
+}

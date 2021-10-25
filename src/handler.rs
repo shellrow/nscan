@@ -133,6 +133,7 @@ pub fn handle_host_scan(opt: option::HostOption) {
         std::process::exit(0);
     }
     let mut vendor_map: HashMap<String, (String, String)> = HashMap::new();
+    let mut dns_map: HashMap<String, String> = HashMap::new();
     print!("Probing vendor information... ");
     stdout().flush().unwrap();
     let oui_map = db::get_oui_map();
@@ -141,13 +142,17 @@ pub fn handle_host_scan(opt: option::HostOption) {
             let interfaces = pnet::datalink::interfaces();
             let iface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == default_index).next().expect("Failed to get Interface");
             for host in result.up_hosts.clone() {
-                let mac_addr = network::get_mac_through_arp(&iface, host.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
-                if mac_addr.len() > 16 {
-                    let prefix8 = mac_addr[0..8].to_uppercase();
-                    vendor_map.insert(host.to_string(), (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("None")).to_string()));
-                }else{
-                    vendor_map.insert(host.to_string(), (mac_addr, String::from("None")));
+                if !network::is_global_addr(host) {
+                    let mac_addr = network::get_mac_through_arp(&iface, host.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
+                    if mac_addr.len() > 16 {
+                        let prefix8 = mac_addr[0..8].to_uppercase();
+                        vendor_map.insert(host.to_string(), (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("None")).to_string()));
+                    }else{
+                        vendor_map.insert(host.to_string(), (mac_addr, String::from("None")));
+                    }
                 }
+                let host_name: String = dns_lookup::lookup_addr(&host).unwrap_or(String::from("None"));
+                dns_map.insert(host.to_string(), host_name);
             }
             println!("{}", "Done".green());
         },
@@ -160,13 +165,13 @@ pub fn handle_host_scan(opt: option::HostOption) {
     }
     let probe_start_time = Instant::now();
     for host in result.up_hosts {
-        let default_tuple: (String, String) = (String::new(), String::new());
+        let default_tuple: (String, String) = (String::from("None"), String::from("None"));
         let vendor_tuple: &(String, String) = vendor_map.get(&host.to_string()).unwrap_or(&default_tuple);
         let host_info: HostInfo = HostInfo {
             ip_addr: host.to_string(),
             mac_addr: vendor_tuple.0.clone(),
             vendor_info: vendor_tuple.1.clone(),
-            host_name: String::new(),
+            host_name: dns_map.get(&host.to_string()).unwrap_or(&String::from("None")).to_string(),
             os_name: String::new(),
             os_version: String::new(),
         };

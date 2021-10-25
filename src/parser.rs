@@ -80,17 +80,18 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
 pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
     let mut opt = option::HostOption::new();
     if let Some(v) = matches.value_of("host") {
-        match network::get_network_address(v.to_string()) {
-            Ok(nw_addr) => {
-                opt.set_dst_hosts_from_na(nw_addr);
-            },
-            Err(e) => {
-                print!("{}", e);
-                std::process::exit(0);
-            },
-        }
         if let Some(w) = matches.value_of("list") {
             opt.set_dst_hosts_from_list(w.to_string());
+        }else {
+            match network::get_network_address(v.to_string()) {
+                Ok(nw_addr) => {
+                    opt.set_dst_hosts_from_na(nw_addr);
+                },
+                Err(e) => {
+                    print!("{}", e);
+                    std::process::exit(0);
+                },
+            }
         }
         if let Some(t) = matches.value_of("timeout") {
             opt.set_timeout(t.parse::<u64>().unwrap_or(30000));
