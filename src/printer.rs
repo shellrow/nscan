@@ -39,10 +39,17 @@ pub fn print_port_option(port_option: PortOption) {
     }
     match port_option.scan_type {
         PortScanType::SynScan => {
-            table.add_row(Row::new(vec![
-                TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
-                TableCell::new_with_alignment("TCP SYN Scan", 1, Alignment::Left)
-            ]));
+            if port_option.async_scan {
+                table.add_row(Row::new(vec![
+                    TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
+                    TableCell::new_with_alignment("TCP SYN Scan (Asynchronous)", 1, Alignment::Left)
+                ]));
+            }else{
+                table.add_row(Row::new(vec![
+                    TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
+                    TableCell::new_with_alignment("TCP SYN Scan", 1, Alignment::Left)
+                ]));
+            }
         },
         PortScanType::ConnectScan => {
             table.add_row(Row::new(vec![
@@ -77,10 +84,17 @@ pub fn print_host_option(host_option: HostOption) {
         TableCell::new_with_alignment("Target:", 1, Alignment::Left),
         TableCell::new_with_alignment(format!("{} IPs", host_option.dst_hosts.len()), 1, Alignment::Left)
     ]));
-    table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
-        TableCell::new_with_alignment("ICMP Scan", 1, Alignment::Left)
-    ]));
+    if host_option.async_scan {
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
+            TableCell::new_with_alignment("ICMP Scan (Asynchronous)", 1, Alignment::Left)
+        ]));
+    }else{
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
+            TableCell::new_with_alignment("ICMP Scan", 1, Alignment::Left)
+        ]));
+    }
     println!("{}", table.render());
 }
 

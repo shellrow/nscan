@@ -73,6 +73,9 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
         if let Some(s) = matches.value_of("save") {
             opt.set_save_file_path(s.to_string());
         }
+        if matches.is_present("async") {
+            opt.set_async_scan(true);
+        }
     }
     return opt;
 }
@@ -107,6 +110,9 @@ pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
         }
         if let Some(i) = matches.value_of("interface") {
             opt.set_src_ip(i.to_string());
+        }
+        if matches.is_present("async") {
+            opt.set_async_scan(true);
         }
     }
     return opt;

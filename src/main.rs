@@ -44,6 +44,12 @@ async fn main() {
     //Scan
     show_banner_with_starttime();
     //os::escalate_if_needed();
+    if matches.is_present("async") && get_os_type() == "windows" {
+        println!();
+        println!("Asynchronous scanning is not supported on Windows");
+        println!("Please remove the -a(--async) flag and try again.");
+        std::process::exit(0);
+    }
     if matches.is_present("port"){
         if let Some(p) = matches.value_of("portscantype") {
             if p == "CONNECT" {
@@ -55,14 +61,14 @@ async fn main() {
             std::process::exit(0);
         }
         let opt = parser::parse_port_args(matches);
-        handler::handle_port_scan(opt);
+        handler::handle_port_scan(opt).await;
     }else if matches.is_present("host") {
         if require_admin && !os::privileged() {
             println!("{} This feature requires administrator privileges. ","Error:".red());
             std::process::exit(0);
         }
         let opt = parser::parse_host_args(matches);
-        handler::handle_host_scan(opt);
+        handler::handle_host_scan(opt).await;
     }else{
         println!();
         println!("Error: Scan mode not specified.");
@@ -149,6 +155,12 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .long("save")
             .takes_value(true)
             .value_name("file_path")
+        )
+        .arg(Arg::with_name("async")
+            .help("Perform asynchronous scan")
+            .short("a")
+            .long("async")
+            .takes_value(false)
         )
         .group(ArgGroup::with_name("mode")
             .args(&["port", "host"])

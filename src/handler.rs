@@ -1,4 +1,4 @@
-use netscan::{PortScanner, HostScanner, ScanStatus, PortStatus};
+use netscan::{PortScanner, HostScanner, AsyncPortScanner, AsyncHostScanner, ScanStatus, PortStatus, PortScanResult, HostScanResult};
 use crossterm::style::Colorize;
 use std::io::{stdout, Write};
 use std::net::{IpAddr, Ipv4Addr};
@@ -11,7 +11,7 @@ use crate::network;
 use crate::result::{PortInfo, PortResult, HostInfo, HostResult};
 use crate::printer;
 
-pub fn handle_port_scan(opt: option::PortOption) {
+pub async fn handle_port_scan(opt: option::PortOption) {
     let mut port_info_list: Vec<PortInfo> = vec![];
     printer::print_port_option(opt.clone());
     print!("Checking interface... ");
@@ -23,21 +23,40 @@ pub fn handle_port_scan(opt: option::PortOption) {
         opt.src_ip.parse::<IpAddr>().expect("")
     };
     println!("{}", "Done".green());
-    let mut port_scanner = match PortScanner::new(src_ip){
-        Ok(scanner) => (scanner),
-        Err(e) => panic!("Error creating scanner: {}", e),
-    };
-    port_scanner.set_dst_ip(opt.dst_ip_addr.parse::<IpAddr>().unwrap());
-    for port in opt.dst_ports {
-        port_scanner.add_dst_port(port);
+    let result: PortScanResult;
+    if opt.async_scan {
+        let mut port_scanner = match AsyncPortScanner::new(src_ip){
+            Ok(scanner) => (scanner),
+            Err(e) => panic!("Error creating scanner: {}", e),
+        };
+        port_scanner.set_dst_ip(opt.dst_ip_addr.parse::<IpAddr>().unwrap());
+        for port in opt.dst_ports {
+            port_scanner.add_dst_port(port);
+        }
+        port_scanner.set_scan_type(opt.scan_type);
+        port_scanner.set_timeout(opt.timeout);
+        port_scanner.set_wait_time(opt.wait_time);
+        print!("Scanning... ");
+        stdout().flush().unwrap();
+        port_scanner.run_scan().await;
+        result = port_scanner.get_scan_result();
+    }else{
+        let mut port_scanner = match PortScanner::new(src_ip){
+            Ok(scanner) => (scanner),
+            Err(e) => panic!("Error creating scanner: {}", e),
+        };
+        port_scanner.set_dst_ip(opt.dst_ip_addr.parse::<IpAddr>().unwrap());
+        for port in opt.dst_ports {
+            port_scanner.add_dst_port(port);
+        }
+        port_scanner.set_scan_type(opt.scan_type);
+        port_scanner.set_timeout(opt.timeout);
+        port_scanner.set_wait_time(opt.wait_time);
+        print!("Scanning... ");
+        stdout().flush().unwrap();
+        port_scanner.run_scan();
+        result = port_scanner.get_scan_result();
     }
-    port_scanner.set_scan_type(opt.scan_type);
-    port_scanner.set_timeout(opt.timeout);
-    port_scanner.set_wait_time(opt.wait_time);
-    print!("Scanning... ");
-    stdout().flush().unwrap();
-    port_scanner.run_scan();
-    let result = port_scanner.get_scan_result();
     match result.scan_status {
         ScanStatus::Done => println!("{}", "Done".green()),
         ScanStatus::Timeout => println!("{}", "Timed out".yellow()),
@@ -98,7 +117,7 @@ pub fn handle_port_scan(opt: option::PortOption) {
     }
 }
 
-pub fn handle_host_scan(opt: option::HostOption) {
+pub async fn handle_host_scan(opt: option::HostOption) {
     let mut host_info_list: Vec<HostInfo> = vec![];
     printer::print_host_option(opt.clone());
     print!("Checking interface... ");
@@ -110,19 +129,36 @@ pub fn handle_host_scan(opt: option::HostOption) {
         opt.src_ip.parse::<IpAddr>().expect("")
     };
     println!("{}", "Done".green());
-    let mut host_scanner = match HostScanner::new(src_ip){
-        Ok(scanner) => (scanner),
-        Err(e) => panic!("Error creating scanner: {}", e),
-    };
-    for host in opt.dst_hosts {
-        host_scanner.add_dst_ip(host.parse::<IpAddr>().unwrap());
+    let result: HostScanResult;
+    if opt.async_scan {
+        let mut host_scanner = match AsyncHostScanner::new(src_ip){
+            Ok(scanner) => (scanner),
+            Err(e) => panic!("Error creating scanner: {}", e),
+        };
+        for host in opt.dst_hosts {
+            host_scanner.add_dst_ip(host.parse::<IpAddr>().unwrap());
+        }
+        host_scanner.set_timeout(opt.timeout);
+        host_scanner.set_wait_time(opt.wait_time);
+        print!("Scanning... ");
+        stdout().flush().unwrap();
+        host_scanner.run_scan().await;
+        result = host_scanner.get_scan_result();
+    }else{
+        let mut host_scanner = match HostScanner::new(src_ip){
+            Ok(scanner) => (scanner),
+            Err(e) => panic!("Error creating scanner: {}", e),
+        };
+        for host in opt.dst_hosts {
+            host_scanner.add_dst_ip(host.parse::<IpAddr>().unwrap());
+        }
+        host_scanner.set_timeout(opt.timeout);
+        host_scanner.set_wait_time(opt.wait_time);
+        print!("Scanning... ");
+        stdout().flush().unwrap();
+        host_scanner.run_scan();
+        result = host_scanner.get_scan_result();
     }
-    host_scanner.set_timeout(opt.timeout);
-    host_scanner.set_wait_time(opt.wait_time);
-    print!("Scanning... ");
-    stdout().flush().unwrap();
-    host_scanner.run_scan();
-    let result = host_scanner.get_scan_result();
     match result.scan_status {
         ScanStatus::Done => {println!("{}", "Done".green())},
         ScanStatus::Timeout => {println!("{}", "Timed out".yellow())},

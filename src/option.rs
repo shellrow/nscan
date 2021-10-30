@@ -19,6 +19,7 @@ pub struct PortOption {
     pub default_scan: bool,
     pub accept_invalid_certs: bool,
     pub save_file_path: String,
+    pub async_scan: bool,
 }
 
 #[derive(Clone)]
@@ -29,6 +30,7 @@ pub struct HostOption {
     pub wait_time: Duration,
     pub include_detail: bool,
     pub save_file_path: String,
+    pub async_scan: bool,
 }
 
 impl PortOption {
@@ -46,6 +48,7 @@ impl PortOption {
             default_scan: false,
             accept_invalid_certs: false,
             save_file_path: String::new(),
+            async_scan: false,
         }
     }
     pub fn set_src_port(&mut self, v: u16) {
@@ -121,6 +124,9 @@ impl PortOption {
     pub fn set_save_file_path(&mut self, v: String) {
         self.save_file_path = v;
     }
+    pub fn set_async_scan(&mut self, async_scan: bool){
+        self.async_scan = async_scan;
+    }
 }
 
 impl HostOption {
@@ -132,6 +138,7 @@ impl HostOption {
             wait_time: Duration::from_millis(200),
             include_detail: false,
             save_file_path: String::new(),
+            async_scan: false,
         }
     }
     /* pub fn set_dst_hosts(&mut self, v: Vec<String>) {
@@ -187,5 +194,8 @@ impl HostOption {
     }
     pub fn set_src_ip(&mut self, v: String) {
         self.src_ip = v;
+    }
+    pub fn set_async_scan(&mut self, async_scan: bool){
+        self.async_scan = async_scan;
     }
 }
