@@ -4,7 +4,7 @@
 [netscan-url]: https://github.com/shellrow/netscan
 
 # nscan [![Crates.io][crates-badge]][crates-url] ![License][license-badge]
-Cross-platform network scan tool for host and service discovery. Written in Rust.  
+Cross-platform network scan tool for host and service discovery.   
 Aim to be simple and fast.  
 
 ## Features
