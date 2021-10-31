@@ -1,6 +1,7 @@
 use std::time::Duration;
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug ,Serialize, Deserialize)]
 pub struct PortInfo {
     pub port_number: u16,
     pub port_status: String,
@@ -9,7 +10,7 @@ pub struct PortInfo {
     pub remark: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug ,Serialize, Deserialize)]
 pub struct HostInfo {
     pub ip_addr: String,
     pub mac_addr: String,
@@ -19,7 +20,7 @@ pub struct HostInfo {
     pub os_version: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug ,Serialize, Deserialize)]
 pub struct PortResult {
     pub ports: Vec<PortInfo>,
     pub port_scan_time: Duration,
@@ -27,7 +28,7 @@ pub struct PortResult {
     pub total_scan_time: Duration,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug ,Serialize, Deserialize)]
 pub struct HostResult {
     pub hosts: Vec<HostInfo>,
     pub host_scan_time: Duration,

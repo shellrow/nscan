@@ -25,6 +25,7 @@ USAGE:
 FLAGS:
     -d, --detail                Get details (service version and OS)
     -A, --acceptinvalidcerts    Accept invalid certs (This introduces significant vulnerabilities)
+    -a, --async                 Perform asynchronous scan
     -h, --help                  Prints help information
     -V, --version               Prints version information
 
@@ -41,9 +42,9 @@ OPTIONS:
                                      -n 192.168.1.0 -d 
                                      -n -l custom-list.txt
     -t, --timeout <duration>         Set timeout in ms - Ex: -t 10000
-    -a, --waittime <duration>        Set waittime in ms (default:100ms) - Ex: -a 200
+    -w, --waittime <duration>        Set waittime in ms (default:100ms) - Ex: -w 200
     -P, --portscantype <scantype>    Set port scan type (default:SYN) - SYN, CONNECT
-    -i, --interface <name>           Specify network interface by name - Ex: -i en0
+    -i, --interface <name>           Specify network interface by IP address - Ex: -i 192.168.1.4
     -l, --list <file_path>           Use list - Ex: -l custom-list.txt
     -s, --save <file_path>           Save scan result to file - Ex: -s result.txt
 ```
@@ -58,6 +59,8 @@ Host scan
 ```
 sudo nscan -n 192.168.1.0   
 ```
+
+-a(--async) flag for asynchronous scan  
 
 ## Supported platforms
 - Linux

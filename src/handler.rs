@@ -109,7 +109,11 @@ pub async fn handle_port_scan(opt: option::PortOption) {
     };
     printer::print_port_result(port_result.clone());
     if !opt.save_file_path.is_empty() {
-        printer::save_port_result(port_result);
+        if printer::save_port_result(port_result,opt.save_file_path.clone()) {
+            println!("Result saved to file: {}", opt.save_file_path);
+        }else {
+            println!("Failed to save file");
+        }
     }
     // Note
     if !opt.include_detail {
@@ -227,6 +231,10 @@ pub async fn handle_host_scan(opt: option::HostOption) {
     };
     printer::print_host_result(host_result.clone());
     if !opt.save_file_path.is_empty() {
-        printer::save_host_result(host_result);
+        if printer::save_host_result(host_result,opt.save_file_path.clone()) {
+            println!("Result saved to file: {}", opt.save_file_path);
+        }else {
+            println!("Failed to save file");
+        }
     }
 }

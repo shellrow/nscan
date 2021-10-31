@@ -4,6 +4,7 @@ use term_table::row::Row;
 use crossterm::style::Colorize;
 use netscan::PortScanType;
 use std::time::Duration;
+use std::fs;
 use crate::result::{PortResult, HostResult};
 use crate::option::{PortOption, HostOption};
 
@@ -229,12 +230,22 @@ pub fn print_host_result(host_result: HostResult) {
     println!("{}", table.render());
 }
 
-pub fn save_port_result(port_result: PortResult) {
-    println!("{:?}", port_result);
+pub fn save_port_result(port_result: PortResult, file_path: String) -> bool {
+    match serde_json::to_string_pretty(&port_result) {
+        Ok(json) => {
+            save_json(json, file_path)
+        },
+        Err(_) => false,
+    }
 }
 
-pub fn save_host_result(host_result: HostResult) {
-    println!("{:?}", host_result);
+pub fn save_host_result(host_result: HostResult, file_path: String) -> bool {
+    match serde_json::to_string_pretty(&host_result) {
+        Ok(json) => {
+            save_json(json, file_path)
+        },
+        Err(_) => false,
+    }
 }
 
 fn count_open_port(port_result: PortResult) -> usize {
@@ -245,3 +256,9 @@ fn count_closed_port(port_result: PortResult) -> usize {
     port_result.ports.iter().filter(|&p| *p.port_status == String::from("Closed")).count()
 }
 
+fn save_json(json: String, file_path: String) -> bool {
+    match fs::write(file_path, json) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
