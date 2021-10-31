@@ -7,6 +7,12 @@
 Cross-platform network scan tool for host and service discovery. Written in Rust.  
 Aim to be simple and fast.  
 
+## Features
+- Port Scan
+- Host Scan
+- Async Port Scan (Currently only Unix-Like OS is supported)
+- Async Host Scan (Currently only Unix-Like OS is supported)
+
 ## Installation
 ### Cargo Install
 ```
