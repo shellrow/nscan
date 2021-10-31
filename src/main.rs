@@ -43,7 +43,6 @@ async fn main() {
     let mut require_admin = if get_os_type() == "windows"{false}else{true};
     //Scan
     show_banner_with_starttime();
-    //os::escalate_if_needed();
     if matches.is_present("async") && get_os_type() == "windows" {
         println!();
         println!("Asynchronous scanning is not supported on Windows");

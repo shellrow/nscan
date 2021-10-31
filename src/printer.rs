@@ -104,38 +104,40 @@ pub fn print_port_result(port_result: PortResult) {
     table.separate_rows = false;
     table.style = TableStyle::blank();
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Scan Results".cyan(), 1, Alignment::Left)
+        TableCell::new_with_alignment("Scan Results".cyan(), 1, Alignment::Left),
+        TableCell::new_with_alignment(format!("{} Open Port, {} Closed Port", count_open_port(port_result.clone()), count_closed_port(port_result.clone())), 1, Alignment::Left)
     ]));
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Port Number", 1, Alignment::Left),
         TableCell::new_with_alignment("Detail", 1, Alignment::Left)
     ]));
     for port_info in port_result.ports {
-        table.add_row(Row::new(vec![
-            TableCell::new_with_alignment(port_info.port_number, 1, Alignment::Left)
-        ]));
-        table.add_row(Row::new(vec![
-            TableCell::new_with_alignment("", 1, Alignment::Left),
-            TableCell::new_with_alignment("Status:", 1, Alignment::Left),
-            TableCell::new_with_alignment(port_info.port_status, 1, Alignment::Left)
-        ]));
-        table.add_row(Row::new(vec![
-            TableCell::new_with_alignment("", 1, Alignment::Left),
-            TableCell::new_with_alignment("Service Name:", 1, Alignment::Left),
-            TableCell::new_with_alignment(port_info.service_name, 1, Alignment::Left)
-        ]));
-        table.add_row(Row::new(vec![
-            TableCell::new_with_alignment("", 1, Alignment::Left),
-            TableCell::new_with_alignment("Service Version:", 1, Alignment::Left),
-            TableCell::new_with_alignment(port_info.service_version, 1, Alignment::Left)
-        ]));
-        table.add_row(Row::new(vec![
-            TableCell::new_with_alignment("", 1, Alignment::Left),
-            TableCell::new_with_alignment("Remark:", 1, Alignment::Left),
-            TableCell::new_with_alignment(port_info.remark, 1, Alignment::Left)
-        ]));
+        if port_info.port_status == String::from("Open") {
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment(port_info.port_number, 1, Alignment::Left)
+            ]));
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("", 1, Alignment::Left),
+                TableCell::new_with_alignment("Status:", 1, Alignment::Left),
+                TableCell::new_with_alignment(port_info.port_status, 1, Alignment::Left)
+            ]));
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("", 1, Alignment::Left),
+                TableCell::new_with_alignment("Service Name:", 1, Alignment::Left),
+                TableCell::new_with_alignment(port_info.service_name, 1, Alignment::Left)
+            ]));
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("", 1, Alignment::Left),
+                TableCell::new_with_alignment("Service Version:", 1, Alignment::Left),
+                TableCell::new_with_alignment(port_info.service_version, 1, Alignment::Left)
+            ]));
+            table.add_row(Row::new(vec![
+                TableCell::new_with_alignment("", 1, Alignment::Left),
+                TableCell::new_with_alignment("Remark:", 1, Alignment::Left),
+                TableCell::new_with_alignment(port_info.remark, 1, Alignment::Left)
+            ]));
+        }
     }
-
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("", 1, Alignment::Left)
     ]));
@@ -234,3 +236,12 @@ pub fn save_port_result(port_result: PortResult) {
 pub fn save_host_result(host_result: HostResult) {
     println!("{:?}", host_result);
 }
+
+fn count_open_port(port_result: PortResult) -> usize {
+    port_result.ports.iter().filter(|&p| *p.port_status == String::from("Open")).count()
+}
+
+fn count_closed_port(port_result: PortResult) -> usize {
+    port_result.ports.iter().filter(|&p| *p.port_status == String::from("Closed")).count()
+}
+

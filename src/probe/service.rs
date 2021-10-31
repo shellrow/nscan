@@ -77,7 +77,7 @@ fn parse_header(response_header: String) -> String {
 
 fn head_request_secure(host_name: String, port: u16, accept_invalid_certs: bool) -> String {
     if host_name.is_empty() {
-        return String::from("Invalid host name");
+        return String::from("Error: Invalid host name");
     }
     let sock_addr: String = format!("{}:{}",host_name, port);
     let connector = if accept_invalid_certs {
