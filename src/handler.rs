@@ -182,7 +182,7 @@ pub async fn handle_host_scan(opt: option::HostOption) {
             let interfaces = pnet::datalink::interfaces();
             let iface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == default_index).next().expect("Failed to get Interface");
             for host in result.up_hosts.clone() {
-                if !network::is_global_addr(host) {
+                if !network::is_global_addr(host) && network::in_same_network(src_ip.to_string(), host.to_string()) {
                     let mac_addr = network::get_mac_through_arp(&iface, host.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
                     if mac_addr.len() > 16 {
                         let prefix8 = mac_addr[0..8].to_uppercase();

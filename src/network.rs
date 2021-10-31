@@ -91,3 +91,19 @@ pub fn is_global_addr(ip_addr: IpAddr) -> bool {
         },
     }
 }
+
+pub fn in_same_network(src_ip: String, dst_ip: String) -> bool {
+    let src_ip_nw = match get_network_address(src_ip.to_string()) {
+        Ok(nw) => nw,
+        Err(_) => return false,
+    };
+    let dst_ip_nw = match get_network_address(dst_ip.to_string()) {
+        Ok(nw) => nw,
+        Err(_) => return false,
+    };
+    if src_ip_nw == dst_ip_nw {
+        true
+    }else{
+        false
+    }
+}
