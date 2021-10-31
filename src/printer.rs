@@ -18,7 +18,7 @@ pub fn print_port_option(port_option: PortOption) {
     if !port_option.dst_host_name.is_empty() {
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment("Target Host:", 1, Alignment::Left),
-            TableCell::new_with_alignment(port_option.dst_host_name, 1, Alignment::Left)
+            TableCell::new_with_alignment(format!("{}({})",port_option.dst_host_name,port_option.dst_ip_addr), 1, Alignment::Left)
         ]));
     }else{
         table.add_row(Row::new(vec![

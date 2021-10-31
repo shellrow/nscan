@@ -78,7 +78,7 @@ pub async fn handle_port_scan(opt: option::PortOption) {
     if opt.include_detail {
         print!("Detecting service... ");
         stdout().flush().unwrap();
-        service_map = probe::service::detect_service_version(opt.dst_ip_addr.parse::<Ipv4Addr>().unwrap(), open_port_list, opt.accept_invalid_certs);
+        service_map = probe::service::detect_service_version(opt.dst_ip_addr.parse::<Ipv4Addr>().unwrap(), open_port_list, opt.dst_host_name, opt.accept_invalid_certs);
         println!("{}", "Done".green());
     }
     let probe_time: Duration = if opt.include_detail {Instant::now().duration_since(probe_start_time)} else {Duration::from_nanos(0)};
@@ -196,20 +196,25 @@ pub async fn handle_host_scan(opt: option::HostOption) {
             println!("{}", "Failed".red());
         },
     }
+    let mut os_map: HashMap<String, (String, String)> = HashMap::new();
     if opt.include_detail {
-        // ToDo
+        for host in result.up_hosts.clone() {
+            // ToDo
+            os_map.insert(host.to_string(), (String::new(),String::new()));
+        }
     }
     let probe_start_time = Instant::now();
     for host in result.up_hosts {
         let default_tuple: (String, String) = (String::from("None"), String::from("None"));
         let vendor_tuple: &(String, String) = vendor_map.get(&host.to_string()).unwrap_or(&default_tuple);
+        let os_tuple: &(String, String)  = os_map.get(&host.to_string()).unwrap_or(&default_tuple);
         let host_info: HostInfo = HostInfo {
             ip_addr: host.to_string(),
             mac_addr: vendor_tuple.0.clone(),
             vendor_info: vendor_tuple.1.clone(),
             host_name: dns_map.get(&host.to_string()).unwrap_or(&String::from("None")).to_string(),
-            os_name: String::new(),
-            os_version: String::new(),
+            os_name: os_tuple.0.clone(),
+            os_version: os_tuple.1.clone(),
         };
         host_info_list.push(host_info);
     }

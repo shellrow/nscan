@@ -20,6 +20,7 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
                     for addr in addrs {
                         if addr.is_ipv4() {
                             opt.set_dst_ip_addr(addr.to_string());
+                            opt.set_dst_host_name(host);
                             break;
                         }
                     }
