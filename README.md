@@ -73,3 +73,7 @@ sudo nscan -n 192.168.1.0
 - Linux
 - macOS (OS X)
 - Windows
+
+## Planned 
+- OS Fingerprinting
+- Windows support for asynchronous scanning
