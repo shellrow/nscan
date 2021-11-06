@@ -4,7 +4,7 @@ extern crate clap;
 extern crate ipnet;
 extern crate netscan;
 
-mod os;
+mod process;
 mod option;
 mod define;
 mod db;
@@ -55,14 +55,14 @@ async fn main() {
                 require_admin = false;
             }
         }
-        if require_admin && !os::privileged() {
+        if require_admin && !process::privileged() {
             println!("{} This feature requires administrator privileges. ","Error:".red());
             std::process::exit(0);
         }
         let opt = parser::parse_port_args(matches);
         handler::handle_port_scan(opt).await;
     }else if matches.is_present("host") {
-        if require_admin && !os::privileged() {
+        if require_admin && !process::privileged() {
             println!("{} This feature requires administrator privileges. ","Error:".red());
             std::process::exit(0);
         }
@@ -149,7 +149,7 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .takes_value(false)
         )
         .arg(Arg::with_name("save")
-            .help("Save scan result to file - Ex: -s result.txt")
+            .help("Save scan result to file - Ex: -s result.json")
             .short("s")
             .long("save")
             .takes_value(true)

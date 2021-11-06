@@ -200,25 +200,27 @@ pub async fn handle_host_scan(opt: option::HostOption) {
             println!("{}", "Failed".red());
         },
     }
-    let mut os_map: HashMap<String, (String, String)> = HashMap::new();
+    /* let mut os_map: HashMap<String, (String, String)> = HashMap::new();
     if opt.include_detail {
         for host in result.up_hosts.clone() {
             // ToDo
             os_map.insert(host.to_string(), (String::new(),String::new()));
         }
-    }
+    } */
     let probe_start_time = Instant::now();
     for host in result.up_hosts {
         let default_tuple: (String, String) = (String::from("None"), String::from("None"));
         let vendor_tuple: &(String, String) = vendor_map.get(&host.to_string()).unwrap_or(&default_tuple);
-        let os_tuple: &(String, String)  = os_map.get(&host.to_string()).unwrap_or(&default_tuple);
+        //let os_tuple: &(String, String)  = os_map.get(&host.to_string()).unwrap_or(&default_tuple);
         let host_info: HostInfo = HostInfo {
             ip_addr: host.to_string(),
             mac_addr: vendor_tuple.0.clone(),
             vendor_info: vendor_tuple.1.clone(),
             host_name: dns_map.get(&host.to_string()).unwrap_or(&String::from("None")).to_string(),
-            os_name: os_tuple.0.clone(),
-            os_version: os_tuple.1.clone(),
+            // os_name: os_tuple.0.clone(),
+            // os_version: os_tuple.1.clone(),
+            os_name: String::from("None"),
+            os_version: String::from("None"),
         };
         host_info_list.push(host_info);
     }
