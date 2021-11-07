@@ -137,7 +137,7 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .validator(validator::validate_filepath)
         )
         .arg(Arg::with_name("detail")
-            .help("Get details (service version and OS)")
+            .help("Get details (service version)")
             .short("d")
             .long("detail")
             .takes_value(false)
