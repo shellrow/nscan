@@ -29,7 +29,7 @@ USAGE:
     nscan [FLAGS] [OPTIONS]
 
 FLAGS:
-    -d, --detail                Get details (service version and OS)
+    -d, --detail                Get details (service version)
     -A, --acceptinvalidcerts    Accept invalid certs (This introduces significant vulnerabilities)
     -a, --async                 Perform asynchronous scan
     -h, --help                  Prints help information
