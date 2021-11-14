@@ -1,0 +1,4 @@
+DEFAULT_TTL,OS_NAME
+64|Linux,macOS,FreeBSD
+128|Windows
+255|Solaris,NetBSD,OpenBSD
