@@ -2,7 +2,7 @@ use term_table::{Table, TableStyle};
 use term_table::table_cell::{TableCell,Alignment};
 use term_table::row::Row;
 use crossterm::style::Colorize;
-use netscan::PortScanType;
+use netscan::setting::ScanType;
 use std::time::Duration;
 use std::fs;
 use crate::result::{PortResult, HostResult};
@@ -39,7 +39,7 @@ pub fn print_port_option(port_option: PortOption) {
         ]));
     }
     match port_option.scan_type {
-        PortScanType::SynScan => {
+        ScanType::TcpSynScan => {
             if port_option.async_scan {
                 table.add_row(Row::new(vec![
                     TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
@@ -52,12 +52,13 @@ pub fn print_port_option(port_option: PortOption) {
                 ]));
             }
         },
-        PortScanType::ConnectScan => {
+        ScanType::TcpConnectScan => {
             table.add_row(Row::new(vec![
                 TableCell::new_with_alignment("Scan Type:", 1, Alignment::Left),
                 TableCell::new_with_alignment("TCP Connect Scan", 1, Alignment::Left)
             ]));
         },
+        _ => {},
     }
     if port_option.include_detail {
         table.add_row(Row::new(vec![

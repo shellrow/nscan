@@ -1,4 +1,7 @@
-use netscan::{PortScanner, HostScanner, AsyncPortScanner, AsyncHostScanner, ScanStatus, PortStatus, PortScanResult, HostScanResult};
+use netscan::result::{ScanStatus, PortStatus, PortScanResult, HostScanResult};
+use netscan::setting::Destination;
+use netscan::blocking::{PortScanner, HostScanner};
+use netscan::async_io::{PortScanner as AsyncPortScanner, HostScanner as AsyncHostScanner};
 use crossterm::style::Colorize;
 use std::io::{stdout, Write};
 use std::net::{IpAddr, Ipv4Addr};
@@ -29,10 +32,8 @@ pub async fn handle_port_scan(opt: option::PortOption) {
             Ok(scanner) => (scanner),
             Err(e) => panic!("Error creating scanner: {}", e),
         };
-        port_scanner.set_dst_ip(opt.dst_ip_addr.parse::<IpAddr>().unwrap());
-        for port in opt.dst_ports {
-            port_scanner.add_dst_port(port);
-        }
+        let dst: Destination = Destination::new(opt.dst_ip_addr.parse::<IpAddr>().unwrap(), opt.dst_ports);
+        port_scanner.add_destination(dst);
         port_scanner.set_scan_type(opt.scan_type);
         port_scanner.set_timeout(opt.timeout);
         port_scanner.set_wait_time(opt.wait_time);
@@ -45,10 +46,8 @@ pub async fn handle_port_scan(opt: option::PortOption) {
             Ok(scanner) => (scanner),
             Err(e) => panic!("Error creating scanner: {}", e),
         };
-        port_scanner.set_dst_ip(opt.dst_ip_addr.parse::<IpAddr>().unwrap());
-        for port in opt.dst_ports {
-            port_scanner.add_dst_port(port);
-        }
+        let dst: Destination = Destination::new(opt.dst_ip_addr.parse::<IpAddr>().unwrap(), opt.dst_ports);
+        port_scanner.add_destination(dst);
         port_scanner.set_scan_type(opt.scan_type);
         port_scanner.set_timeout(opt.timeout);
         port_scanner.set_wait_time(opt.wait_time);
@@ -140,7 +139,8 @@ pub async fn handle_host_scan(opt: option::HostOption) {
             Err(e) => panic!("Error creating scanner: {}", e),
         };
         for host in opt.dst_hosts {
-            host_scanner.add_dst_ip(host.parse::<IpAddr>().unwrap());
+            let dst: Destination = Destination::new(host.parse::<IpAddr>().unwrap(), vec![]);
+            host_scanner.add_destination(dst);
         }
         host_scanner.set_timeout(opt.timeout);
         host_scanner.set_wait_time(opt.wait_time);
@@ -154,7 +154,8 @@ pub async fn handle_host_scan(opt: option::HostOption) {
             Err(e) => panic!("Error creating scanner: {}", e),
         };
         for host in opt.dst_hosts {
-            host_scanner.add_dst_ip(host.parse::<IpAddr>().unwrap());
+            let dst: Destination = Destination::new(host.parse::<IpAddr>().unwrap(), vec![]);
+            host_scanner.add_destination(dst);
         }
         host_scanner.set_timeout(opt.timeout);
         host_scanner.set_wait_time(opt.wait_time);
@@ -168,7 +169,7 @@ pub async fn handle_host_scan(opt: option::HostOption) {
         ScanStatus::Timeout => {println!("{}", "Timed out".yellow())},
         _ => {println!("{}", "Error".red())},
     }
-    if result.up_hosts.len() == 0 {
+    if result.hosts.len() == 0 {
         println!("Up-host not found");
         std::process::exit(0);
     }
@@ -177,22 +178,22 @@ pub async fn handle_host_scan(opt: option::HostOption) {
     print!("Probing vendor information... ");
     stdout().flush().unwrap();
     let oui_map = db::get_oui_map();
-    match default_net::get_default_interface_index() {
+    match default_net::interface::get_default_interface_index() {
         Some(default_index) => {
-            let interfaces = pnet::datalink::interfaces();
-            let iface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == default_index).next().expect("Failed to get Interface");
-            for host in result.up_hosts.clone() {
-                if !network::is_global_addr(host) && network::in_same_network(src_ip.to_string(), host.to_string()) {
-                    let mac_addr = network::get_mac_through_arp(&iface, host.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
+            let interfaces = pnet_datalink::interfaces();
+            let iface = interfaces.into_iter().filter(|interface: &pnet_datalink::NetworkInterface| interface.index == default_index).next().expect("Failed to get Interface");
+            for host in result.hosts.clone() {
+                if !network::is_global_addr(host.ip_addr) && network::in_same_network(src_ip.to_string(), host.ip_addr.to_string()) {
+                    let mac_addr = network::get_mac_through_arp(&iface, host.ip_addr.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
                     if mac_addr.len() > 16 {
                         let prefix8 = mac_addr[0..8].to_uppercase();
-                        vendor_map.insert(host.to_string(), (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("None")).to_string()));
+                        vendor_map.insert(host.ip_addr.to_string(), (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("None")).to_string()));
                     }else{
-                        vendor_map.insert(host.to_string(), (mac_addr, String::from("None")));
+                        vendor_map.insert(host.ip_addr.to_string(), (mac_addr, String::from("None")));
                     }
                 }
-                let host_name: String = dns_lookup::lookup_addr(&host).unwrap_or(String::from("None"));
-                dns_map.insert(host.to_string(), host_name);
+                let host_name: String = dns_lookup::lookup_addr(&host.ip_addr).unwrap_or(String::from("None"));
+                dns_map.insert(host.ip_addr.to_string(), host_name);
             }
             println!("{}", "Done".green());
         },
@@ -208,15 +209,15 @@ pub async fn handle_host_scan(opt: option::HostOption) {
         }
     } */
     let probe_start_time = Instant::now();
-    for host in result.up_hosts {
+    for host in result.hosts {
         let default_tuple: (String, String) = (String::from("None"), String::from("None"));
-        let vendor_tuple: &(String, String) = vendor_map.get(&host.to_string()).unwrap_or(&default_tuple);
+        let vendor_tuple: &(String, String) = vendor_map.get(&host.ip_addr.to_string()).unwrap_or(&default_tuple);
         //let os_tuple: &(String, String)  = os_map.get(&host.to_string()).unwrap_or(&default_tuple);
         let host_info: HostInfo = HostInfo {
-            ip_addr: host.to_string(),
+            ip_addr: host.ip_addr.to_string(),
             mac_addr: vendor_tuple.0.clone(),
             vendor_info: vendor_tuple.1.clone(),
-            host_name: dns_map.get(&host.to_string()).unwrap_or(&String::from("None")).to_string(),
+            host_name: dns_map.get(&host.ip_addr.to_string()).unwrap_or(&String::from("None")).to_string(),
             // os_name: os_tuple.0.clone(),
             // os_version: os_tuple.1.clone(),
             os_name: String::from("None"),

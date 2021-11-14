@@ -1,4 +1,4 @@
-use netscan::PortScanType;
+use netscan::setting::ScanType;
 use std::time::Duration;
 use std::fs::read_to_string;
 use std::net::{IpAddr, Ipv4Addr};
@@ -12,7 +12,7 @@ pub struct PortOption {
     pub dst_ip_addr: String,
     pub dst_host_name: String,
     pub dst_ports: Vec<u16>,
-    pub scan_type: PortScanType,
+    pub scan_type: ScanType,
     pub timeout: Duration,
     pub wait_time: Duration,
     pub include_detail: bool,
@@ -41,7 +41,7 @@ impl PortOption {
             dst_ip_addr: String::new(),
             dst_host_name: String::new(),
             dst_ports: vec![],
-            scan_type: PortScanType::SynScan,
+            scan_type: ScanType::TcpSynScan,
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(100),
             include_detail: false,
@@ -97,9 +97,9 @@ impl PortOption {
     }
     pub fn set_scan_type(&mut self, v: String) {
         let scan_type = match v.as_str() {
-            define::PORTSCAN_TYPE_SYN_SCAN => PortScanType::SynScan,
-            define::PORTSCAN_TYPE_CONNECT_SCAN => PortScanType::ConnectScan,
-            _ => PortScanType::SynScan,
+            define::PORTSCAN_TYPE_SYN_SCAN => ScanType::TcpSynScan,
+            define::PORTSCAN_TYPE_CONNECT_SCAN => ScanType::TcpConnectScan,
+            _ => ScanType::TcpSynScan,
         };
         self.scan_type = scan_type;
     }
