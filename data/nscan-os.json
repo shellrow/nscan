@@ -1,5 +1,4 @@
-{
-    "fingerprints": [
+[
         {
             "os_name": "Linux",
             "version": "",
@@ -48,5 +47,4 @@
             "tcp_rst_text_payload": false,
             "tcp_ecn_support": true
         }
-    ]
-}
+]

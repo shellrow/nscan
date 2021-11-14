@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use crate::define;
+use crate::probe::os::OSFingerprint;
 
 pub fn get_oui_map() -> HashMap<String, String> {
-    let rs_nscan_oui: Vec<&str> = define::NSCAN_OUI.trim().split("\n").collect();
+    let mut rs_nscan_oui: Vec<&str> = define::NSCAN_OUI.trim().split("\n").collect();
     let mut oui_map: HashMap<String, String> = HashMap::new();
+    rs_nscan_oui.remove(0);
     for r in rs_nscan_oui {
         let rt = r.replace(" ", "");
         let row: Vec<&str> = rt.trim().split(",").collect();
@@ -15,8 +17,9 @@ pub fn get_oui_map() -> HashMap<String, String> {
 }
 
 pub fn get_tcp_map() -> HashMap<String, String> {
-    let rs_nscan_tcp_port: Vec<&str> = define::NSCAN_TCP_PORT.trim().split("\n").collect();
+    let mut rs_nscan_tcp_port: Vec<&str> = define::NSCAN_TCP_PORT.trim().split("\n").collect();
     let mut tcp_map: HashMap<String, String> = HashMap::new();
+    rs_nscan_tcp_port.remove(0);
     for r in rs_nscan_tcp_port {
         let rt = r.replace(" ", "");
         let row: Vec<&str> = rt.split(",").collect();
@@ -67,4 +70,27 @@ pub fn get_https_ports() -> Vec<u16> {
         }
     }
     return https_ports;
+}
+
+pub fn get_os_fingerprints() -> Vec<OSFingerprint> {
+    let fingerprints: Vec<OSFingerprint> = serde_json::from_str(define::NSCAN_OS).unwrap_or(vec![]);    
+    fingerprints
+}
+
+pub fn get_os_ttl() -> HashMap<u8, String> {
+    let mut rs_nscan_os_ttl: Vec<&str> = define::NSCAN_OS_TTL.trim().split("\n").collect();
+    let mut ttl_map: HashMap<u8, String> = HashMap::new();
+    rs_nscan_os_ttl.remove(0);
+    for r in rs_nscan_os_ttl {
+        let row: Vec<&str> = r.trim().split(",").collect();
+        if row.len() >= 2 {
+            match row[0].parse::<u8>() {
+                Ok(ttl) => {
+                    ttl_map.insert(ttl, row[1].to_string());
+                },
+                Err(_) => {},
+            }
+        }
+    }
+    ttl_map
 }

@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use crate::option;
 use crate::db;
 use crate::probe;
+use crate::probe::os::OSFingerprint;
 use crate::network;
 use crate::result::{PortInfo, PortResult, HostInfo, HostResult};
 use crate::printer;
@@ -201,26 +202,28 @@ pub async fn handle_host_scan(opt: option::HostOption) {
             println!("{}", "Failed".red());
         },
     }
-    /* let mut os_map: HashMap<String, (String, String)> = HashMap::new();
+    let mut os_map: HashMap<IpAddr, (String, String)> = HashMap::new();
+    let _os_fingerprints: Vec<OSFingerprint> = db::get_os_fingerprints();
+    let ttl_map: HashMap<u8, String> = db::get_os_ttl();
     if opt.include_detail {
-        for host in result.up_hosts.clone() {
-            // ToDo
-            os_map.insert(host.to_string(), (String::new(),String::new()));
+        for host in result.hosts.clone() {
+            let ini_ttl: u8 = probe::os::guess_initial_ttl(host.ttl);
+            let os_name: String = ttl_map.get(&ini_ttl).unwrap_or(&String::new()).to_string();
+            os_map.insert(host.ip_addr, (os_name,String::new()));
         }
-    } */
+    }
     let probe_start_time = Instant::now();
     for host in result.hosts {
         let default_tuple: (String, String) = (String::from("None"), String::from("None"));
         let vendor_tuple: &(String, String) = vendor_map.get(&host.ip_addr.to_string()).unwrap_or(&default_tuple);
-        //let os_tuple: &(String, String)  = os_map.get(&host.to_string()).unwrap_or(&default_tuple);
+        let os_tuple: &(String, String)  = os_map.get(&host.ip_addr).unwrap_or(&default_tuple);
         let host_info: HostInfo = HostInfo {
             ip_addr: host.ip_addr.to_string(),
             mac_addr: vendor_tuple.0.clone(),
             vendor_info: vendor_tuple.1.clone(),
             host_name: dns_map.get(&host.ip_addr.to_string()).unwrap_or(&String::from("None")).to_string(),
-            // os_name: os_tuple.0.clone(),
+            os_name: os_tuple.0.clone(),
             // os_version: os_tuple.1.clone(),
-            os_name: String::from("None"),
             os_version: String::from("None"),
         };
         host_info_list.push(host_info);

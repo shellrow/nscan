@@ -199,12 +199,12 @@ pub fn print_host_result(host_result: HostResult) {
             TableCell::new_with_alignment("Host Name:", 1, Alignment::Left),
             TableCell::new_with_alignment(host_info.host_name, 1, Alignment::Left)
         ]));
-        /* table.add_row(Row::new(vec![
+        table.add_row(Row::new(vec![
             TableCell::new_with_alignment("", 1, Alignment::Left),
-            TableCell::new_with_alignment("OS Name:", 1, Alignment::Left),
+            TableCell::new_with_alignment("OS(guess):", 1, Alignment::Left),
             TableCell::new_with_alignment(host_info.os_name, 1, Alignment::Left)
         ]));
-        table.add_row(Row::new(vec![
+        /* table.add_row(Row::new(vec![
             TableCell::new_with_alignment("", 1, Alignment::Left),
             TableCell::new_with_alignment("OS Version:", 1, Alignment::Left),
             TableCell::new_with_alignment(host_info.os_version, 1, Alignment::Left)

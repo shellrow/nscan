@@ -1,4 +1,4 @@
-DEFAULT_TTL,OS_NAME
-64|Linux,macOS,FreeBSD
-128|Windows
-255|Solaris,NetBSD,OpenBSD
+DEFAULT_TTL,OS_DESC
+64,Linux or other Unix-Like OS
+128,Windows
+255,Solaris or other Unix-Like OS
