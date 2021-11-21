@@ -133,11 +133,11 @@ pub fn print_port_result(port_result: PortResult) {
                 TableCell::new_with_alignment("Service Version:", 1, Alignment::Left),
                 TableCell::new_with_alignment(port_info.service_version, 1, Alignment::Left)
             ]));
-            table.add_row(Row::new(vec![
+            /* table.add_row(Row::new(vec![
                 TableCell::new_with_alignment("", 1, Alignment::Left),
                 TableCell::new_with_alignment("Remark:", 1, Alignment::Left),
                 TableCell::new_with_alignment(port_info.remark, 1, Alignment::Left)
-            ]));
+            ])); */
         }
     }
     table.add_row(Row::new(vec![

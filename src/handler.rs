@@ -2,6 +2,8 @@ use netscan::result::{ScanStatus, PortStatus, PortScanResult, HostScanResult};
 use netscan::setting::Destination;
 use netscan::blocking::{PortScanner, HostScanner};
 use netscan::async_io::{PortScanner as AsyncPortScanner, HostScanner as AsyncHostScanner};
+use netscan_service::setting::{Destination as SvcDst, PortDatabase};
+use netscan_service::service;
 use crossterm::style::Colorize;
 use std::io::{stdout, Write};
 use std::net::{IpAddr, Ipv4Addr};
@@ -78,7 +80,17 @@ pub async fn handle_port_scan(opt: option::PortOption) {
     if opt.include_detail {
         print!("Detecting service... ");
         stdout().flush().unwrap();
-        service_map = probe::service::detect_service_version(opt.dst_ip_addr.parse::<Ipv4Addr>().unwrap(), open_port_list, opt.dst_host_name, opt.accept_invalid_certs);
+        let port_db = PortDatabase {
+            http_ports: db::get_http_ports(),
+            https_ports: db::get_https_ports(),
+        };
+        let svc_dst = SvcDst {
+            dst_ip: opt.dst_ip_addr.parse::<IpAddr>().unwrap(),
+            dst_name: opt.dst_host_name,
+            open_ports: open_port_list,
+            accept_invalid_certs: opt.accept_invalid_certs,
+        };
+        service_map = service::detect_service(svc_dst, port_db);
         println!("{}", "Done".green());
     }
     let probe_time: Duration = if opt.include_detail {Instant::now().duration_since(probe_start_time)} else {Duration::from_nanos(0)};
