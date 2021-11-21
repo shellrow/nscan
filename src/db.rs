@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::define;
-use crate::probe::os::OSFingerprint;
+use crate::model::OSFingerprint;
 
 pub fn get_oui_map() -> HashMap<String, String> {
     let mut rs_nscan_oui: Vec<&str> = define::NSCAN_OUI.trim().split("\n").collect();

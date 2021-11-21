@@ -8,6 +8,7 @@ mod process;
 mod option;
 mod define;
 mod db;
+mod model;
 mod parser;
 mod handler;
 mod interface;

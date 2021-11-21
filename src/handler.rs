@@ -4,6 +4,8 @@ use netscan::blocking::{PortScanner, HostScanner};
 use netscan::async_io::{PortScanner as AsyncPortScanner, HostScanner as AsyncHostScanner};
 use netscan_service::setting::{Destination as SvcDst, PortDatabase};
 use netscan_service::service;
+//use netscan_os::prober::{Prober};
+//use netscan_os::setting::{ProbeType, Destination as OsDst};
 use crossterm::style::Colorize;
 use std::io::{stdout, Write};
 use std::net::{IpAddr, Ipv4Addr};
@@ -12,7 +14,7 @@ use std::collections::HashMap;
 use crate::option;
 use crate::db;
 use crate::probe;
-use crate::probe::os::OSFingerprint;
+use crate::model::OSFingerprint;
 use crate::network;
 use crate::result::{PortInfo, PortResult, HostInfo, HostResult};
 use crate::printer;
@@ -218,6 +220,24 @@ pub async fn handle_host_scan(opt: option::HostOption) {
     let _os_fingerprints: Vec<OSFingerprint> = db::get_os_fingerprints();
     let ttl_map: HashMap<u8, String> = db::get_os_ttl();
     if opt.include_detail {
+        print!("Detecting OS information... ");
+        stdout().flush().unwrap();
+        let mut hosts: Vec<IpAddr> = vec![];
+        for host in result.hosts.clone() {
+            hosts.push(host.ip_addr);
+        }
+        os_map = probe::os::default_fingerprinting(src_ip, hosts);
+        if os_map.len() == 0 {
+            for host in result.hosts.clone() {
+                let ini_ttl: u8 = probe::os::guess_initial_ttl(host.ttl);
+                let os_name: String = ttl_map.get(&ini_ttl).unwrap_or(&String::new()).to_string();
+                os_map.insert(host.ip_addr, (os_name,String::new()));
+            }
+            println!("{}", "Failed".red());
+        }else {
+            println!("{}", "Done".green());
+        }
+    }else{
         for host in result.hosts.clone() {
             let ini_ttl: u8 = probe::os::guess_initial_ttl(host.ttl);
             let os_name: String = ttl_map.get(&ini_ttl).unwrap_or(&String::new()).to_string();
