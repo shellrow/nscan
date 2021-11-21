@@ -27,7 +27,7 @@
             "tcp_ip_ttl": 64,
             "tcp_ip_df": true,
             "tcp_window_size": [65535,33304],
-            "tcp_option_order": ["MSS NOP WSCALE SACK_PERMITTED","MSS NOP WSCALE NOP NOP TIMESTAMPS"],
+            "tcp_option_order": ["MSS NOP WSCALE NOP NOP TIMESTAMPS SACK_PERMITTED EOL EOL","MSS NOP WSCALE SACK_PERMITTED EOL EOL"],
             "tcp_rst_text_payload": false,
             "tcp_ecn_support": true
         },
@@ -43,7 +43,23 @@
             "tcp_ip_ttl": 128,
             "tcp_ip_df": true,
             "tcp_window_size": [8192, 65535],
-            "tcp_option_order": ["MSS NOP WSCALE NOP NOP SACK_PERMITTED"],
+            "tcp_option_order": ["MSS NOP WSCALE NOP NOP SACK_PERMITTED", "MSS NOP WSCALE SACK_PERMITTED TIMESTAMPS"],
+            "tcp_rst_text_payload": false,
+            "tcp_ecn_support": true
+        },
+        {
+            "os_name": "FreeBSD",
+            "version": "",
+            "icmp_echo_code": 0,
+            "icmp_ip_ttl": 64,
+            "icmp_echo_ip_df": true,
+            "icmp_unreach_ip_df": false,
+            "icmp_unreach_ip_len": "EQ",
+            "icmp_unreach_data_ip_id_byte_order": "EQ",
+            "tcp_ip_ttl": 64,
+            "tcp_ip_df": true,
+            "tcp_window_size": [65535],
+            "tcp_option_order": ["MSS NOP WSCALE SACK_PERMITTED EOL EOL", "MSS, NOP, WSCALE, SACK_PERMITTED, TIMESTAMPS"],
             "tcp_rst_text_payload": false,
             "tcp_ecn_support": true
         }
