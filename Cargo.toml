@@ -18,6 +18,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 default-net = "0.5.0"
 netscan = "0.7.0"
+netscan-service = "0.1.0"
+netscan-os = "0.1.0"
 pnet_packet = "0.28"
 pnet_datalink = "0.28"
 ipnet = "2.3"
