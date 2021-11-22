@@ -1,5 +1,6 @@
 [
         {
+            "id": "linux",
             "os_name": "Linux",
             "version": "",
             "icmp_echo_code": 0,
@@ -16,6 +17,7 @@
             "tcp_ecn_support": true
         },
         {
+            "id": "macos",
             "os_name": "macOS",
             "version": "",
             "icmp_echo_code": 0,
@@ -32,6 +34,7 @@
             "tcp_ecn_support": true
         },
         {
+            "id": "windows",
             "os_name": "Windows",
             "version": "",
             "icmp_echo_code": 0,
@@ -48,6 +51,7 @@
             "tcp_ecn_support": true
         },
         {
+            "id": "freebsd",
             "os_name": "FreeBSD",
             "version": "",
             "icmp_echo_code": 0,

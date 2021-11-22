@@ -226,7 +226,7 @@ pub async fn handle_host_scan(opt: option::HostOption) {
         for host in result.hosts.clone() {
             hosts.push(host.ip_addr);
         }
-        os_map = probe::os::default_fingerprinting(src_ip, hosts);
+        os_map = probe::os::default_os_fingerprinting(src_ip, hosts);
         if os_map.len() == 0 {
             for host in result.hosts.clone() {
                 let ini_ttl: u8 = probe::os::guess_initial_ttl(host.ttl);
