@@ -14,7 +14,6 @@ use std::collections::HashMap;
 use crate::option;
 use crate::db;
 use crate::probe;
-use crate::model::OSFingerprint;
 use crate::network;
 use crate::result::{PortInfo, PortResult, HostInfo, HostResult};
 use crate::printer;
@@ -71,11 +70,14 @@ pub async fn handle_port_scan(opt: option::PortOption) {
         std::process::exit(0);
     }
     let mut service_map: HashMap<u16, String> = HashMap::new();
+    let mut os_map: HashMap<IpAddr, (String, String)> = HashMap::new();
     let probe_start_time = Instant::now();
-    let mut open_port_list: Vec<u16> = vec![];
+    let mut open_ports: Vec<u16> = vec![];
+    let mut closed_ports: Vec<u16> = vec![];
     for port_info in result.ports.clone() {
         match port_info.status {
-            PortStatus::Open => open_port_list.push(port_info.port),
+            PortStatus::Open => open_ports.push(port_info.port),
+            PortStatus::Closed => closed_ports.push(port_info.port),
             _ => {},
         }
     }
@@ -88,17 +90,26 @@ pub async fn handle_port_scan(opt: option::PortOption) {
         };
         let svc_dst = SvcDst {
             dst_ip: opt.dst_ip_addr.parse::<IpAddr>().unwrap(),
-            dst_name: opt.dst_host_name,
-            open_ports: open_port_list,
+            dst_name: opt.dst_host_name.clone(),
+            open_ports: open_ports.clone(),
             accept_invalid_certs: opt.accept_invalid_certs,
         };
         service_map = service::detect_service(svc_dst, port_db);
         println!("{}", "Done".green());
+
+        print!("Detecting OS ... ");
+        stdout().flush().unwrap();
+        os_map = probe::os::os_fingerprinting(src_ip, opt.dst_ip_addr.parse::<IpAddr>().unwrap(), open_ports, closed_ports);
+        if os_map.len() == 0 {
+            println!("{}", "Failed".red());
+        }else{
+            println!("{}", "Done".green());
+        }
     }
     let probe_time: Duration = if opt.include_detail {Instant::now().duration_since(probe_start_time)} else {Duration::from_nanos(0)};
     let tcp_map = db::get_tcp_map();
     for port_info in result.ports { 
-        let svc: String = service_map.get(&port_info.port).unwrap_or(&String::from("None")).to_string();
+        let svc: String = service_map.get(&port_info.port).unwrap_or(&String::from("Unknown")).to_string();
         let svc_vec: Vec<&str>  = svc.split("\t").collect();
         let port_info: PortInfo = PortInfo {
             port_number: port_info.port,
@@ -109,14 +120,24 @@ pub async fn handle_port_scan(opt: option::PortOption) {
                     PortStatus::Filtered => String::from("Filtered"),
                 }
             },
-            service_name: tcp_map.get(&port_info.port.to_string()).unwrap_or(&String::from("None")).to_string(),
+            service_name: tcp_map.get(&port_info.port.to_string()).unwrap_or(&String::from("Unknown")).to_string(),
             service_version: svc_vec[0].to_string(),
-            remark: {if svc_vec.len() > 1 {svc_vec[1].to_string()} else {String::from("None")} },
+            remark: {if svc_vec.len() > 1 {svc_vec[1].to_string()} else {String::from("Unknown")} },
         };
         port_info_list.push(port_info);
     }
+    let default_tuple: (String, String) = (String::new(), String::new());
+    let os_tuple: &(String, String)  = os_map.get(&opt.dst_ip_addr.parse::<IpAddr>().unwrap()).unwrap_or(&default_tuple);
     let port_result: PortResult = PortResult {
         ports: port_info_list,
+        host: HostInfo{
+            ip_addr: opt.dst_ip_addr,
+            mac_addr: String::new(),
+            vendor_info: String::new(),
+            host_name: opt.dst_host_name,
+            os_name: os_tuple.0.clone(),
+            os_version: os_tuple.1.clone(),
+        },
         port_scan_time: result.scan_time,
         probe_time: probe_time,
         total_scan_time: result.scan_time + probe_time,
@@ -202,12 +223,12 @@ pub async fn handle_host_scan(opt: option::HostOption) {
                     let mac_addr = network::get_mac_through_arp(&iface, host.ip_addr.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
                     if mac_addr.len() > 16 {
                         let prefix8 = mac_addr[0..8].to_uppercase();
-                        vendor_map.insert(host.ip_addr.to_string(), (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("None")).to_string()));
+                        vendor_map.insert(host.ip_addr.to_string(), (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("Unknown")).to_string()));
                     }else{
-                        vendor_map.insert(host.ip_addr.to_string(), (mac_addr, String::from("None")));
+                        vendor_map.insert(host.ip_addr.to_string(), (mac_addr, String::from("Unknown")));
                     }
                 }
-                let host_name: String = dns_lookup::lookup_addr(&host.ip_addr).unwrap_or(String::from("None"));
+                let host_name: String = dns_lookup::lookup_addr(&host.ip_addr).unwrap_or(String::from("Unknown"));
                 dns_map.insert(host.ip_addr.to_string(), host_name);
             }
             println!("{}", "Done".green());
@@ -217,10 +238,9 @@ pub async fn handle_host_scan(opt: option::HostOption) {
         },
     }
     let mut os_map: HashMap<IpAddr, (String, String)> = HashMap::new();
-    let _os_fingerprints: Vec<OSFingerprint> = db::get_os_fingerprints();
     let ttl_map: HashMap<u8, String> = db::get_os_ttl();
     if opt.include_detail {
-        print!("Detecting OS information... ");
+        print!("Detecting OS ... ");
         stdout().flush().unwrap();
         let mut hosts: Vec<IpAddr> = vec![];
         for host in result.hosts.clone() {
@@ -246,17 +266,16 @@ pub async fn handle_host_scan(opt: option::HostOption) {
     }
     let probe_start_time = Instant::now();
     for host in result.hosts {
-        let default_tuple: (String, String) = (String::from("None"), String::from("None"));
+        let default_tuple: (String, String) = (String::from("Unknown"), String::from("Unknown"));
         let vendor_tuple: &(String, String) = vendor_map.get(&host.ip_addr.to_string()).unwrap_or(&default_tuple);
         let os_tuple: &(String, String)  = os_map.get(&host.ip_addr).unwrap_or(&default_tuple);
         let host_info: HostInfo = HostInfo {
             ip_addr: host.ip_addr.to_string(),
             mac_addr: vendor_tuple.0.clone(),
             vendor_info: vendor_tuple.1.clone(),
-            host_name: dns_map.get(&host.ip_addr.to_string()).unwrap_or(&String::from("None")).to_string(),
+            host_name: dns_map.get(&host.ip_addr.to_string()).unwrap_or(&host.ip_addr.to_string()).to_string(),
             os_name: os_tuple.0.clone(),
-            // os_version: os_tuple.1.clone(),
-            os_version: String::from("None"),
+            os_version: os_tuple.1.clone(),
         };
         host_info_list.push(host_info);
     }

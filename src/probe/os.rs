@@ -32,7 +32,7 @@ fn convert_probe_result(probe_result: ProbeResult) -> OSFingerprint {
         Some(r) => {
             if r.icmp_echo_reply {
                 fingerprint.icmp_echo_code = r.icmp_echo_code;
-                fingerprint.icmp_ip_ttl = r.ip_ttl;
+                fingerprint.icmp_ip_ttl = guess_initial_ttl(r.ip_ttl);
                 fingerprint.icmp_echo_ip_df = r.ip_df;
             }
         },
@@ -66,7 +66,7 @@ fn convert_probe_result(probe_result: ProbeResult) -> OSFingerprint {
     match probe_result.tcp_syn_ack_result {
         Some(r) => {
             if r.syn_ack_response {
-                fingerprint.tcp_ip_ttl = r.ip_ttl;
+                fingerprint.tcp_ip_ttl = guess_initial_ttl(r.ip_ttl);
                 fingerprint.tcp_ip_df = r.ip_df;
             }
         },
@@ -171,9 +171,51 @@ fn check_tcp_option_order(fingerprint: &OSFingerprint, mdb: &Vec<OSFingerprint>,
     }
 }
 
+fn check_tcp_window_size(fingerprint: &OSFingerprint, mdb: &Vec<OSFingerprint>, os_map: &mut HashMap<String, u8>) {
+    if fingerprint.tcp_window_size.len() > 0 {
+        for mf in mdb {
+            if mf.tcp_window_size.contains(&fingerprint.tcp_window_size[0]) {
+                os_map.insert(mf.id.clone(), os_map.get(&mf.id).unwrap_or(&0) + TCP_WINDOW_SIZE_POINT);
+            }
+        }
+    }
+}
+
+fn check_ip_ttl(fingerprint: &OSFingerprint, mdb: &Vec<OSFingerprint>, os_map: &mut HashMap<String, u8>) {
+    for mf in mdb {
+        if fingerprint.icmp_ip_ttl == mf.icmp_ip_ttl {
+            os_map.insert(mf.id.clone(), os_map.get(&mf.id).unwrap_or(&0) + IP_TTL_POINT);   
+        }
+    }
+}
+
+fn check_icmp_echo_ip_df(fingerprint: &OSFingerprint, mdb: &Vec<OSFingerprint>, os_map: &mut HashMap<String, u8>) {
+    for mf in mdb {
+        if fingerprint.icmp_echo_ip_df == mf.icmp_echo_ip_df {
+            os_map.insert(mf.id.clone(), os_map.get(&mf.id).unwrap_or(&0) + ICMP_ECHO_IP_DF_POINT);   
+        }
+    }
+}
+
+fn check_icmp_unreach_ip_len(fingerprint: &OSFingerprint, mdb: &Vec<OSFingerprint>, os_map: &mut HashMap<String, u8>) {
+    for mf in mdb {
+        if fingerprint.icmp_unreach_ip_len == mf.icmp_unreach_ip_len {
+            os_map.insert(mf.id.clone(), os_map.get(&mf.id).unwrap_or(&0) + ICMP_UNREACH_IP_LEN_POINT);   
+        }
+    }
+}
+
+fn get_max<K, V>(map: &HashMap<K, V>) -> Option<&K> where V: Ord,
+{
+    map.iter().max_by(|a, b| a.1.cmp(&b.1)).map(|(k, _v)| k)
+}
+
 fn guess_os(probe_result: ProbeResult) -> (String, String) {
     let mdb: Vec<OSFingerprint> = db::get_os_fingerprints();
     let fingerprint: OSFingerprint = convert_probe_result(probe_result);
+    if fingerprint.icmp_ip_ttl == 0 && fingerprint.tcp_ip_ttl == 0 {
+        return (String::from("Unknown"), String::from("Unknown"));
+    }
     // Check exact match
     if let Some(r) = simple_exact_match(&fingerprint, &mdb){
         return r;
@@ -181,14 +223,24 @@ fn guess_os(probe_result: ProbeResult) -> (String, String) {
     let mut os_map: HashMap<String, u8> = create_os_map(&mdb);
     // Check TCP Options
     check_tcp_option_order(&fingerprint, &mdb, &mut os_map);
-    
-    // TODO
-
-    return (String::new(), String::new())
+    // Check TCP Window size
+    check_tcp_window_size(&fingerprint, &mdb, &mut os_map);
+    // Check IP TTL
+    check_ip_ttl(&fingerprint, &mdb, &mut os_map);
+    // Check ICMP Echo IP don't fragment bit
+    check_icmp_echo_ip_df(&fingerprint, &mdb, &mut os_map);
+    // Check ICMP Destination Unreachable IP LEN
+    check_icmp_unreach_ip_len(&fingerprint, &mdb, &mut os_map);
+    if let Some(os_id) = get_max(&os_map) {
+        if let Some(f) = mdb.into_iter().find(|f| f.id == os_id.to_string()) {
+            return (f.os_name, f.version);
+        }
+    }
+    return (String::from("Unknown"), String::from("Unknown"));
 }
 
 pub fn default_os_fingerprinting(src_ip: IpAddr, hosts: Vec<IpAddr>) -> HashMap<IpAddr, (String, String)> {
-    let map: HashMap<IpAddr, (String, String)> = HashMap::new();
+    let mut map: HashMap<IpAddr, (String, String)> = HashMap::new();
     let mut prober = Prober::new(src_ip).unwrap();
     prober.set_wait_time(Duration::from_millis(200));
     prober.add_probe_type(ProbeType::IcmpEchoProbe);
@@ -210,24 +262,15 @@ pub fn default_os_fingerprinting(src_ip: IpAddr, hosts: Vec<IpAddr>) -> HashMap<
         prober.add_dst_info(dst);
     }
     prober.run_probe();
-    /* for result in prober.get_probe_results() {
-        println!("{}", result.ip_addr);
-        println!("{:?}", result.icmp_echo_result);
-        println!("{:?}", result.icmp_timestamp_result);
-        println!("{:?}", result.icmp_address_mask_result);
-        println!("{:?}", result.icmp_information_result);
-        println!("{:?}", result.icmp_unreachable_ip_result);
-        println!("{:?}", result.icmp_unreachable_data_result);
-        println!("{:?}", result.tcp_syn_ack_result);
-        println!("{:?}", result.tcp_rst_ack_result);
-        println!("{:?}", result.tcp_ecn_result);
-        println!("{:?}", result.tcp_header_result);
-        println!();
-    } */
+    for result in prober.get_probe_results().clone() {
+        let os_tuple: (String, String) = guess_os(result.clone());
+        map.insert(result.ip_addr, os_tuple);
+    }
     return map;
 }
 
-pub fn os_fingerprinting(src_ip: IpAddr, dst_ip: IpAddr, open_ports: Vec<u16>, closed_ports: u16) {
+pub fn os_fingerprinting(src_ip: IpAddr, dst_ip: IpAddr, open_ports: Vec<u16>, closed_ports: Vec<u16>) -> HashMap<IpAddr, (String, String)> {
+    let mut map: HashMap<IpAddr, (String, String)> = HashMap::new();
     let mut prober = Prober::new(src_ip).unwrap();
     prober.set_wait_time(Duration::from_millis(200));
     prober.add_probe_type(ProbeType::IcmpEchoProbe);
@@ -240,12 +283,17 @@ pub fn os_fingerprinting(src_ip: IpAddr, dst_ip: IpAddr, open_ports: Vec<u16>, c
     prober.add_probe_type(ProbeType::TcpEcnProbe);
     let dst: Destination = Destination {
         ip_addr: dst_ip,
-        open_tcp_ports: open_ports,
-        closed_tcp_port: closed_ports,
+        open_tcp_ports: if open_ports.len() > 0 {open_ports}else{vec![80,22]},
+        closed_tcp_port: if closed_ports.len() > 0 {closed_ports[0]}else{443},
         open_udp_port: 161,
         closed_udp_port: 33455,
     };
     prober.add_dst_info(dst);
     prober.run_probe();
+    for result in prober.get_probe_results().clone() {
+        let os_tuple: (String, String) = guess_os(result.clone());
+        map.insert(result.ip_addr, os_tuple);
+    }
+    return map;
 }
 

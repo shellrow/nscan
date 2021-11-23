@@ -23,6 +23,7 @@ pub struct HostInfo {
 #[derive(Clone, Debug ,Serialize, Deserialize)]
 pub struct PortResult {
     pub ports: Vec<PortInfo>,
+    pub host: HostInfo,
     pub port_scan_time: Duration,
     pub probe_time: Duration,
     pub total_scan_time: Duration,

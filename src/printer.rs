@@ -107,7 +107,8 @@ pub fn print_port_result(port_result: PortResult) {
     table.style = TableStyle::blank();
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Scan Results".cyan(), 1, Alignment::Left),
-        TableCell::new_with_alignment(format!("{} Open Port, {} Closed Port", count_open_port(port_result.clone()), count_closed_port(port_result.clone())), 1, Alignment::Left)
+        TableCell::new_with_alignment(format!("{} Open Port", count_open_port(port_result.clone())), 1, Alignment::Left),
+        TableCell::new_with_alignment(format!("{} Closed Port", count_closed_port(port_result.clone())), 1, Alignment::Left)
     ]));
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Port Number", 1, Alignment::Left),
@@ -139,6 +140,15 @@ pub fn print_port_result(port_result: PortResult) {
                 TableCell::new_with_alignment(port_info.remark, 1, Alignment::Left)
             ])); */
         }
+    }
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("", 1, Alignment::Left)
+    ]));
+    if !port_result.host.os_name.is_empty() {
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("OS(guess):", 1, Alignment::Left),
+            TableCell::new_with_alignment(port_result.host.os_name, 1, Alignment::Left)
+        ]));
     }
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("", 1, Alignment::Left)
