@@ -60,7 +60,7 @@ pub fn print_port_option(port_option: PortOption) {
         },
         _ => {},
     }
-    if port_option.include_detail {
+    if port_option.service_detection {
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment("Service Probe:", 1, Alignment::Left),
             TableCell::new_with_alignment("True", 1, Alignment::Left)

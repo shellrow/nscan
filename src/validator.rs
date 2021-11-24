@@ -35,6 +35,9 @@ pub fn validate_port_opt(v: String) -> Result<(), String> {
 }
 
 pub fn validate_host_opt(v: String) -> Result<(), String> {
+    if v == "list" {
+        return Ok(())
+    }
     let addr = IpAddr::from_str(&v);
     match addr {
         Ok(_) => {

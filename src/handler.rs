@@ -4,8 +4,6 @@ use netscan::blocking::{PortScanner, HostScanner};
 use netscan::async_io::{PortScanner as AsyncPortScanner, HostScanner as AsyncHostScanner};
 use netscan_service::setting::{Destination as SvcDst, PortDatabase};
 use netscan_service::service;
-//use netscan_os::prober::{Prober};
-//use netscan_os::setting::{ProbeType, Destination as OsDst};
 use crossterm::style::Colorize;
 use std::io::{stdout, Write};
 use std::net::{IpAddr, Ipv4Addr};
@@ -81,7 +79,7 @@ pub async fn handle_port_scan(opt: option::PortOption) {
             _ => {},
         }
     }
-    if opt.include_detail {
+    if opt.service_detection {
         print!("Detecting service... ");
         stdout().flush().unwrap();
         let port_db = PortDatabase {
@@ -96,8 +94,9 @@ pub async fn handle_port_scan(opt: option::PortOption) {
         };
         service_map = service::detect_service(svc_dst, port_db);
         println!("{}", "Done".green());
-
-        print!("Detecting OS ... ");
+    }
+    if opt.os_detection {
+        print!("Detecting OS... ");
         stdout().flush().unwrap();
         os_map = probe::os::os_fingerprinting(src_ip, opt.dst_ip_addr.parse::<IpAddr>().unwrap(), open_ports, closed_ports);
         if os_map.len() == 0 {
@@ -106,7 +105,7 @@ pub async fn handle_port_scan(opt: option::PortOption) {
             println!("{}", "Done".green());
         }
     }
-    let probe_time: Duration = if opt.include_detail {Instant::now().duration_since(probe_start_time)} else {Duration::from_nanos(0)};
+    let probe_time: Duration = if opt.service_detection {Instant::now().duration_since(probe_start_time)} else {Duration::from_nanos(0)};
     let tcp_map = db::get_tcp_map();
     for port_info in result.ports { 
         let svc: String = service_map.get(&port_info.port).unwrap_or(&String::from("Unknown")).to_string();
@@ -151,7 +150,7 @@ pub async fn handle_port_scan(opt: option::PortOption) {
         }
     }
     // Note
-    if !opt.include_detail {
+    if !opt.service_detection {
         println!("To perform service detection, specify the -d flag");
     }
 }
@@ -213,6 +212,7 @@ pub async fn handle_host_scan(opt: option::HostOption) {
     let mut dns_map: HashMap<String, String> = HashMap::new();
     print!("Probing vendor information... ");
     stdout().flush().unwrap();
+    let probe_start_time = Instant::now();
     let oui_map = db::get_oui_map();
     match default_net::interface::get_default_interface_index() {
         Some(default_index) => {
@@ -239,8 +239,8 @@ pub async fn handle_host_scan(opt: option::HostOption) {
     }
     let mut os_map: HashMap<IpAddr, (String, String)> = HashMap::new();
     let ttl_map: HashMap<u8, String> = db::get_os_ttl();
-    if opt.include_detail {
-        print!("Detecting OS ... ");
+    if opt.os_detection {
+        print!("Detecting OS... ");
         stdout().flush().unwrap();
         let mut hosts: Vec<IpAddr> = vec![];
         for host in result.hosts.clone() {
@@ -264,7 +264,6 @@ pub async fn handle_host_scan(opt: option::HostOption) {
             os_map.insert(host.ip_addr, (os_name,String::new()));
         }
     }
-    let probe_start_time = Instant::now();
     for host in result.hosts {
         let default_tuple: (String, String) = (String::from("Unknown"), String::from("Unknown"));
         let vendor_tuple: &(String, String) = vendor_map.get(&host.ip_addr.to_string()).unwrap_or(&default_tuple);

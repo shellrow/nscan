@@ -15,11 +15,12 @@ pub struct PortOption {
     pub scan_type: ScanType,
     pub timeout: Duration,
     pub wait_time: Duration,
-    pub include_detail: bool,
+    pub service_detection: bool,
     pub default_scan: bool,
     pub accept_invalid_certs: bool,
     pub save_file_path: String,
     pub async_scan: bool,
+    pub os_detection: bool,
 }
 
 #[derive(Clone)]
@@ -28,9 +29,9 @@ pub struct HostOption {
     pub dst_hosts: Vec<String>,
     pub timeout: Duration,
     pub wait_time: Duration,
-    pub include_detail: bool,
     pub save_file_path: String,
     pub async_scan: bool,
+    pub os_detection: bool,
 }
 
 impl PortOption {
@@ -44,11 +45,12 @@ impl PortOption {
             scan_type: ScanType::TcpSynScan,
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(100),
-            include_detail: false,
+            service_detection: false,
             default_scan: false,
             accept_invalid_certs: false,
             save_file_path: String::new(),
             async_scan: false,
+            os_detection: false,
         }
     }
     pub fn set_src_port(&mut self, v: u16) {
@@ -109,8 +111,8 @@ impl PortOption {
     pub fn set_wait_time(&mut self, v: u64) {
         self.wait_time = Duration::from_millis(v);
     }
-    pub fn set_include_detail(&mut self, v: bool) {
-        self.include_detail = v;
+    pub fn set_service_detection(&mut self, v: bool) {
+        self.service_detection = v;
     }
     pub fn set_default_scan(&mut self, v: bool) {
         self.default_scan = v;
@@ -127,6 +129,9 @@ impl PortOption {
     pub fn set_async_scan(&mut self, async_scan: bool){
         self.async_scan = async_scan;
     }
+    pub fn set_os_detection(&mut self, os_detection: bool){
+        self.os_detection = os_detection;
+    }
 }
 
 impl HostOption {
@@ -136,9 +141,9 @@ impl HostOption {
             dst_hosts: vec![],
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(200),
-            include_detail: false,
             save_file_path: String::new(),
             async_scan: false,
+            os_detection: false,
         }
     }
     /* pub fn set_dst_hosts(&mut self, v: Vec<String>) {
@@ -186,9 +191,6 @@ impl HostOption {
     pub fn set_wait_time(&mut self, v: u64) {
         self.wait_time = Duration::from_millis(v);
     }
-    pub fn set_include_detail(&mut self, v: bool) {
-        self.include_detail = v;
-    }
     pub fn set_save_file_path(&mut self, v: String) {
         self.save_file_path = v;
     }
@@ -197,5 +199,8 @@ impl HostOption {
     }
     pub fn set_async_scan(&mut self, async_scan: bool){
         self.async_scan = async_scan;
+    }
+    pub fn set_os_detection(&mut self, os_detection: bool){
+        self.os_detection = os_detection;
     }
 }

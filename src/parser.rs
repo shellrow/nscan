@@ -65,17 +65,20 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
         if let Some(p) = matches.value_of("portscantype") {
             opt.set_scan_type(p.to_string());
         }
-        if matches.is_present("detail") {
-            opt.set_include_detail(true);
+        if matches.is_present("service") {
+            opt.set_service_detection(true);
         }
         if matches.is_present("acceptinvalidcerts") {
             opt.set_accept_invalid_certs(true);
         }
-        if let Some(s) = matches.value_of("save") {
+        if let Some(s) = matches.value_of("output") {
             opt.set_save_file_path(s.to_string());
         }
         if matches.is_present("async") {
             opt.set_async_scan(true);
+        }
+        if matches.is_present("OS") {
+            opt.set_os_detection(true);
         }
     }
     return opt;
@@ -87,6 +90,10 @@ pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
         if let Some(w) = matches.value_of("list") {
             opt.set_dst_hosts_from_list(w.to_string());
         }else {
+            if v == "list" {
+                println!("Host discovery with -n option requires network specification \nor list specification with --list <file_path> option");
+                std::process::exit(0);
+            }
             match network::get_network_address(v.to_string()) {
                 Ok(nw_addr) => {
                     opt.set_dst_hosts_from_na(nw_addr);
@@ -103,10 +110,7 @@ pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
         if let Some(a) = matches.value_of("waittime") {
             opt.set_wait_time(a.parse::<u64>().unwrap_or(200));
         }
-        if matches.is_present("detail") {
-            opt.set_include_detail(true);
-        }
-        if let Some(s) = matches.value_of("save") {
+        if let Some(s) = matches.value_of("output") {
             opt.set_save_file_path(s.to_string());
         }
         if let Some(i) = matches.value_of("interface") {
@@ -114,6 +118,9 @@ pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
         }
         if matches.is_present("async") {
             opt.set_async_scan(true);
+        }
+        if matches.is_present("OS") {
+            opt.set_os_detection(true);
         }
     }
     return opt;
