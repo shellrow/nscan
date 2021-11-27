@@ -4,6 +4,7 @@ use std::fs::read_to_string;
 use std::net::{IpAddr, Ipv4Addr};
 use ipnet::{Ipv4Net};
 use crate::define;
+use crate::network;
 
 #[derive(Clone)]
 pub struct PortOption {
@@ -146,9 +147,9 @@ impl HostOption {
             os_detection: false,
         }
     }
-    /* pub fn set_dst_hosts(&mut self, v: Vec<String>) {
-        self.dst_hosts = v;
-    } */
+    pub fn add_dst_host(&mut self, v: String) {
+        self.dst_hosts.push(v);
+    }
     pub fn set_dst_hosts_from_list(&mut self, v: String) {
         let data = read_to_string(v);
         let text = match data {
@@ -161,10 +162,13 @@ impl HostOption {
                 Ok(addr) =>{
                     self.dst_hosts.push(addr.to_string());
                 },
-                Err(_) =>{},
+                Err(_) =>{
+                    if let Some(addr) = network::lookup_host_name(host.to_string()) {
+                        self.dst_hosts.push(addr.to_string());
+                    }
+                },
             }
         }
-        //TODO: add dns_lookup
     }
     pub fn set_dst_hosts_from_na(&mut self, v: String) {
         match v.parse::<IpAddr>(){

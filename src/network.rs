@@ -107,3 +107,23 @@ pub fn in_same_network(src_ip: String, dst_ip: String) -> bool {
         false
     }
 }
+
+pub fn lookup_host_name(host_name: String) -> Option<IpAddr> {
+    let ip_vec: Vec<IpAddr> = dns_lookup::lookup_host(host_name.as_str()).unwrap_or(vec![]);
+    let mut ipv6_vec: Vec<IpAddr> = vec![];
+    for ip in ip_vec {
+        match ip {
+            IpAddr::V4(_) => {
+                return Some(ip);
+            },
+            IpAddr::V6(_) => {
+                ipv6_vec.push(ip);
+            }
+        }
+    }
+    if ipv6_vec.len() > 0 {
+        return Some(ipv6_vec[0])
+    }else{
+        None
+    }
+}

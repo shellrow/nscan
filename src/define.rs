@@ -1,4 +1,4 @@
-pub const CRATE_UPDATE_DATE: &str = "2021-11-21";
+pub const CRATE_UPDATE_DATE: &str = "2021-11-27";
 pub const CRATE_AUTHOR_GITHUB: &str = "shellrow <https://github.com/shellrow>";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 pub const PORTSCAN_TYPE_SYN_SCAN: &str = "SYN";

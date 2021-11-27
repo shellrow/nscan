@@ -34,10 +34,7 @@ pub fn validate_port_opt(v: String) -> Result<(), String> {
     }
 }
 
-pub fn validate_host_opt(v: String) -> Result<(), String> {
-    if v == "list" {
-        return Ok(())
-    }
+pub fn validate_network_opt(v: String) -> Result<(), String> {
     let addr = IpAddr::from_str(&v);
     match addr {
         Ok(_) => {
@@ -47,6 +44,26 @@ pub fn validate_host_opt(v: String) -> Result<(), String> {
             return Err(String::from("Please specify ip address"));
         }
     }
+}
+
+pub fn validate_host_opt(v: String) -> Result<(), String> {
+    let re_host = Regex::new(r"[\w\-._]+\.[A-Za-z]+").unwrap();
+    if Path::new(&v).exists() {
+        return Ok(());
+    }else{
+        let ip_vec: Vec<&str> = v.split(",").collect();
+        for ip_str in ip_vec {
+            match IpAddr::from_str(&ip_str) {
+                Ok(_) => {},
+                Err(_) => {
+                    if !re_host.is_match(ip_str) {
+                        return Err(String::from("Please specify ip address or host name"));
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 /* pub fn validate_domain_opt(v: String) -> Result<(), String> {

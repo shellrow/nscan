@@ -62,7 +62,7 @@ async fn main() {
         }
         let opt = parser::parse_port_args(matches);
         handler::handle_port_scan(opt).await;
-    }else if matches.is_present("host") {
+    }else if matches.is_present("network") || matches.is_present("host") {
         if require_admin && !process::privileged() {
             println!("{} This feature requires administrator privileges. ","Error:".red());
             std::process::exit(0);
@@ -89,14 +89,20 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .value_name("ip_addr:port")
             .validator(validator::validate_port_opt)
         )
-        .arg(Arg::with_name("host")
-            .help("Scan hosts in specified network or list \nExamples \n-n 192.168.1.0 -O \n-n -l custom-list.txt -O")
+        .arg(Arg::with_name("network")
+            .help("Scan hosts in specified network \nExample: -n 192.168.1.0 -O")
             .short("n")
+            .long("network")
+            .takes_value(true)
+            .value_name("ip_addr")
+            .validator(validator::validate_network_opt)
+        )
+        .arg(Arg::with_name("host")
+            .help("Scan hosts in specified host-list \nExamples \n-H custom-list.txt -O \n-H 192.168.1.10,192.168.1.20,192.168.1.30 -O")
+            .short("H")
             .long("host")
             .takes_value(true)
-            .default_value("list")
-            .hide_default_value(true)
-            .value_name("ip_addr")
+            .value_name("host_list")
             .validator(validator::validate_host_opt)
         )
         .arg(Arg::with_name("timeout")
@@ -171,7 +177,7 @@ fn get_app_settings<'a, 'b>() -> App<'a, 'b> {
             .takes_value(false)
         )
         .group(ArgGroup::with_name("mode")
-            .args(&["port", "host"])
+            .args(&["port", "network", "host"])
         )
         .setting(AppSettings::DeriveDisplayOrder)
         ;

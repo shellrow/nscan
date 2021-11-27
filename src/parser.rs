@@ -1,5 +1,7 @@
 use clap::ArgMatches;
 use dns_lookup::lookup_host;
+use std::net::IpAddr;
+use std::str::FromStr;
 use crate::option;
 use crate::validator;
 use crate::db;
@@ -86,14 +88,8 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
 
 pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
     let mut opt = option::HostOption::new();
-    if let Some(v) = matches.value_of("host") {
-        if let Some(w) = matches.value_of("list") {
-            opt.set_dst_hosts_from_list(w.to_string());
-        }else {
-            if v == "list" {
-                println!("Host discovery with -n option requires network specification \nor list specification with --list <file_path> option");
-                std::process::exit(0);
-            }
+    if matches.is_present("network") || matches.is_present("host") {
+        if let Some(v) = matches.value_of("network") {
             match network::get_network_address(v.to_string()) {
                 Ok(nw_addr) => {
                     opt.set_dst_hosts_from_na(nw_addr);
@@ -101,6 +97,28 @@ pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
                 Err(e) => {
                     print!("{}", e);
                     std::process::exit(0);
+                },
+            }
+        }
+        if let Some(v) = matches.value_of("host") {
+            match validator::validate_filepath(v.to_string()) {
+                Ok(_) => {
+                    opt.set_dst_hosts_from_list(v.to_string());
+                },
+                Err(_) => {
+                    let ip_vec: Vec<&str> = v.split(",").collect();
+                    for ip_str in ip_vec {
+                        match IpAddr::from_str(&ip_str) {
+                            Ok(ip) => {
+                                opt.add_dst_host(ip.to_string());
+                            },
+                            Err(_) => {
+                                if let Some(ip) = network::lookup_host_name(ip_str.to_string()) {
+                                    opt.add_dst_host(ip.to_string());
+                                }
+                            },
+                        }
+                    }
                 },
             }
         }
