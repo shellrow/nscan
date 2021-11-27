@@ -31,7 +31,10 @@ pub async fn handle_port_scan(opt: option::PortOption) {
         opt.src_ip.parse::<IpAddr>().expect("")
     };
     println!("{}", "Done".green());
+    #[cfg(ntarget_os="windows")]
     let mut result: PortScanResult = PortScanResult::new();
+    #[cfg(not(target_os="windows"))]
+    let result: PortScanResult;
     if opt.async_scan {
         #[cfg(not(target_os="windows"))]
         {
@@ -173,7 +176,10 @@ pub async fn handle_host_scan(opt: option::HostOption) {
         opt.src_ip.parse::<IpAddr>().expect("")
     };
     println!("{}", "Done".green());
+    #[cfg(ntarget_os="windows")]
     let mut result: HostScanResult = HostScanResult::new();
+    #[cfg(not(target_os="windows"))]
+    let result: HostScanResult;
     if opt.async_scan {
         #[cfg(not(target_os="windows"))]
         {
