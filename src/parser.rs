@@ -52,8 +52,8 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
             opt.set_default_scan(true);
             opt.set_dst_ports(db::get_default_ports());
         }
-        if let Some(w) = matches.value_of("list") {
-            opt.set_dst_ports_from_list(w.to_string());
+        if let Some(l) = matches.value_of("list") {
+            opt.set_dst_ports_from_list(l.to_string());
         }
         if let Some(i) = matches.value_of("interface") {
             opt.set_src_ip(i.to_string());
@@ -61,8 +61,8 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
         if let Some(t) = matches.value_of("timeout") {
             opt.set_timeout(t.parse::<u64>().unwrap_or(30000));
         }
-        if let Some(a) = matches.value_of("waittime") {
-            opt.set_wait_time(a.parse::<u64>().unwrap_or(100));
+        if let Some(w) = matches.value_of("waittime") {
+            opt.set_wait_time(w.parse::<u64>().unwrap_or(100));
         }
         if let Some(p) = matches.value_of("portscantype") {
             opt.set_scan_type(p.to_string());
@@ -73,8 +73,8 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
         if matches.is_present("acceptinvalidcerts") {
             opt.set_accept_invalid_certs(true);
         }
-        if let Some(s) = matches.value_of("output") {
-            opt.set_save_file_path(s.to_string());
+        if let Some(o) = matches.value_of("output") {
+            opt.set_save_file_path(o.to_string());
         }
         if matches.is_present("async") {
             opt.set_async_scan(true);
@@ -125,11 +125,11 @@ pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
         if let Some(t) = matches.value_of("timeout") {
             opt.set_timeout(t.parse::<u64>().unwrap_or(30000));
         }
-        if let Some(a) = matches.value_of("waittime") {
-            opt.set_wait_time(a.parse::<u64>().unwrap_or(200));
+        if let Some(w) = matches.value_of("waittime") {
+            opt.set_wait_time(w.parse::<u64>().unwrap_or(200));
         }
-        if let Some(s) = matches.value_of("output") {
-            opt.set_save_file_path(s.to_string());
+        if let Some(o) = matches.value_of("output") {
+            opt.set_save_file_path(o.to_string());
         }
         if let Some(i) = matches.value_of("interface") {
             opt.set_src_ip(i.to_string());
