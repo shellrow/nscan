@@ -15,6 +15,7 @@ const TCP_WINDOW_SIZE_POINT: u8 = 4;
 const IP_TTL_POINT: u8 = 4;
 const ICMP_ECHO_IP_DF_POINT: u8 = 2;
 const ICMP_UNREACH_IP_LEN_POINT: u8 = 2;
+const VALID_THRESHOLD: u8 = 10;
 
 pub fn guess_initial_ttl(ttl: u8) -> u8 {
     if ttl <= 64 {
@@ -232,6 +233,11 @@ fn guess_os(probe_result: ProbeResult) -> (String, String) {
     // Check ICMP Destination Unreachable IP LEN
     check_icmp_unreach_ip_len(&fingerprint, &mdb, &mut os_map);
     if let Some(os_id) = get_max(&os_map) {
+        if let Some(p) = os_map.get(os_id) {
+            if p < &VALID_THRESHOLD {
+                return (String::from("Unknown"), String::from("Unknown"));
+            }
+        }
         if let Some(f) = mdb.into_iter().find(|f| f.id == os_id.to_string()) {
             return (f.os_name, f.version);
         }
