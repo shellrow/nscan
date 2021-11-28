@@ -8,6 +8,8 @@ use std::fs;
 use crate::result::{PortResult, HostResult};
 use crate::option::{PortOption, HostOption};
 
+const CLOSED_CNT_SHOW_THRESHOLD: usize = 4;
+
 pub fn print_port_option(port_option: PortOption) {
     let mut table = Table::new();
     table.max_column_width = 60;
@@ -101,18 +103,25 @@ pub fn print_host_option(host_option: HostOption) {
 }
 
 pub fn print_port_result(port_result: PortResult) {
+    let open_cnt: usize = count_open_port(port_result.clone());
+    let closed_cnt: usize = count_closed_port(port_result.clone());
     let mut table = Table::new();
     table.max_column_width = 60;
     table.separate_rows = false;
     table.style = TableStyle::blank();
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Scan Results".cyan(), 1, Alignment::Left),
-        TableCell::new_with_alignment(format!("{} Open Port", count_open_port(port_result.clone())), 1, Alignment::Left),
-        TableCell::new_with_alignment(format!("{} Closed Port", count_closed_port(port_result.clone())), 1, Alignment::Left)
+        TableCell::new_with_alignment(format!("{} Open Port", open_cnt), 1, Alignment::Left),
+        if closed_cnt < CLOSED_CNT_SHOW_THRESHOLD {
+            TableCell::new_with_alignment(format!("{} Closed Port", closed_cnt), 1, Alignment::Left)
+        }else{
+            TableCell::new_with_alignment(format!("{} Closed Port(Not shown)", closed_cnt), 1, Alignment::Left)
+        }
     ]));
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Port Number", 1, Alignment::Left),
-        TableCell::new_with_alignment("Detail", 1, Alignment::Left)
+        TableCell::new_with_alignment("Key", 1, Alignment::Left),
+        TableCell::new_with_alignment("Value", 1, Alignment::Left)
     ]));
     for port_info in port_result.ports {
         if port_info.port_status == String::from("Open") {
@@ -139,6 +148,17 @@ pub fn print_port_result(port_result: PortResult) {
                 TableCell::new_with_alignment("Remark:", 1, Alignment::Left),
                 TableCell::new_with_alignment(port_info.remark, 1, Alignment::Left)
             ])); */
+        } else if port_info.port_status == String::from("Closed") {
+            if closed_cnt < CLOSED_CNT_SHOW_THRESHOLD {
+                table.add_row(Row::new(vec![
+                    TableCell::new_with_alignment(port_info.port_number, 1, Alignment::Left)
+                ]));
+                table.add_row(Row::new(vec![
+                    TableCell::new_with_alignment("", 1, Alignment::Left),
+                    TableCell::new_with_alignment("Status:", 1, Alignment::Left),
+                    TableCell::new_with_alignment(port_info.port_status, 1, Alignment::Left)
+                ]));
+            }
         }
     }
     table.add_row(Row::new(vec![
@@ -188,7 +208,8 @@ pub fn print_host_result(host_result: HostResult) {
     ]));
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("IP Address", 1, Alignment::Left),
-        TableCell::new_with_alignment("Detail", 1, Alignment::Left)
+        TableCell::new_with_alignment("Key", 1, Alignment::Left),
+        TableCell::new_with_alignment("Value", 1, Alignment::Left)
     ]));
     for host_info in host_result.hosts {
         table.add_row(Row::new(vec![
