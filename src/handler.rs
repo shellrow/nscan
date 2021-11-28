@@ -31,42 +31,7 @@ pub async fn handle_port_scan(opt: option::PortOption) {
         opt.src_ip.parse::<IpAddr>().expect("")
     };
     println!("{}", "Done".green());
-    #[cfg(target_os="windows")]
-    let mut result: PortScanResult = PortScanResult::new();
-    #[cfg(not(target_os="windows"))]
-    let result: PortScanResult;
-    if opt.async_scan {
-        #[cfg(not(target_os="windows"))]
-        {
-            let mut port_scanner = match AsyncPortScanner::new(src_ip){
-                Ok(scanner) => (scanner),
-                Err(e) => panic!("Error creating scanner: {}", e),
-            };
-            let dst: Destination = Destination::new(opt.dst_ip_addr.parse::<IpAddr>().unwrap(), opt.dst_ports);
-            port_scanner.add_destination(dst);
-            port_scanner.set_scan_type(opt.scan_type);
-            port_scanner.set_timeout(opt.timeout);
-            port_scanner.set_wait_time(opt.wait_time);
-            print!("Scanning... ");
-            stdout().flush().unwrap();
-            port_scanner.run_scan().await;
-            result = port_scanner.get_scan_result();
-        }
-    }else{
-        let mut port_scanner = match PortScanner::new(src_ip){
-            Ok(scanner) => (scanner),
-            Err(e) => panic!("Error creating scanner: {}", e),
-        };
-        let dst: Destination = Destination::new(opt.dst_ip_addr.parse::<IpAddr>().unwrap(), opt.dst_ports);
-        port_scanner.add_destination(dst);
-        port_scanner.set_scan_type(opt.scan_type);
-        port_scanner.set_timeout(opt.timeout);
-        port_scanner.set_wait_time(opt.wait_time);
-        print!("Scanning... ");
-        stdout().flush().unwrap();
-        port_scanner.run_scan();
-        result = port_scanner.get_scan_result();
-    }
+    let result: PortScanResult = scan_ports(src_ip, opt.clone()).await;
     match result.scan_status {
         ScanStatus::Done => println!("{}", "Done".green()),
         ScanStatus::Timeout => println!("{}", "Timed out".yellow()),
@@ -176,44 +141,7 @@ pub async fn handle_host_scan(opt: option::HostOption) {
         opt.src_ip.parse::<IpAddr>().expect("")
     };
     println!("{}", "Done".green());
-    #[cfg(target_os="windows")]
-    let mut result: HostScanResult = HostScanResult::new();
-    #[cfg(not(target_os="windows"))]
-    let result: HostScanResult;
-    if opt.async_scan {
-        #[cfg(not(target_os="windows"))]
-        {
-            let mut host_scanner = match AsyncHostScanner::new(src_ip){
-                Ok(scanner) => (scanner),
-                Err(e) => panic!("Error creating scanner: {}", e),
-            };
-            for host in opt.dst_hosts {
-                let dst: Destination = Destination::new(host.parse::<IpAddr>().unwrap(), vec![]);
-                host_scanner.add_destination(dst);
-            }
-            host_scanner.set_timeout(opt.timeout);
-            host_scanner.set_wait_time(opt.wait_time);
-            print!("Scanning... ");
-            stdout().flush().unwrap();
-            host_scanner.run_scan().await;
-            result = host_scanner.get_scan_result();
-        }
-    }else{
-        let mut host_scanner = match HostScanner::new(src_ip){
-            Ok(scanner) => (scanner),
-            Err(e) => panic!("Error creating scanner: {}", e),
-        };
-        for host in opt.dst_hosts {
-            let dst: Destination = Destination::new(host.parse::<IpAddr>().unwrap(), vec![]);
-            host_scanner.add_destination(dst);
-        }
-        host_scanner.set_timeout(opt.timeout);
-        host_scanner.set_wait_time(opt.wait_time);
-        print!("Scanning... ");
-        stdout().flush().unwrap();
-        host_scanner.run_scan();
-        result = host_scanner.get_scan_result();
-    }
+    let result: HostScanResult = scan_hosts(src_ip, opt.clone()).await;
     match result.scan_status {
         ScanStatus::Done => {println!("{}", "Done".green())},
         ScanStatus::Timeout => {println!("{}", "Timed out".yellow())},
@@ -308,4 +236,113 @@ pub async fn handle_host_scan(opt: option::HostOption) {
             println!("Failed to save file");
         }
     }
+}
+
+#[cfg(not(target_os="windows"))]
+async fn scan_ports(src_ip: IpAddr, opt: option::PortOption) -> PortScanResult {
+    if opt.async_scan {
+        let mut port_scanner = match AsyncPortScanner::new(src_ip){
+            Ok(scanner) => (scanner),
+            Err(e) => panic!("Error creating scanner: {}", e),
+        };
+        let dst: Destination = Destination::new(opt.dst_ip_addr.parse::<IpAddr>().unwrap(), opt.dst_ports);
+        port_scanner.add_destination(dst);
+        port_scanner.set_scan_type(opt.scan_type);
+        port_scanner.set_timeout(opt.timeout);
+        port_scanner.set_wait_time(opt.wait_time);
+        print!("Scanning... ");
+        stdout().flush().unwrap();
+        port_scanner.run_scan().await;
+        let result: PortScanResult = port_scanner.get_scan_result();
+        return result;
+    }else{
+        let mut port_scanner = match PortScanner::new(src_ip){
+            Ok(scanner) => (scanner),
+            Err(e) => panic!("Error creating scanner: {}", e),
+        };
+        let dst: Destination = Destination::new(opt.dst_ip_addr.parse::<IpAddr>().unwrap(), opt.dst_ports);
+        port_scanner.add_destination(dst);
+        port_scanner.set_scan_type(opt.scan_type);
+        port_scanner.set_timeout(opt.timeout);
+        port_scanner.set_wait_time(opt.wait_time);
+        print!("Scanning... ");
+        stdout().flush().unwrap();
+        port_scanner.run_scan();
+        let result: PortScanResult = port_scanner.get_scan_result();
+        return result;
+    }
+}
+
+#[cfg(target_os="windows")]
+async fn scan_ports(src_ip: IpAddr, opt: option::PortOption) -> PortScanResult {
+    let mut port_scanner = match PortScanner::new(src_ip){
+        Ok(scanner) => (scanner),
+        Err(e) => panic!("Error creating scanner: {}", e),
+    };
+    let dst: Destination = Destination::new(opt.dst_ip_addr.parse::<IpAddr>().unwrap(), opt.dst_ports);
+    port_scanner.add_destination(dst);
+    port_scanner.set_scan_type(opt.scan_type);
+    port_scanner.set_timeout(opt.timeout);
+    port_scanner.set_wait_time(opt.wait_time);
+    print!("Scanning... ");
+    stdout().flush().unwrap();
+    port_scanner.run_scan();
+    let result: PortScanResult = port_scanner.get_scan_result();
+    return result;
+}
+
+#[cfg(not(target_os="windows"))]
+async fn scan_hosts(src_ip: IpAddr, opt: option::HostOption) -> HostScanResult {
+    if opt.async_scan {
+        let mut host_scanner = match AsyncHostScanner::new(src_ip){
+            Ok(scanner) => (scanner),
+            Err(e) => panic!("Error creating scanner: {}", e),
+        };
+        for host in opt.dst_hosts {
+            let dst: Destination = Destination::new(host.parse::<IpAddr>().unwrap(), vec![]);
+            host_scanner.add_destination(dst);
+        }
+        host_scanner.set_timeout(opt.timeout);
+        host_scanner.set_wait_time(opt.wait_time);
+        print!("Scanning... ");
+        stdout().flush().unwrap();
+        host_scanner.run_scan().await;
+        let result: HostScanResult = host_scanner.get_scan_result();
+        return result;
+    }else{
+        let mut host_scanner = match HostScanner::new(src_ip){
+            Ok(scanner) => (scanner),
+            Err(e) => panic!("Error creating scanner: {}", e),
+        };
+        for host in opt.dst_hosts {
+            let dst: Destination = Destination::new(host.parse::<IpAddr>().unwrap(), vec![]);
+            host_scanner.add_destination(dst);
+        }
+        host_scanner.set_timeout(opt.timeout);
+        host_scanner.set_wait_time(opt.wait_time);
+        print!("Scanning... ");
+        stdout().flush().unwrap();
+        host_scanner.run_scan();
+        let result: HostScanResult = host_scanner.get_scan_result();
+        return result;
+    }
+}
+
+#[cfg(target_os="windows")]
+async fn scan_hosts(src_ip: IpAddr, opt: option::HostOption) -> HostScanResult {
+    let mut host_scanner = match HostScanner::new(src_ip){
+        Ok(scanner) => (scanner),
+        Err(e) => panic!("Error creating scanner: {}", e),
+    };
+    for host in opt.dst_hosts {
+        let dst: Destination = Destination::new(host.parse::<IpAddr>().unwrap(), vec![]);
+        host_scanner.add_destination(dst);
+    }
+    host_scanner.set_timeout(opt.timeout);
+    host_scanner.set_wait_time(opt.wait_time);
+    print!("Scanning... ");
+    stdout().flush().unwrap();
+    host_scanner.run_scan();
+    let result: HostScanResult = host_scanner.get_scan_result();
+    return result;
 }
