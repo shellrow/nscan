@@ -5,6 +5,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use ipnet::{Ipv4Net};
 use crate::define;
 use crate::network;
+use crate::netscan::setting::DEFAULT_SRC_PORT;
 
 #[derive(Clone)]
 pub struct PortOption {
@@ -39,13 +40,13 @@ impl PortOption {
     pub fn new() -> PortOption {
         PortOption {
             src_ip: String::new(),
-            src_port: 65432,
+            src_port: DEFAULT_SRC_PORT,
             dst_ip_addr: String::new(),
             dst_host_name: String::new(),
             dst_ports: vec![],
             scan_type: ScanType::TcpSynScan,
             timeout: Duration::from_millis(30000),
-            wait_time: Duration::from_millis(100),
+            wait_time: Duration::from_millis(200),
             service_detection: false,
             default_scan: false,
             accept_invalid_certs: false,
