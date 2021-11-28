@@ -62,7 +62,10 @@ pub fn parse_port_args(matches: ArgMatches) -> option::PortOption {
             opt.set_timeout(t.parse::<u64>().unwrap_or(30000));
         }
         if let Some(w) = matches.value_of("waittime") {
-            opt.set_wait_time(w.parse::<u64>().unwrap_or(100));
+            opt.set_wait_time(w.parse::<u64>().unwrap_or(200));
+        }
+        if let Some(r) = matches.value_of("rate") {
+            opt.set_send_rate(r.parse::<u64>().unwrap_or(0));
         }
         if let Some(p) = matches.value_of("portscantype") {
             opt.set_scan_type(p.to_string());
@@ -127,6 +130,9 @@ pub fn parse_host_args(matches: ArgMatches) -> option::HostOption {
         }
         if let Some(w) = matches.value_of("waittime") {
             opt.set_wait_time(w.parse::<u64>().unwrap_or(200));
+        }
+        if let Some(r) = matches.value_of("rate") {
+            opt.set_send_rate(r.parse::<u64>().unwrap_or(0));
         }
         if let Some(o) = matches.value_of("output") {
             opt.set_save_file_path(o.to_string());

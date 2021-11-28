@@ -17,6 +17,7 @@ pub struct PortOption {
     pub scan_type: ScanType,
     pub timeout: Duration,
     pub wait_time: Duration,
+    pub send_rate: Duration,
     pub service_detection: bool,
     pub default_scan: bool,
     pub accept_invalid_certs: bool,
@@ -31,6 +32,7 @@ pub struct HostOption {
     pub dst_hosts: Vec<String>,
     pub timeout: Duration,
     pub wait_time: Duration,
+    pub send_rate: Duration,
     pub save_file_path: String,
     pub async_scan: bool,
     pub os_detection: bool,
@@ -47,6 +49,7 @@ impl PortOption {
             scan_type: ScanType::TcpSynScan,
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(200),
+            send_rate: Duration::from_millis(0),
             service_detection: false,
             default_scan: false,
             accept_invalid_certs: false,
@@ -113,6 +116,9 @@ impl PortOption {
     pub fn set_wait_time(&mut self, v: u64) {
         self.wait_time = Duration::from_millis(v);
     }
+    pub fn set_send_rate(&mut self, v: u64) {
+        self.send_rate = Duration::from_millis(v);
+    }
     pub fn set_service_detection(&mut self, v: bool) {
         self.service_detection = v;
     }
@@ -143,6 +149,7 @@ impl HostOption {
             dst_hosts: vec![],
             timeout: Duration::from_millis(30000),
             wait_time: Duration::from_millis(200),
+            send_rate: Duration::from_millis(0),
             save_file_path: String::new(),
             async_scan: false,
             os_detection: false,
@@ -195,6 +202,9 @@ impl HostOption {
     }
     pub fn set_wait_time(&mut self, v: u64) {
         self.wait_time = Duration::from_millis(v);
+    }
+    pub fn set_send_rate(&mut self, v: u64) {
+        self.send_rate = Duration::from_millis(v);
     }
     pub fn set_save_file_path(&mut self, v: String) {
         self.save_file_path = v;

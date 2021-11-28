@@ -250,6 +250,7 @@ async fn scan_ports(src_ip: IpAddr, opt: option::PortOption) -> PortScanResult {
         port_scanner.set_scan_type(opt.scan_type);
         port_scanner.set_timeout(opt.timeout);
         port_scanner.set_wait_time(opt.wait_time);
+        port_scanner.set_send_rate(opt.send_rate);
         print!("Scanning... ");
         stdout().flush().unwrap();
         port_scanner.run_scan().await;
@@ -265,6 +266,7 @@ async fn scan_ports(src_ip: IpAddr, opt: option::PortOption) -> PortScanResult {
         port_scanner.set_scan_type(opt.scan_type);
         port_scanner.set_timeout(opt.timeout);
         port_scanner.set_wait_time(opt.wait_time);
+        port_scanner.set_send_rate(opt.send_rate);
         print!("Scanning... ");
         stdout().flush().unwrap();
         port_scanner.run_scan();
@@ -284,6 +286,7 @@ async fn scan_ports(src_ip: IpAddr, opt: option::PortOption) -> PortScanResult {
     port_scanner.set_scan_type(opt.scan_type);
     port_scanner.set_timeout(opt.timeout);
     port_scanner.set_wait_time(opt.wait_time);
+    port_scanner.set_send_rate(opt.send_rate);
     print!("Scanning... ");
     stdout().flush().unwrap();
     port_scanner.run_scan();
@@ -304,6 +307,7 @@ async fn scan_hosts(src_ip: IpAddr, opt: option::HostOption) -> HostScanResult {
         }
         host_scanner.set_timeout(opt.timeout);
         host_scanner.set_wait_time(opt.wait_time);
+        host_scanner.set_send_rate(opt.send_rate);
         print!("Scanning... ");
         stdout().flush().unwrap();
         host_scanner.run_scan().await;
@@ -320,6 +324,7 @@ async fn scan_hosts(src_ip: IpAddr, opt: option::HostOption) -> HostScanResult {
         }
         host_scanner.set_timeout(opt.timeout);
         host_scanner.set_wait_time(opt.wait_time);
+        host_scanner.set_send_rate(opt.send_rate);
         print!("Scanning... ");
         stdout().flush().unwrap();
         host_scanner.run_scan();
@@ -340,6 +345,7 @@ async fn scan_hosts(src_ip: IpAddr, opt: option::HostOption) -> HostScanResult {
     }
     host_scanner.set_timeout(opt.timeout);
     host_scanner.set_wait_time(opt.wait_time);
+    host_scanner.set_send_rate(opt.send_rate);
     print!("Scanning... ");
     stdout().flush().unwrap();
     host_scanner.run_scan();
