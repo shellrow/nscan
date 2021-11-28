@@ -71,7 +71,7 @@ sudo nscan -n 192.168.1.0 -O
 ```
 
 -a(--async) flag for asynchronous scan  
--s(--save) option for save json format data to file  
+-o(--output) option for save json format data to file  
 
 ## Supported platforms
 - Linux
