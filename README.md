@@ -52,6 +52,7 @@ OPTIONS:
                                      -H 192.168.1.10,192.168.1.20,192.168.1.30 -O
     -t, --timeout <duration>         Set timeout in ms - Ex: -t 10000
     -w, --waittime <duration>        Set waittime in ms (default:100ms) - Ex: -w 200
+    -r, --rate <duration>            Set sendrate in ms - Ex: -r 1
     -P, --portscantype <scantype>    Set port scan type (default:SYN) - SYN, CONNECT
     -i, --interface <name>           Specify network interface by IP address - Ex: -i 192.168.1.4
     -l, --list <file_path>           Use list - Ex: -l custom-list.txt
