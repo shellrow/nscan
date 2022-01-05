@@ -1,9 +1,9 @@
 use std::net::IpAddr;
 use std::time::Duration;
 use std::collections::HashMap;
-use netscan_os::prober::{Prober};
-use netscan_os::setting::{ProbeType, Destination};
-use netscan_os::result::ProbeResult;
+use netscan::os::Fingerprinter;
+use netscan::os::{ProbeType, ProbeTarget};
+use netscan::os::ProbeResult;
 use crate::model::OSFingerprint;
 use crate::db;
 
@@ -247,28 +247,28 @@ fn guess_os(probe_result: ProbeResult) -> (String, String) {
 
 pub fn default_os_fingerprinting(src_ip: IpAddr, hosts: Vec<IpAddr>) -> HashMap<IpAddr, (String, String)> {
     let mut map: HashMap<IpAddr, (String, String)> = HashMap::new();
-    let mut prober = Prober::new(src_ip).unwrap();
-    prober.set_wait_time(Duration::from_millis(200));
-    prober.add_probe_type(ProbeType::IcmpEchoProbe);
-    prober.add_probe_type(ProbeType::IcmpTimestampProbe);
-    prober.add_probe_type(ProbeType::IcmpAddressMaskProbe);
-    prober.add_probe_type(ProbeType::IcmpInformationProbe);
-    prober.add_probe_type(ProbeType::IcmpUnreachableProbe);
-    prober.add_probe_type(ProbeType::TcpSynAckProbe);
-    prober.add_probe_type(ProbeType::TcpRstAckProbe);
-    prober.add_probe_type(ProbeType::TcpEcnProbe);
+    let mut fingerprinter = Fingerprinter::new(src_ip).unwrap();
+    fingerprinter.set_wait_time(Duration::from_millis(200));
+    fingerprinter.add_probe_type(ProbeType::IcmpEchoProbe);
+    fingerprinter.add_probe_type(ProbeType::IcmpTimestampProbe);
+    fingerprinter.add_probe_type(ProbeType::IcmpAddressMaskProbe);
+    fingerprinter.add_probe_type(ProbeType::IcmpInformationProbe);
+    fingerprinter.add_probe_type(ProbeType::IcmpUnreachableProbe);
+    fingerprinter.add_probe_type(ProbeType::TcpSynAckProbe);
+    fingerprinter.add_probe_type(ProbeType::TcpRstAckProbe);
+    fingerprinter.add_probe_type(ProbeType::TcpEcnProbe);
     for host in hosts {
-        let dst: Destination = Destination {
+        let dst: ProbeTarget = ProbeTarget {
             ip_addr: host,
             open_tcp_ports: vec![80,22],
             closed_tcp_port: 443,
             open_udp_port: 161,
             closed_udp_port: 33455,
         };
-        prober.add_dst_info(dst);
+        fingerprinter.add_probe_target(dst);
     }
-    prober.run_probe();
-    for result in prober.get_probe_results().clone() {
+    fingerprinter.run_probe();
+    for result in fingerprinter.get_probe_results().clone() {
         let os_tuple: (String, String) = guess_os(result.clone());
         map.insert(result.ip_addr, os_tuple);
     }
@@ -277,26 +277,26 @@ pub fn default_os_fingerprinting(src_ip: IpAddr, hosts: Vec<IpAddr>) -> HashMap<
 
 pub fn os_fingerprinting(src_ip: IpAddr, dst_ip: IpAddr, open_ports: Vec<u16>, closed_ports: Vec<u16>) -> HashMap<IpAddr, (String, String)> {
     let mut map: HashMap<IpAddr, (String, String)> = HashMap::new();
-    let mut prober = Prober::new(src_ip).unwrap();
-    prober.set_wait_time(Duration::from_millis(200));
-    prober.add_probe_type(ProbeType::IcmpEchoProbe);
-    prober.add_probe_type(ProbeType::IcmpTimestampProbe);
-    prober.add_probe_type(ProbeType::IcmpAddressMaskProbe);
-    prober.add_probe_type(ProbeType::IcmpInformationProbe);
-    prober.add_probe_type(ProbeType::IcmpUnreachableProbe);
-    prober.add_probe_type(ProbeType::TcpSynAckProbe);
-    prober.add_probe_type(ProbeType::TcpRstAckProbe);
-    prober.add_probe_type(ProbeType::TcpEcnProbe);
-    let dst: Destination = Destination {
+    let mut fingerprinter = Fingerprinter::new(src_ip).unwrap();
+    fingerprinter.set_wait_time(Duration::from_millis(200));
+    fingerprinter.add_probe_type(ProbeType::IcmpEchoProbe);
+    fingerprinter.add_probe_type(ProbeType::IcmpTimestampProbe);
+    fingerprinter.add_probe_type(ProbeType::IcmpAddressMaskProbe);
+    fingerprinter.add_probe_type(ProbeType::IcmpInformationProbe);
+    fingerprinter.add_probe_type(ProbeType::IcmpUnreachableProbe);
+    fingerprinter.add_probe_type(ProbeType::TcpSynAckProbe);
+    fingerprinter.add_probe_type(ProbeType::TcpRstAckProbe);
+    fingerprinter.add_probe_type(ProbeType::TcpEcnProbe);
+    let dst: ProbeTarget = ProbeTarget {
         ip_addr: dst_ip,
         open_tcp_ports: if open_ports.len() > 0 {open_ports}else{vec![80,22]},
         closed_tcp_port: if closed_ports.len() > 0 {closed_ports[0]}else{443},
         open_udp_port: 161,
         closed_udp_port: 33455,
     };
-    prober.add_dst_info(dst);
-    prober.run_probe();
-    for result in prober.get_probe_results().clone() {
+    fingerprinter.add_probe_target(dst);
+    fingerprinter.run_probe();
+    for result in fingerprinter.get_probe_results().clone() {
         let os_tuple: (String, String) = guess_os(result.clone());
         map.insert(result.ip_addr, os_tuple);
     }

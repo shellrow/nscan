@@ -5,8 +5,7 @@ use netscan::blocking::{PortScanner, HostScanner};
 #[cfg(not(target_os="windows"))]
 use netscan::async_io::{PortScanner as AsyncPortScanner, HostScanner as AsyncHostScanner};
 
-use netscan_service::setting::{Destination as SvcDst, PortDatabase};
-use netscan_service::service;
+use netscan::service::{ServiceDetector, PortDatabase};
 use crossterm::style::Colorize;
 use std::io::{stdout, Write};
 use std::net::{IpAddr, Ipv4Addr};
@@ -37,7 +36,8 @@ pub async fn handle_port_scan(opt: option::PortOption) {
         ScanStatus::Timeout => println!("{}", "Timed out".yellow()),
         _ => println!("{}", "Error".red()),
     }
-    if result.ports.len() == 0 {
+    let result_ports: Vec<netscan::result::PortInfo> = result.result_map.get(&opt.dst_ip_addr.parse::<IpAddr>().unwrap()).unwrap_or(&vec![]).clone();
+    if result_ports.len() == 0 {
         println!("Open port not found");
         std::process::exit(0);
     }
@@ -46,7 +46,7 @@ pub async fn handle_port_scan(opt: option::PortOption) {
     let probe_start_time = Instant::now();
     let mut open_ports: Vec<u16> = vec![];
     let mut closed_ports: Vec<u16> = vec![];
-    for port_info in result.ports.clone() {
+    for port_info in result_ports.clone() {
         match port_info.status {
             PortStatus::Open => open_ports.push(port_info.port),
             PortStatus::Closed => closed_ports.push(port_info.port),
@@ -60,13 +60,15 @@ pub async fn handle_port_scan(opt: option::PortOption) {
             http_ports: db::get_http_ports(),
             https_ports: db::get_https_ports(),
         };
-        let svc_dst = SvcDst {
+        let svc_detector = ServiceDetector {
             dst_ip: opt.dst_ip_addr.parse::<IpAddr>().unwrap(),
             dst_name: opt.dst_host_name.clone(),
             open_ports: open_ports.clone(),
+            connect_timeout: Duration::from_millis(200),
+            read_timeout: Duration::from_secs(5),
             accept_invalid_certs: opt.accept_invalid_certs,
         };
-        service_map = service::detect_service(svc_dst, port_db);
+        service_map = svc_detector.detect(Some(port_db));
         println!("{}", "Done".green());
     }
     if opt.os_detection {
@@ -81,7 +83,7 @@ pub async fn handle_port_scan(opt: option::PortOption) {
     }
     let probe_time: Duration = if opt.service_detection {Instant::now().duration_since(probe_start_time)} else {Duration::from_nanos(0)};
     let tcp_map = db::get_tcp_map();
-    for port_info in result.ports { 
+    for port_info in result_ports { 
         let svc: String = service_map.get(&port_info.port).unwrap_or(&String::from("Unknown")).to_string();
         let svc_vec: Vec<&str>  = svc.split("\t").collect();
         let port_info: PortInfo = PortInfo {

@@ -5,7 +5,8 @@ use std::net::{IpAddr, Ipv4Addr};
 use ipnet::{Ipv4Net};
 use crate::define;
 use crate::network;
-use crate::netscan::setting::DEFAULT_SRC_PORT;
+
+const DEFAULT_SRC_PORT: u16 = 53443;
 
 #[derive(Clone)]
 pub struct PortOption {
