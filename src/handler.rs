@@ -1,3 +1,4 @@
+use async_io;
 use netscan::result::{ScanStatus, PortStatus, PortScanResult, HostScanResult};
 use netscan::setting::Destination;
 use netscan::blocking::{PortScanner, HostScanner};
@@ -18,19 +19,21 @@ use crate::network;
 use crate::result::{PortInfo, PortResult, HostInfo, HostResult};
 use crate::printer;
 
-pub async fn handle_port_scan(opt: option::PortOption) {
+pub fn handle_port_scan(opt: option::PortOption) {
     let mut port_info_list: Vec<PortInfo> = vec![];
     printer::print_port_option(opt.clone());
     print!("Checking interface... ");
     stdout().flush().unwrap();
     let src_ip: IpAddr = if opt.src_ip.is_empty() {
         let default_if = default_net::get_default_interface().expect("");
-        IpAddr::V4(default_if.ipv4[0]) 
+        IpAddr::V4(default_if.ipv4[0].addr) 
     }else{
         opt.src_ip.parse::<IpAddr>().expect("")
     };
     println!("{}", "Done".green());
-    let result: PortScanResult = scan_ports(src_ip, opt.clone()).await;
+    let result: PortScanResult = async_io::block_on(async {
+        scan_ports(src_ip, opt.clone()).await
+    });
     match result.scan_status {
         ScanStatus::Done => println!("{}", "Done".green()),
         ScanStatus::Timeout => println!("{}", "Timed out".yellow()),
@@ -131,19 +134,21 @@ pub async fn handle_port_scan(opt: option::PortOption) {
     }
 }
 
-pub async fn handle_host_scan(opt: option::HostOption) {
+pub fn handle_host_scan(opt: option::HostOption) {
     let mut host_info_list: Vec<HostInfo> = vec![];
     printer::print_host_option(opt.clone());
     print!("Checking interface... ");
     stdout().flush().unwrap();
     let src_ip: IpAddr = if opt.src_ip.is_empty() {
         let default_if = default_net::get_default_interface().expect("");
-        IpAddr::V4(default_if.ipv4[0]) 
+        IpAddr::V4(default_if.ipv4[0].addr) 
     }else{
         opt.src_ip.parse::<IpAddr>().expect("")
     };
     println!("{}", "Done".green());
-    let result: HostScanResult = scan_hosts(src_ip, opt.clone()).await;
+    let result: HostScanResult = async_io::block_on(async {
+        scan_hosts(src_ip, opt.clone()).await
+    });
     match result.scan_status {
         ScanStatus::Done => {println!("{}", "Done".green())},
         ScanStatus::Timeout => {println!("{}", "Timed out".yellow())},

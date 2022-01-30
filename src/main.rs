@@ -32,8 +32,7 @@ fn get_os_type() -> String{"linux".to_owned()}
 #[cfg(target_os = "macos")]
 fn get_os_type() -> String{"macos".to_owned()}
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         show_app_desc();
@@ -44,35 +43,33 @@ async fn main() {
     let mut require_admin = if get_os_type() == "windows"{false}else{true};
     //Scan
     show_banner_with_starttime();
-    if matches.is_present("async") && get_os_type() == "windows" {
-        println!();
-        println!("Asynchronous scanning is not supported on Windows");
-        println!("Please remove the -a(--async) flag and try again.");
-        std::process::exit(0);
-    }
     if matches.is_present("port"){
         if let Some(p) = matches.value_of("portscantype") {
             if p == "CONNECT" {
                 require_admin = false;
+            }else{
+                if matches.is_present("async") && get_os_type() == "windows" {
+                    exit_with_error_message("Asynchronous TCP SYN SCAN is not supported on Windows");
+                }
+            }
+        }else{
+            if matches.is_present("async") && get_os_type() == "windows" {
+                exit_with_error_message("Asynchronous TCP SYN SCAN is not supported on Windows");
             }
         }
         if require_admin && !process::privileged() {
-            println!("{} This feature requires administrator privileges. ","Error:".red());
-            std::process::exit(0);
+            exit_with_error_message("This feature requires administrator privileges.");
         }
         let opt = parser::parse_port_args(matches);
-        handler::handle_port_scan(opt).await;
+        handler::handle_port_scan(opt);
     }else if matches.is_present("network") || matches.is_present("host") {
         if require_admin && !process::privileged() {
-            println!("{} This feature requires administrator privileges. ","Error:".red());
-            std::process::exit(0);
+            exit_with_error_message("This feature requires administrator privileges.");
         }
         let opt = parser::parse_host_args(matches);
-        handler::handle_host_scan(opt).await;
+        handler::handle_host_scan(opt);
     }else{
-        println!();
-        println!("Error: Scan mode not specified.");
-        std::process::exit(0);
+        exit_with_error_message("Scan mode not specified.");
     }
 }
 
@@ -208,4 +205,10 @@ fn show_banner_with_starttime() {
     let local_datetime: DateTime<Local> = Local::now();
     println!("Scan started at {}", local_datetime);
     println!();
+}
+
+fn exit_with_error_message(message: &str) {
+    println!();
+    println!("{} {}", "Error:".red(), message);
+    std::process::exit(0);
 }

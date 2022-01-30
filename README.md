@@ -10,8 +10,8 @@ Aim to be simple and fast.
 ## Features
 - Port Scan
 - Host Scan
-- Async Port Scan (Unix-Like OS only)
-- Async Host Scan (Unix-Like OS only)
+- Async Port Scan 
+- Async Host Scan 
 - Service detection (Experimental)
 - OS detection (Experimental)
 
