@@ -185,7 +185,6 @@ pub fn handle_host_scan(opt: option::HostOption) {
         },
     }
     let mut os_map: HashMap<IpAddr, (String, String)> = HashMap::new();
-    let ttl_map: HashMap<u8, String> = db::get_os_ttl();
     if opt.os_detection {
         print!("Detecting OS... ");
         stdout().flush().unwrap();
@@ -196,9 +195,7 @@ pub fn handle_host_scan(opt: option::HostOption) {
         os_map = probe::os::default_os_fingerprinting(src_ip, hosts);
         if os_map.len() == 0 {
             for host in result.hosts.clone() {
-                let ini_ttl: u8 = probe::os::guess_initial_ttl(host.ttl);
-                let os_name: String = ttl_map.get(&ini_ttl).unwrap_or(&String::new()).to_string();
-                os_map.insert(host.ip_addr, (os_name,String::new()));
+                os_map.insert(host.ip_addr, (String::from("Unknown"), String::from("Unknown")));
             }
             println!("{}", "Failed".red());
         }else {
@@ -206,9 +203,7 @@ pub fn handle_host_scan(opt: option::HostOption) {
         }
     }else{
         for host in result.hosts.clone() {
-            let ini_ttl: u8 = probe::os::guess_initial_ttl(host.ttl);
-            let os_name: String = ttl_map.get(&ini_ttl).unwrap_or(&String::new()).to_string();
-            os_map.insert(host.ip_addr, (os_name,String::new()));
+            os_map.insert(host.ip_addr, (String::from("Unknown"), String::from("Unknown")));
         }
     }
     for host in result.hosts {

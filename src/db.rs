@@ -77,6 +77,7 @@ pub fn get_os_fingerprints() -> Vec<OSFingerprint> {
     fingerprints
 }
 
+#[allow(dead_code)]
 pub fn get_os_ttl() -> HashMap<u8, String> {
     let mut rs_nscan_os_ttl: Vec<&str> = define::NSCAN_OS_TTL.trim().split("\n").collect();
     let mut ttl_map: HashMap<u8, String> = HashMap::new();
