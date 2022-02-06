@@ -17,7 +17,7 @@ name = "nscan"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 default-net = "0.8.0"
-netscan = { version = "0.8.1", features = ["full"] }
+netscan = { version = "0.8.2", features = ["full"] }
 pnet_packet = "0.28.0"
 pnet_datalink = "0.28.0"
 ipnet = "2.3.1"
