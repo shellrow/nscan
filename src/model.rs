@@ -40,3 +40,23 @@ impl OSFingerprint {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OuiData {
+    pub mac_prefix: String,
+    pub vendor_name: String,
+    pub vendor_name_detail: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PortData {
+    pub port_number: String,
+    pub service_name: String,
+    pub description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OsTtl {
+    pub initial_ttl: u8,
+    pub description: String,
+}

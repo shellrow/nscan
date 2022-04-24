@@ -1,33 +1,23 @@
 use std::collections::HashMap;
 use crate::define;
-use crate::model::OSFingerprint;
+use crate::model::{OSFingerprint, OuiData, PortData, OsTtl};
 
 pub fn get_oui_map() -> HashMap<String, String> {
-    let mut rs_nscan_oui: Vec<&str> = define::NSCAN_OUI.trim().split("\n").collect();
     let mut oui_map: HashMap<String, String> = HashMap::new();
-    rs_nscan_oui.remove(0);
-    for r in rs_nscan_oui {
-        let rt = r.replace(" ", "");
-        let row: Vec<&str> = rt.trim().split(",").collect();
-        if row.len() >= 2 {
-            oui_map.insert(row[0].to_string(), row[1].to_string());
-        }
+    let rs_nscan_oui: Vec<OuiData> = serde_json::from_str(define::NSCAN_OUI).unwrap_or(vec![]);
+    for oui in rs_nscan_oui {
+        oui_map.insert(oui.mac_prefix, oui.vendor_name_detail);
     }
-    return oui_map;
+    oui_map
 }
 
 pub fn get_tcp_map() -> HashMap<String, String> {
-    let mut rs_nscan_tcp_port: Vec<&str> = define::NSCAN_TCP_PORT.trim().split("\n").collect();
     let mut tcp_map: HashMap<String, String> = HashMap::new();
-    rs_nscan_tcp_port.remove(0);
-    for r in rs_nscan_tcp_port {
-        let rt = r.replace(" ", "");
-        let row: Vec<&str> = rt.split(",").collect();
-        if row.len() >= 2 {
-            tcp_map.insert(row[0].to_string(), row[1].to_string());
-        }
+    let rs_nscan_tcp_port: Vec<PortData> = serde_json::from_str(define::NSCAN_TCP_PORT).unwrap_or(vec![]);
+    for port in rs_nscan_tcp_port {
+        tcp_map.insert(port.port_number.to_string(), port.service_name);
     }
-    return tcp_map;
+    tcp_map
 }
 
 pub fn get_default_ports() -> Vec<u16> {
@@ -41,7 +31,7 @@ pub fn get_default_ports() -> Vec<u16> {
             Err(_) => {},
         }
     }
-    return default_ports;
+    default_ports
 }
 
 pub fn get_http_ports() -> Vec<u16> {
@@ -55,7 +45,7 @@ pub fn get_http_ports() -> Vec<u16> {
             Err(_) => {},
         }
     }
-    return http_ports;
+    http_ports
 }
 
 pub fn get_https_ports() -> Vec<u16> {
@@ -69,7 +59,7 @@ pub fn get_https_ports() -> Vec<u16> {
             Err(_) => {},
         }
     }
-    return https_ports;
+    https_ports
 }
 
 pub fn get_os_fingerprints() -> Vec<OSFingerprint> {
@@ -79,19 +69,10 @@ pub fn get_os_fingerprints() -> Vec<OSFingerprint> {
 
 #[allow(dead_code)]
 pub fn get_os_ttl() -> HashMap<u8, String> {
-    let mut rs_nscan_os_ttl: Vec<&str> = define::NSCAN_OS_TTL.trim().split("\n").collect();
     let mut ttl_map: HashMap<u8, String> = HashMap::new();
-    rs_nscan_os_ttl.remove(0);
-    for r in rs_nscan_os_ttl {
-        let row: Vec<&str> = r.trim().split(",").collect();
-        if row.len() >= 2 {
-            match row[0].parse::<u8>() {
-                Ok(ttl) => {
-                    ttl_map.insert(ttl, row[1].to_string());
-                },
-                Err(_) => {},
-            }
-        }
+    let rs_nscan_os_ttl: Vec<OsTtl> = serde_json::from_str(define::NSCAN_OS_TTL).unwrap_or(vec![]);
+    for os_ttl in rs_nscan_os_ttl {
+        ttl_map.insert(os_ttl.initial_ttl, os_ttl.description);
     }
     ttl_map
 }

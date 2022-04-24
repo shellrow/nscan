@@ -1,0 +1,14 @@
+[
+    {
+		"initial_ttl" : "64",
+		"description" : "Linux or other Unix-Like OS"
+	},
+    {
+		"initial_ttl" : "128",
+		"description" : "Windows"
+	},
+    {
+		"initial_ttl" : "255",
+		"description" : "Solaris or other Unix-Like OS"
+	}
+]
