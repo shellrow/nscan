@@ -65,16 +65,10 @@ OPTIONS:
 - macOS
 - Windows
 
-## Note for Windows users
-To build [libpnet](https://github.com/libpnet/libpnet) on Windows, follow the instructions below.
-> ### Windows
-> * You must use a version of Rust which uses the MSVC toolchain
-> * You must have [WinPcap](https://www.winpcap.org/) or [npcap](https://nmap.org/npcap/) installed
->   (tested with version WinPcap 4.1.3) (If using npcap, make sure to install with the "Install Npcap in WinPcap API-compatible Mode")
-> * You must place `Packet.lib` from the [WinPcap Developers pack](https://www.winpcap.org/devel.htm)
->   in a directory named `lib`, in the root of this repository. Alternatively, you can use any of the
->   locations listed in the `%LIB%`/`$Env:LIB` environment variables. For the 64 bit toolchain it is
->   in `WpdPack/Lib/x64/Packet.lib`, for the 32 bit toolchain, it is in `WpdPack/Lib/Packet.lib`.
+## Privileges
+`nscan` uses a raw socket which require elevated privileges. Execute with administrator privileges.
 
-[Source](https://github.com/libpnet/libpnet/blob/master/README.md#windows "libpnet#windows")
-
+## My related projects
+This tool also serves as a test for my following projects.  
+- [default-net](https://github.com/shellrow/default-net) Cross-platform library for network interface and gateway 
+- [netscan](https://github.com/shellrow/netscan) Cross-platform network scan library 
