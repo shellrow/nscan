@@ -12,8 +12,8 @@ Aim to be simple and fast.
 - Host Scan
 - Async Port Scan 
 - Async Host Scan 
-- Service detection (Experimental)
-- OS detection (Experimental)
+- Service detection
+- OS detection
 
 ## Installation
 ### Cargo Install
@@ -24,56 +24,45 @@ cargo install nscan
 ## Basic Usage
 ```
 USAGE:
-    nscan [FLAGS] [OPTIONS]
-
-FLAGS:
-    -s, --service               Enable service detection
-    -A, --acceptinvalidcerts    Accept invalid certs (This introduces significant vulnerabilities)
-    -a, --async                 Perform asynchronous scan
-    -O, --OS                    Enable OS detection
-    -h, --help                  Prints help information
-    -V, --version               Prints version information
+    nscan [OPTIONS]
 
 OPTIONS:
-    -p, --port <ip_addr:port>        Scan ports of the specified host. 
-                                     Use default port list if port range omitted. 
-                                     Examples 
-                                     -p 192.168.1.8 -s -O 
-                                     -p 192.168.1.8:1-1000 
-                                     -p 192.168.1.8:22,80,8080 
-                                     -p 192.168.1.8 -l custom-list.txt
-    -n, --network <ip_addr>          Scan hosts in specified network 
-                                     Example: -n 192.168.1.0 -O
-    -H, --host <host_list>           Scan hosts in specified host-list 
-                                     Examples 
-                                     -H custom-list.txt -O 
-                                     -H 192.168.1.10,192.168.1.20,192.168.1.30 -O
-    -t, --timeout <duration>         Set timeout in ms - Ex: -t 10000
-    -w, --waittime <duration>        Set waittime in ms (default:100ms) - Ex: -w 200
-    -r, --rate <duration>            Set sendrate in ms - Ex: -r 1
-    -P, --portscantype <scantype>    Set port scan type (default:SYN) - SYN, CONNECT
-    -i, --interface <name>           Specify network interface by IP address - Ex: -i 192.168.1.4
-    -l, --list <file_path>           Use list - Ex: -l custom-list.txt
-    -o, --output <file_path>         Save scan result in json format - Ex: -o result.json
+    -p, --port <target>          Scan ports of the specified host.
+                                 Use default port list if port range omitted.
+                                 Examples:
+                                 --port 192.168.1.8 -S -O
+                                 --port 192.168.1.8:1-1000
+                                 --port 192.168.1.8:22,80,8080
+                                 --port 192.168.1.8 -l custom-list.txt
+    -n, --host <target>          Scan hosts in specified network or host-list.
+                                 Examples:
+                                 --host 192.168.1.0
+                                 --host 192.168.1.0/24
+                                 --host custom-list.txt
+                                 --host 192.168.1.10,192.168.1.20,192.168.1.30
+    -i, --interface <name>       Specify the network interface
+    -s, --source <ip_addr>       Specify the source IP address
+    -P, --protocol <protocol>    Specify the protocol
+    -m, --maxhop <maxhop>        Set max hop(TTL) for ping or traceroute
+    -T, --scantype <scantype>    Specify the scan-type
+    -t, --timeout <duration>     Set timeout in ms - Example: -t 10000
+    -w, --waittime <duration>    Set wait-time in ms (default:100ms) - Example: -w 200
+    -r, --rate <duration>        Set send-rate in ms - Example: -r 1
+    -c, --count <count>          Set number of requests or pings to be sent
+    -S, --service                Enable service detection
+    -O, --os                     Enable OS detection
+    -A, --async                  Perform asynchronous scan
+    -l, --list <file_path>       Use list - Example: -l custom-list.txt
+    -W, --wellknown              Use well-known ports
+    -o, --save <file_path>       Save scan result in json format - Example: -o result.json
+        --acceptinvalidcerts     Accept invalid certs (This introduces significant vulnerabilities)
+    -h, --help                   Print help information
+    -V, --version                Print version information
 ```
-
-## Example
-Port scan with service version and OS detection   
-```
-sudo nscan -p 192.168.1.8 -s -O
-```
-
-Host scan with OS detection 
-```
-sudo nscan -n 192.168.1.0 -O  
-```
-
--a(--async) flag for asynchronous scan  
--o(--output) option for save json format data to file  
 
 ## Supported platforms
 - Linux
-- macOS (OS X)
+- macOS
 - Windows
 
 ## Note for Windows users
