@@ -72,3 +72,6 @@ OPTIONS:
 This tool also serves as a test for my following projects.  
 - [default-net](https://github.com/shellrow/default-net) Cross-platform library for network interface and gateway 
 - [netscan](https://github.com/shellrow/netscan) Cross-platform network scan library 
+
+## Additional Notes
+Support for VM environments is in progress. Results may not be correct.
