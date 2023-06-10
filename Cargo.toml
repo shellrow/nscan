@@ -1,8 +1,8 @@
 [package]
 name = "nscan"
-version = "0.9.3"
+version = "0.10.0"
 authors = ["shellrow <shellrow@protonmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Cross-platform network scan tool for host and service discovery"
 repository = "https://github.com/shellrow/nscan"
 readme = "README.md"
