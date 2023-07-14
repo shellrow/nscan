@@ -1,5 +1,4 @@
 use super::define;
-use super::process;
 use super::validator;
 use crate::db;
 use crate::sys;
@@ -31,7 +30,7 @@ fn get_default_option() -> option::ScanOption {
         }
         Err(_) => {}
     }
-    if process::privileged() {
+    if privilege::user::privileged() {
         opt.port_scan_type = option::ScanType::TcpSynScan;
         if sys::get_os_type() == "windows" {
             opt.async_scan = false;
