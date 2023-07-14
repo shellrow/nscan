@@ -10,7 +10,6 @@ mod option;
 mod os;
 mod output;
 mod parser;
-mod process;
 mod result;
 mod scan;
 mod sys;
@@ -43,7 +42,7 @@ fn main() {
                 if opt.async_scan && sys::get_os_type() == "windows" {
                     exit_with_error_message("Async TCP SYN Scan is not supported on Windows");
                 }
-                if process::privileged() {
+                if privilege::user::privileged() {
                     async_io::block_on(async {
                         handler::handle_port_scan(opt).await;
                     })
@@ -58,7 +57,7 @@ fn main() {
         },
         option::CommandType::HostScan => match opt.protocol {
             option::Protocol::ICMPv4 | option::Protocol::ICMPv6 => {
-                if process::privileged() {
+                if privilege::user::privileged() {
                     async_io::block_on(async {
                         handler::handle_host_scan(opt).await;
                     })
