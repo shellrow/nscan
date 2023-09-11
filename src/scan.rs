@@ -1,359 +1,430 @@
-use crate::models::OsFingerprint;
-use crate::option::ScanOption;
-use crate::option::{TargetInfo};
-use crate::result::{HostInfo, HostScanResult, PortScanResult};
-use crate::{define, network};
-use netscan::async_io::{HostScanner as AsyncHostScanner, PortScanner as AsyncPortScanner};
-use netscan::blocking::{HostScanner, PortScanner};
-use netscan::os::{Fingerprinter, ProbeResult, ProbeTarget, ProbeType};
-use netscan::service::{PortDatabase, ServiceDetector};
-use netscan::host::HostInfo as NsHostInfo;
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::time::Instant;
 use std::sync::mpsc;
-use std::time::{Duration, Instant};
-use std::{thread, vec};
 
-pub fn run_port_scan(
-    opt: ScanOption,
-    msg_tx: &mpsc::Sender<String>,
-) -> netscan::result::PortScanResult {
-    let mut port_scanner = match PortScanner::new(opt.src_ip) {
-        Ok(scanner) => scanner,
-        Err(e) => panic!("Error creating scanner: {}", e),
-    };
-    let dst: NsHostInfo = NsHostInfo::new_with_ip_addr(opt.targets[0].ip_addr).with_ports(opt.targets[0].ports.clone()).with_host_name(opt.targets[0].host_name.clone());
-    port_scanner.add_target(dst);
-    port_scanner.set_scan_type(opt.port_scan_type.to_netscan_type());
-    port_scanner.set_timeout(opt.timeout);
-    port_scanner.set_wait_time(opt.wait_time);
-    port_scanner.set_send_rate(opt.send_rate);
-    let rx = port_scanner.get_progress_receiver();
-    let handle = thread::spawn(move || port_scanner.scan());
-    while let Ok(socket_addr) = rx.lock().unwrap().recv() {
-        match msg_tx.send(socket_addr.to_string()) {
-            Ok(_) => {}
-            Err(_) => {}
-        }
-    }
-    let result = handle.join().unwrap();
-    result
-}
+use crate::option;
+use crate::result;
+use crate::sys;
+use crate::model;
+use crate::db;
+use crate::define;
 
-pub async fn run_async_port_scan(
-    opt: ScanOption,
-    msg_tx: &mpsc::Sender<String>,
-) -> netscan::result::PortScanResult {
-    let mut port_scanner = match AsyncPortScanner::new(opt.src_ip) {
-        Ok(scanner) => scanner,
-        Err(e) => panic!("Error creating scanner: {}", e),
-    };
-    let dst: NsHostInfo = NsHostInfo::new_with_ip_addr(opt.targets[0].ip_addr).with_ports(opt.targets[0].ports.clone()).with_host_name(opt.targets[0].host_name.clone());
-    port_scanner.add_target(dst);
-    port_scanner.set_scan_type(opt.port_scan_type.to_netscan_type());
-    port_scanner.set_timeout(opt.timeout);
-    port_scanner.set_wait_time(opt.wait_time);
-    port_scanner.set_send_rate(opt.send_rate);
-    let rx = port_scanner.get_progress_receiver();
-    let handle = thread::spawn(move || async_io::block_on(async { port_scanner.scan().await }));
-    while let Ok(socket_addr) = rx.lock().unwrap().recv() {
-        match msg_tx.send(socket_addr.to_string()) {
-            Ok(_) => {}
-            Err(_) => {}
-        }
-    }
-    let result = handle.join().unwrap();
-    result
-}
-
-pub fn run_host_scan(
-    opt: ScanOption,
-    msg_tx: &mpsc::Sender<String>,
-) -> netscan::result::HostScanResult {
-    let mut host_scanner = match HostScanner::new(opt.src_ip) {
-        Ok(scanner) => scanner,
-        Err(e) => panic!("Error creating scanner: {}", e),
-    };
+pub fn run_port_scan(opt: option::PortScanOption) -> netscan::result::ScanResult {
+    let mut port_scanner: netscan::scanner::PortScanner = netscan::scanner::PortScanner::new(opt.src_ip).unwrap();
     for target in opt.targets {
-        let dst: NsHostInfo = NsHostInfo::new_with_ip_addr(target.ip_addr).with_ports(target.ports).with_host_name(target.host_name);
-        host_scanner.add_target(dst);
+        let dst: netscan::host::HostInfo = netscan::host::HostInfo::new_with_ip_addr(target.ip_addr)
+            .with_ports(target.ports.clone())
+            .with_host_name(target.host_name.clone());
+        port_scanner.scan_setting.add_target(dst);
     }
-    host_scanner.set_scan_type(opt.host_scan_type.to_netscan_type());
-    host_scanner.set_timeout(opt.timeout);
-    host_scanner.set_wait_time(opt.wait_time);
-    host_scanner.set_send_rate(opt.send_rate);
-    let rx = host_scanner.get_progress_receiver();
-    let handle = thread::spawn(move || host_scanner.scan());
-    while let Ok(socket_addr) = rx.lock().unwrap().recv() {
-        match msg_tx.send(socket_addr.to_string()) {
-            Ok(_) => {}
-            Err(_) => {}
-        }
-    }
-    let result = handle.join().unwrap();
-    result
+    port_scanner.scan_setting.scan_type = opt.scan_type.to_netscan_type();
+    port_scanner.scan_setting.set_timeout(opt.timeout);
+    port_scanner.scan_setting.set_wait_time(opt.wait_time);
+    port_scanner.scan_setting.set_send_rate(opt.send_rate);
+
+    let ns_scan_result: netscan::result::ScanResult = port_scanner.sync_scan();
+    ns_scan_result
 }
 
-pub async fn run_async_host_scan(
-    opt: ScanOption,
-    msg_tx: &mpsc::Sender<String>,
-) -> netscan::result::HostScanResult {
-    let mut host_scanner = match AsyncHostScanner::new(opt.src_ip) {
-        Ok(scanner) => scanner,
-        Err(e) => panic!("Error creating scanner: {}", e),
-    };
+pub async fn run_async_port_scan(opt: option::PortScanOption) -> netscan::result::ScanResult {
+    let mut port_scanner: netscan::scanner::PortScanner = netscan::scanner::PortScanner::new(opt.src_ip).unwrap();
     for target in opt.targets {
-        let dst: NsHostInfo = NsHostInfo::new_with_ip_addr(target.ip_addr).with_ports(target.ports);
-        host_scanner.add_target(dst);
+        let dst: netscan::host::HostInfo = netscan::host::HostInfo::new_with_ip_addr(target.ip_addr)
+            .with_ports(target.ports.clone())
+            .with_host_name(target.host_name.clone());
+        port_scanner.scan_setting.add_target(dst);
     }
-    host_scanner.set_scan_type(opt.host_scan_type.to_netscan_type());
-    host_scanner.set_timeout(opt.timeout);
-    host_scanner.set_wait_time(opt.wait_time);
-    host_scanner.set_send_rate(opt.send_rate);
-    let rx = host_scanner.get_progress_receiver();
-    let handle = thread::spawn(move || async_io::block_on(async { host_scanner.scan().await }));
-    while let Ok(socket_addr) = rx.lock().unwrap().recv() {
-        match msg_tx.send(socket_addr.to_string()) {
-            Ok(_) => {}
-            Err(_) => {}
-        }
-    }
-    let result = handle.join().unwrap();
-    result
+    port_scanner.scan_setting.scan_type = opt.scan_type.to_netscan_type();
+    port_scanner.scan_setting.set_timeout(opt.timeout);
+    port_scanner.scan_setting.set_wait_time(opt.wait_time);
+    port_scanner.scan_setting.set_send_rate(opt.send_rate);
+
+    let ns_scan_result: netscan::result::ScanResult = async_io::block_on(async { port_scanner.scan().await });
+    ns_scan_result
 }
 
-pub fn run_service_detection(
-    targets: Vec<TargetInfo>,
-    msg_tx: &mpsc::Sender<String>,
-    port_db: Option<PortDatabase>,
-) -> HashMap<IpAddr, HashMap<u16, String>> {
+pub fn run_service_detection(hosts: Vec<model::Host>) -> HashMap<IpAddr, HashMap<u16, String>> {
     let mut map: HashMap<IpAddr, HashMap<u16, String>> = HashMap::new();
-    for target in targets {
-        let mut service_detector = ServiceDetector::new();
-        service_detector.set_dst_ip(target.ip_addr);
-        service_detector.set_dst_name(target.host_name);
-        service_detector.set_ports(target.ports);
-        let service_map: HashMap<u16, String> = service_detector.detect(port_db.clone());
-        map.insert(target.ip_addr, service_map);
-        match msg_tx.send(target.ip_addr.to_string()) {
-            Ok(_) => {}
-            Err(_) => {}
-        }
+    let port_db: netscan::service::PortDatabase = netscan::service::PortDatabase {
+        payload_map: HashMap::new(),
+        http_ports: db::get_http_ports(),
+        https_ports: db::get_https_ports(),
+    };
+    for host in hosts {
+        let mut service_detector = netscan::service::ServiceDetector::new();
+        service_detector.set_dst_ip(host.ip_addr);
+        service_detector.set_dst_name(host.host_name.clone());
+        service_detector.set_ports(host.get_open_ports());
+        let service_map: HashMap<u16, String> = service_detector.detect(Some(port_db.clone()));
+        map.insert(host.ip_addr, service_map);
     }
     map
 }
 
-pub fn run_os_fingerprinting(
-    opt: ScanOption,
-    targets: Vec<TargetInfo>,
-    _msg_tx: &mpsc::Sender<String>,
-) -> Vec<ProbeResult> {
-    let mut fingerprinter = Fingerprinter::new(opt.src_ip).unwrap();
-    fingerprinter.set_wait_time(opt.wait_time);
-    for target in targets {
-        let probe_target: ProbeTarget = ProbeTarget {
-            ip_addr: target.ip_addr,
-            open_tcp_ports: target.ports,
-            closed_tcp_port: 0,
+pub fn run_os_fingerprinting(src_ip: IpAddr, target_hosts: Vec<model::Host>) -> Vec<netscan::os::ProbeResult> {
+    let mut fingerprinter = netscan::os::Fingerprinter::new(src_ip).unwrap();
+    for host in target_hosts {
+        let closed_port: u16 = if host.get_closed_ports().len() > 0 {
+            host.get_closed_ports()[0]
+        } else {
+            0
+        };
+        let probe_target: netscan::os::ProbeTarget = netscan::os::ProbeTarget {
+            ip_addr: host.ip_addr,
+            open_tcp_ports: host.get_open_ports(),
+            closed_tcp_port: closed_port,
             open_udp_port: 0,
             closed_udp_port: 33455,
         };
         fingerprinter.add_probe_target(probe_target);
     }
-    fingerprinter.add_probe_type(ProbeType::IcmpEchoProbe);
-    fingerprinter.add_probe_type(ProbeType::IcmpUnreachableProbe);
-    fingerprinter.add_probe_type(ProbeType::TcpProbe);
-    let results = fingerprinter.probe();
-    results
+    fingerprinter.add_probe_type(netscan::os::ProbeType::IcmpEchoProbe);
+    fingerprinter.add_probe_type(netscan::os::ProbeType::IcmpUnreachableProbe);
+    fingerprinter.add_probe_type(netscan::os::ProbeType::TcpSynAckProbe);
+    fingerprinter.add_probe_type(netscan::os::ProbeType::TcpRstAckProbe);
+    fingerprinter.add_probe_type(netscan::os::ProbeType::TcpEcnProbe);
+    let probe_results: Vec<netscan::os::ProbeResult> = fingerprinter.probe();
+    probe_results
 }
 
-pub async fn run_service_scan(opt: ScanOption, msg_tx: &mpsc::Sender<String>) -> PortScanResult {
-    let mut result: PortScanResult = PortScanResult::new();
-    // Port Scan
+pub async fn run_service_scan(opt: option::PortScanOption, msg_tx: &mpsc::Sender<String>) -> result::PortScanResult {
+    let mut scan_result: result::PortScanResult = result::PortScanResult::new();
+    scan_result.probe_id = sys::get_probe_id();
+    scan_result.command_type = option::CommandType::PortScan;
+    scan_result.protocol = opt.protocol;
+    scan_result.scan_type = opt.scan_type;
+    scan_result.start_time = sys::get_sysdate();
+
+    let start_time: Instant = Instant::now();
+    // Run port scan
     match msg_tx.send(String::from(define::MESSAGE_START_PORTSCAN)) {
         Ok(_) => {}
         Err(_) => {}
     }
-    let ps_result: netscan::result::PortScanResult = if opt.async_scan {
-        async_io::block_on(async { run_async_port_scan(opt.clone(), &msg_tx).await })
+    let ns_scan_result: netscan::result::ScanResult = if opt.async_scan {
+        run_async_port_scan(opt.clone()).await
     } else {
-        run_port_scan(opt.clone(), &msg_tx)
+        run_port_scan(opt.clone())
     };
     match msg_tx.send(String::from(define::MESSAGE_END_PORTSCAN)) {
         Ok(_) => {}
         Err(_) => {}
     }
-    // Service Detection
-    let mut sd_result: HashMap<IpAddr, HashMap<u16, String>> = HashMap::new();
-    let mut sd_time: Duration = Duration::from_millis(0);
-    if opt.service_detection && ps_result.results.len() > 0 {
+    // Run service detection
+    let mut service_map: HashMap<IpAddr, HashMap<u16, String>> = HashMap::new();
+    if opt.service_detection {
         match msg_tx.send(String::from(define::MESSAGE_START_SERVICEDETECTION)) {
             Ok(_) => {}
             Err(_) => {}
         }
-        let mut sd_targets: Vec<TargetInfo> = vec![];
-        let ip = ps_result.results.first().unwrap().ip_addr;
-        let mut target: TargetInfo = TargetInfo::new_with_ip_addr(ip);
-        target.host_name = ps_result.results.first().unwrap().host_name.clone();
-        target.ports = ps_result.get_open_ports(ip);
-        sd_targets.push(target);
-        let port_db: PortDatabase = PortDatabase {
-            http_ports: opt.http_ports.clone(),
-            https_ports: opt.https_ports.clone(),
-        };
-        let start_time: Instant = Instant::now();
-        sd_result = run_service_detection(sd_targets, &msg_tx, Some(port_db));
-        sd_time = Instant::now().duration_since(start_time);
+        let mut hosts: Vec<model::Host> = Vec::new();
+        for scanned_host in &ns_scan_result.hosts {
+            let mut host: model::Host = model::Host::new();
+            host.ip_addr = scanned_host.ip_addr;
+            host.host_name = scanned_host.host_name.clone();
+            for open_port in scanned_host.get_open_ports() {
+                host.add_open_port(open_port, String::new());
+            }
+            hosts.push(host);
+        }
+        service_map = run_service_detection(hosts);
         match msg_tx.send(String::from(define::MESSAGE_END_SERVICEDETECTION)) {
             Ok(_) => {}
             Err(_) => {}
         }
     }
-    // OS Fingerprinting
-    let mut od_result: Vec<ProbeResult> = vec![];
-    let mut od_time: Duration = Duration::from_millis(0);
-    if opt.os_detection && ps_result.results.len() > 0 {
+    // Run OS fingerprinting
+    let mut os_probe_results: Vec<netscan::os::ProbeResult> = Vec::new();
+    if opt.os_detection {
         match msg_tx.send(String::from(define::MESSAGE_START_OSDETECTION)) {
             Ok(_) => {}
             Err(_) => {}
         }
-        let ip = ps_result.results.first().unwrap().ip_addr;
-        let mut od_targets: Vec<TargetInfo> = vec![];
-        let mut target: TargetInfo = TargetInfo::new_with_ip_addr(ip);
-        target.ports = ps_result.get_open_ports(ip);
-        od_targets.push(target);
-        let start_time: Instant = Instant::now();
-        od_result = run_os_fingerprinting(opt.clone(), od_targets, &msg_tx);
-        od_time = Instant::now().duration_since(start_time);
+        let mut hosts: Vec<model::Host> = Vec::new();
+        for scanned_host in &ns_scan_result.hosts {
+            let mut host: model::Host = model::Host::new();
+            host.ip_addr = scanned_host.ip_addr;
+            host.host_name = scanned_host.host_name.clone();
+            for port in &scanned_host.ports {
+                match port.status {
+                    netscan::host::PortStatus::Open => {
+                        host.add_open_port(port.port, String::new());
+                    },
+                    netscan::host::PortStatus::Closed => {
+                        host.add_closed_port(port.port);
+                    },
+                    _ => {},
+                }
+            }
+            hosts.push(host);
+        }
+        os_probe_results = run_os_fingerprinting(opt.src_ip, hosts);
         match msg_tx.send(String::from(define::MESSAGE_END_OSDETECTION)) {
             Ok(_) => {}
             Err(_) => {}
         }
     }
-    // return crate::result::PortScanResult
-    if ps_result.results.len() > 0 {
-        let ip = ps_result.results.first().unwrap().ip_addr;
-        let mut ports = ps_result.results.first().unwrap().ports.clone();
-        // Sort by port number
-        ports.sort_by(|a, b| a.port.cmp(&b.port));
-        let tcp_map = opt.tcp_map;
-        let t_map: HashMap<u16, String> = HashMap::new();
-        let service_map = sd_result.get(&ip).unwrap_or(&t_map);
-        // PortInfo
-        for port in ports {
-            let port_info = crate::result::PortInfo {
-                port_number: port.port.clone(),
-                port_status: format!("{:?}", port.status),
-                service_name: tcp_map
-                    .get(&port.port)
-                    .unwrap_or(&String::new())
-                    .to_string(),
-                service_version: service_map
-                    .get(&port.port)
-                    .unwrap_or(&String::new())
-                    .to_string(),
-                remark: String::new(),
-            };
-            result.ports.push(port_info);
+    scan_result.end_time = sys::get_sysdate();
+    scan_result.elapsed_time = start_time.elapsed().as_millis() as u64;
+
+    // Get master data
+    let tcp_map: HashMap<u16, String> = db::get_tcp_map();
+
+    // Arp (only for local network)
+    let mut arp_targets: Vec<IpAddr> = vec![];
+    let mut mac_map: HashMap<IpAddr, String> = HashMap::new(); 
+    let mut oui_db: HashMap<String, String> = HashMap::new();
+    for host in &ns_scan_result.hosts {
+        if crate::ip::in_same_network(opt.src_ip, host.ip_addr) {
+            arp_targets.push(host.ip_addr);
         }
-        // HostInfo
-        let os_fingetprint = if od_result.len() > 0 {
-            crate::os::verify_os_fingerprint(od_result[0].tcp_fingerprint.clone())
-        } else {
-            OsFingerprint::new()
-        };
-        let host_info = crate::result::HostInfo {
-            ip_addr: ip.to_string(),
-            host_name: if let Some(target) = opt.targets.first() { target.host_name.clone() } else { network::lookup_ip_addr(ip.to_string()) },
-            mac_addr: String::new(),
-            vendor_info: String::new(),
-            os_name: os_fingetprint.os_name,
-            cpe: os_fingetprint.cpe,
-        };
-        result.host = host_info;
-        result.port_scan_time = ps_result.scan_time;
-        result.service_detection_time = sd_time;
-        result.os_detection_time = od_time;
-        result.total_scan_time =
-            result.port_scan_time + result.service_detection_time + result.os_detection_time;
     }
-    return result;
+    if arp_targets.len() > 0 {
+        mac_map = crate::ip::get_mac_addresses(arp_targets, opt.src_ip);
+        oui_db = db::get_oui_detail_map();
+    }
+
+    // Set results
+    match msg_tx.send(String::from(define::MESSAGE_START_CHECK_RESULTS)) {
+        Ok(_) => {}
+        Err(_) => {}
+    }
+    for scanned_host in ns_scan_result.hosts {
+        let mut node_info: model::NodeInfo = model::NodeInfo::new();
+        node_info.ip_addr = scanned_host.ip_addr;
+        node_info.host_name = scanned_host.host_name.clone();
+        node_info.node_type = model::NodeType::Destination;
+        
+        for port in scanned_host.ports {
+            let mut service_info: model::ServiceInfo = model::ServiceInfo::new();
+            service_info.port_number = port.port;
+            match port.status {
+                netscan::host::PortStatus::Open => {
+                    service_info.port_status = model::PortStatus::Open;
+                },
+                netscan::host::PortStatus::Closed => {
+                    service_info.port_status = model::PortStatus::Closed;
+                },
+                _ => {},
+            }
+            service_info.service_name = tcp_map.get(&port.port).unwrap_or(&String::new()).clone();
+
+            if service_map.contains_key(&scanned_host.ip_addr) {
+                if let Some(service_version) = service_map.get(&scanned_host.ip_addr).unwrap().get(&port.port) {
+                    service_info.service_version = service_version.clone();
+                }
+            }
+            node_info.services.push(service_info);
+        }
+
+        node_info.ttl = scanned_host.ttl;
+
+        node_info.mac_addr = mac_map.get(&scanned_host.ip_addr).unwrap_or(&String::new()).clone();
+        node_info.vendor_info = if let Some(mac) = mac_map.get(&scanned_host.ip_addr) {
+            if mac.len() > 16 {
+                let prefix8 = mac[0..8].to_uppercase();
+                oui_db
+                    .get(&prefix8)
+                    .unwrap_or(&String::new())
+                    .to_string()
+            } else {
+                oui_db.get(mac).unwrap_or(&String::new()).to_string()
+            }
+        } else {
+            String::new()
+        };
+        
+        let mut os_fingerprint: model::OsFingerprint = model::OsFingerprint::new();
+        for os_probe_result in &os_probe_results {
+            if os_probe_result.ip_addr == scanned_host.ip_addr {
+                if let Some(syn_ack_result) = &os_probe_result.tcp_syn_ack_result {
+                    if syn_ack_result.fingerprints.len() > 0 {
+                        os_fingerprint = db::verify_os_fingerprint(syn_ack_result.fingerprints[0].clone());
+                    }
+                }else {
+                    if let Some(ecn_result) = &os_probe_result.tcp_ecn_result {
+                        if ecn_result.fingerprints.len() > 0 {
+                            os_fingerprint = db::verify_os_fingerprint(ecn_result.fingerprints[0].clone());
+                        }
+                    }
+                }
+            }
+        }
+
+        node_info.cpe = os_fingerprint.cpe;
+        node_info.os_name = os_fingerprint.os_name;
+        
+        scan_result.nodes.push(node_info);
+    }
+    match msg_tx.send(String::from(define::MESSAGE_END_CHECK_RESULTS)) {
+        Ok(_) => {}
+        Err(_) => {}
+    }
+    scan_result.probe_status = result::ProbeStatus::Done;
+    scan_result
 }
 
-pub async fn run_node_scan(opt: ScanOption, msg_tx: &mpsc::Sender<String>) -> HostScanResult {
-    let mut result: HostScanResult = HostScanResult::new();
-    result.protocol = opt.protocol;
-    if opt.targets.len() > 0 {
-        result.port_number = opt.targets[0].ports[0];
+pub fn run_host_scan(opt: option::HostScanOption) -> netscan::result::ScanResult {
+    let mut host_scanner = netscan::scanner::HostScanner::new(opt.src_ip).unwrap();
+    for target in opt.targets {
+        let dst: netscan::host::HostInfo = netscan::host::HostInfo::new_with_ip_addr(target.ip_addr)
+            .with_ports(target.ports.clone())
+            .with_host_name(target.host_name.clone());
+        host_scanner.scan_setting.add_target(dst);
     }
-    // Host Scan
+    host_scanner.scan_setting.scan_type = opt.scan_type.to_netscan_type();
+    host_scanner.scan_setting.set_timeout(opt.timeout);
+    host_scanner.scan_setting.set_wait_time(opt.wait_time);
+    host_scanner.scan_setting.set_send_rate(opt.send_rate);
+
+    let ns_scan_result: netscan::result::ScanResult = host_scanner.sync_scan();
+    ns_scan_result
+}
+
+pub async fn run_async_host_scan(opt: option::HostScanOption) -> netscan::result::ScanResult  {
+    let mut host_scanner = netscan::scanner::HostScanner::new(opt.src_ip).unwrap();
+    for target in opt.targets {
+        let dst: netscan::host::HostInfo = netscan::host::HostInfo::new_with_ip_addr(target.ip_addr)
+            .with_ports(target.ports.clone())
+            .with_host_name(target.host_name.clone());
+        host_scanner.scan_setting.add_target(dst);
+    }
+    host_scanner.scan_setting.scan_type = opt.scan_type.to_netscan_type();
+    host_scanner.scan_setting.set_timeout(opt.timeout);
+    host_scanner.scan_setting.set_wait_time(opt.wait_time);
+    host_scanner.scan_setting.set_send_rate(opt.send_rate);
+
+    let ns_scan_result: netscan::result::ScanResult = async_io::block_on(async { host_scanner.scan().await });
+    ns_scan_result
+}
+
+pub async fn run_node_scan(opt: option::HostScanOption, msg_tx: &mpsc::Sender<String>) -> result::HostScanResult {
+    let mut scan_result: result::HostScanResult = result::HostScanResult::new();
+    scan_result.probe_id = sys::get_probe_id();
+    scan_result.command_type = option::CommandType::HostScan;
+    scan_result.protocol = opt.protocol;
+    scan_result.scan_type = opt.scan_type;
+    scan_result.start_time = sys::get_sysdate();
+    let start_time: Instant = Instant::now();
+
+    // Run host scan
     match msg_tx.send(String::from(define::MESSAGE_START_HOSTSCAN)) {
         Ok(_) => {}
         Err(_) => {}
     }
-    let hs_result: netscan::result::HostScanResult = if opt.async_scan {
-        async_io::block_on(async { run_async_host_scan(opt.clone(), &msg_tx).await })
+    let ns_scan_result: netscan::result::ScanResult = if opt.async_scan {
+        run_async_host_scan(opt.clone()).await
     } else {
-        run_host_scan(opt.clone(), &msg_tx)
+        run_host_scan(opt.clone())
     };
     match msg_tx.send(String::from(define::MESSAGE_END_HOSTSCAN)) {
         Ok(_) => {}
         Err(_) => {}
     }
-    // Get MAC Addresses (LAN only)
-    let start_time: Instant = Instant::now();
-    let mut arp_targets: Vec<IpAddr> = vec![];
-    for host in hs_result.get_hosts() {
-        if network::in_same_network(opt.src_ip, host) {
-            arp_targets.push(host);
-        }
-    }
+
+    // lookup
     match msg_tx.send(String::from(define::MESSAGE_START_LOOKUP)) {
         Ok(_) => {}
         Err(_) => {}
     }
-    let mac_map: HashMap<IpAddr, String> =
-        network::get_mac_addresses(arp_targets.clone(), opt.src_ip);
-    let dns_map: HashMap<IpAddr, String> = network::lookup_ips(hs_result.get_hosts());
-    for host in hs_result.hosts {
-        let host_info = HostInfo {
-            ip_addr: host.ip_addr.to_string(),
-            host_name: if host.host_name.is_empty() { dns_map.get(&host.ip_addr).unwrap_or(&String::new()).to_string() } else { host.host_name },
-            mac_addr: mac_map
-                .get(&host.ip_addr)
-                .unwrap_or(&String::new())
-                .to_string(),
-            vendor_info: if let Some(mac) = mac_map.get(&host.ip_addr) {
-                if mac.len() > 16 {
-                    let prefix8 = mac[0..8].to_uppercase();
-                    opt.oui_map
-                        .get(&prefix8)
-                        .unwrap_or(&String::new())
-                        .to_string()
-                } else {
-                    opt.oui_map.get(mac).unwrap_or(&String::new()).to_string()
-                }
-            } else {
-                String::new()
-            },
-            os_name: opt
-                .ttl_map
-                .get(&network::guess_initial_ttl(host.ttl))
-                .unwrap_or(&String::new())
-                .to_string(),
-            cpe: String::new(),
-        };
-        result.hosts.push(host_info);
+    // DNS lookup
+    let mut lookup_target_ips: Vec<IpAddr> = vec![];
+    let mut dns_map: HashMap<IpAddr, String> = HashMap::new();
+    for host in &ns_scan_result.hosts {
+        if host.host_name.is_empty() || host.host_name == host.ip_addr.to_string() {
+            lookup_target_ips.push(host.ip_addr);
+        }else{
+            dns_map.insert(host.ip_addr, host.host_name.clone());
+        }
+    }
+    let resolved_map: HashMap<IpAddr, String> = crate::dns::lookup_ips(lookup_target_ips);
+    for (ip, host_name) in resolved_map {
+        if host_name.is_empty() {
+            dns_map.insert(ip, ip.to_string());
+        }else{
+            dns_map.insert(ip, host_name);
+        }
+    }
+    // Arp (only for local network)
+    let mut arp_targets: Vec<IpAddr> = vec![];
+    let mut mac_map: HashMap<IpAddr, String> = HashMap::new(); 
+    let mut oui_db: HashMap<String, String> = HashMap::new();
+    for host in &ns_scan_result.hosts {
+        if crate::ip::in_same_network(opt.src_ip, host.ip_addr) {
+            arp_targets.push(host.ip_addr);
+        }
+    }
+    if arp_targets.len() > 0 {
+        mac_map = crate::ip::get_mac_addresses(arp_targets, opt.src_ip);
+        oui_db = db::get_oui_detail_map();
     }
     match msg_tx.send(String::from(define::MESSAGE_END_LOOKUP)) {
         Ok(_) => {}
         Err(_) => {}
     }
-    // Sort by IP Address
-    result.hosts.sort_by(|a, b| a.ip_addr.cmp(&b.ip_addr));
-    let lookup_time: Duration = Instant::now().duration_since(start_time);
-    result.host_scan_time = hs_result.scan_time;
-    result.lookup_time = lookup_time;
-    result.total_scan_time = result.host_scan_time + result.lookup_time;
-    return result;
+
+    scan_result.end_time = sys::get_sysdate();
+    scan_result.elapsed_time = start_time.elapsed().as_millis() as u64;
+
+    // Set results
+    match msg_tx.send(String::from(define::MESSAGE_START_CHECK_RESULTS)) {
+        Ok(_) => {}
+        Err(_) => {}
+    }
+    for scanned_host in ns_scan_result.hosts {
+        let mut node_info: model::NodeInfo = model::NodeInfo::new();
+        node_info.ip_addr = scanned_host.ip_addr;
+        node_info.host_name = dns_map.get(&scanned_host.ip_addr).unwrap_or(&scanned_host.ip_addr.to_string()).clone();
+        node_info.node_type = model::NodeType::Destination;
+        
+        for port in scanned_host.ports {
+            let mut service_info: model::ServiceInfo = model::ServiceInfo::new();
+            service_info.port_number = port.port;
+            match port.status {
+                netscan::host::PortStatus::Open => {
+                    service_info.port_status = model::PortStatus::Open;
+                },
+                netscan::host::PortStatus::Closed => {
+                    service_info.port_status = model::PortStatus::Closed;
+                },
+                _ => {},
+            }
+            node_info.services.push(service_info);
+        }
+
+        node_info.ttl = scanned_host.ttl;
+
+        node_info.mac_addr = mac_map.get(&scanned_host.ip_addr).unwrap_or(&String::new()).clone();
+        node_info.vendor_info = if let Some(mac) = mac_map.get(&scanned_host.ip_addr) {
+            if mac.len() > 16 {
+                let prefix8 = mac[0..8].to_uppercase();
+                oui_db
+                    .get(&prefix8)
+                    .unwrap_or(&String::new())
+                    .to_string()
+            } else {
+                oui_db.get(mac).unwrap_or(&String::new()).to_string()
+            }
+        } else {
+            String::new()
+        };
+
+        let mut os_fingerprint: model::OsFingerprint = model::OsFingerprint::new();
+        for fingerprint in &ns_scan_result.fingerprints {
+            if fingerprint.ip_fingerprint.source_ip == scanned_host.ip_addr {
+                os_fingerprint = db::verify_os_fingerprint(fingerprint.clone());
+            }
+        }
+        node_info.cpe = os_fingerprint.cpe;
+        node_info.os_name = os_fingerprint.os_name;
+
+        scan_result.nodes.push(node_info);
+    }
+    match msg_tx.send(String::from(define::MESSAGE_END_CHECK_RESULTS)) {
+        Ok(_) => {}
+        Err(_) => {}
+    }
+    scan_result.probe_status = result::ProbeStatus::Done;
+    return scan_result;
 }

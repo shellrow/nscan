@@ -1,5 +1,5 @@
 use ipnet::{Ipv4Net, Ipv6Net};
-use pnet_packet::{MutablePacket, Packet};
+use pnet::packet::{MutablePacket, Packet};
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
@@ -24,9 +24,9 @@ pub fn get_network_address(ip_addr: IpAddr) -> Result<String, String> {
 }
 
 pub fn get_mac_through_arp(
-    interface: &pnet_datalink::NetworkInterface,
+    interface: &pnet::datalink::NetworkInterface,
     target_ip: Ipv4Addr,
-) -> pnet_datalink::MacAddr {
+) -> pnet::datalink::MacAddr {
     let source_ip = interface
         .ips
         .iter()
@@ -37,31 +37,31 @@ pub fn get_mac_through_arp(
         })
         .unwrap();
 
-    let (mut sender, mut receiver) = match pnet_datalink::channel(&interface, Default::default()) {
-        Ok(pnet_datalink::Channel::Ethernet(tx, rx)) => (tx, rx),
+    let (mut sender, mut receiver) = match pnet::datalink::channel(&interface, Default::default()) {
+        Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => (tx, rx),
         Ok(_) => panic!("Unknown channel type"),
         Err(e) => panic!("Error happened {}", e),
     };
 
     let mut ethernet_buffer = [0u8; 42];
     let mut ethernet_packet =
-        pnet_packet::ethernet::MutableEthernetPacket::new(&mut ethernet_buffer).unwrap();
+        pnet::packet::ethernet::MutableEthernetPacket::new(&mut ethernet_buffer).unwrap();
 
-    ethernet_packet.set_destination(pnet_datalink::MacAddr::broadcast());
+    ethernet_packet.set_destination(pnet::datalink::MacAddr::broadcast());
     ethernet_packet.set_source(interface.mac.unwrap());
-    ethernet_packet.set_ethertype(pnet_packet::ethernet::EtherTypes::Arp);
+    ethernet_packet.set_ethertype(pnet::packet::ethernet::EtherTypes::Arp);
 
     let mut arp_buffer = [0u8; 28];
-    let mut arp_packet = pnet_packet::arp::MutableArpPacket::new(&mut arp_buffer).unwrap();
+    let mut arp_packet = pnet::packet::arp::MutableArpPacket::new(&mut arp_buffer).unwrap();
 
-    arp_packet.set_hardware_type(pnet_packet::arp::ArpHardwareTypes::Ethernet);
-    arp_packet.set_protocol_type(pnet_packet::ethernet::EtherTypes::Ipv4);
+    arp_packet.set_hardware_type(pnet::packet::arp::ArpHardwareTypes::Ethernet);
+    arp_packet.set_protocol_type(pnet::packet::ethernet::EtherTypes::Ipv4);
     arp_packet.set_hw_addr_len(6);
     arp_packet.set_proto_addr_len(4);
-    arp_packet.set_operation(pnet_packet::arp::ArpOperations::Request);
+    arp_packet.set_operation(pnet::packet::arp::ArpOperations::Request);
     arp_packet.set_sender_hw_addr(interface.mac.unwrap());
     arp_packet.set_sender_proto_addr(source_ip);
-    arp_packet.set_target_hw_addr(pnet_datalink::MacAddr::zero());
+    arp_packet.set_target_hw_addr(pnet::datalink::MacAddr::zero());
     arp_packet.set_target_proto_addr(target_ip);
 
     ethernet_packet.set_payload(arp_packet.packet_mut());
@@ -71,12 +71,12 @@ pub fn get_mac_through_arp(
         .unwrap()
         .unwrap();
 
-    let mut target_mac_addr: pnet_datalink::MacAddr = pnet_datalink::MacAddr::zero();
+    let mut target_mac_addr: pnet::datalink::MacAddr = pnet::datalink::MacAddr::zero();
 
     for _x in 0..2 {
         let buf = receiver.next().unwrap();
-        let arp = pnet_packet::arp::ArpPacket::new(
-            &buf[pnet_packet::ethernet::MutableEthernetPacket::minimum_packet_size()..],
+        let arp = pnet::packet::arp::ArpPacket::new(
+            &buf[pnet::packet::ethernet::MutableEthernetPacket::minimum_packet_size()..],
         )
         .unwrap();
         if arp.get_sender_hw_addr() != interface.mac.unwrap() {
@@ -90,10 +90,10 @@ pub fn get_mac_through_arp(
 pub fn get_mac_addresses(ips: Vec<IpAddr>, src_ip: IpAddr) -> HashMap<IpAddr, String> {
     let mut map: HashMap<IpAddr, String> = HashMap::new();
     if let Some(c_interface) = get_interface_by_ip(src_ip) {
-        let interfaces = pnet_datalink::interfaces();
+        let interfaces = pnet::datalink::interfaces();
         let iface = interfaces
             .into_iter()
-            .filter(|interface: &pnet_datalink::NetworkInterface| {
+            .filter(|interface: &pnet::datalink::NetworkInterface| {
                 interface.index == c_interface.index
             })
             .next()

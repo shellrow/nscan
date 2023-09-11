@@ -1,10 +1,11 @@
 use crate::define;
-use crate::models;
+use crate::model;
+use crate::ip;
 use std::collections::HashMap;
 
 pub fn get_oui_detail_map() -> HashMap<String, String> {
     let mut oui_map: HashMap<String, String> = HashMap::new();
-    let ds_oui: Vec<models::Oui> = serde_json::from_str(define::OUI_JSON).unwrap_or(vec![]);
+    let ds_oui: Vec<model::Oui> = serde_json::from_str(define::OUI_JSON).unwrap_or(vec![]);
     for oui in ds_oui {
         oui_map.insert(oui.mac_prefix, oui.vendor_name_detail);
     }
@@ -13,7 +14,7 @@ pub fn get_oui_detail_map() -> HashMap<String, String> {
 
 pub fn get_tcp_map() -> HashMap<u16, String> {
     let mut tcp_map: HashMap<u16, String> = HashMap::new();
-    let ds_tcp_service: Vec<models::TcpService> =
+    let ds_tcp_service: Vec<model::TcpService> =
         serde_json::from_str(define::TCP_SERVICE_JSON).unwrap_or(vec![]);
     for port in ds_tcp_service {
         tcp_map.insert(port.port, port.service_name);
@@ -77,22 +78,115 @@ pub fn get_https_ports() -> Vec<u16> {
     https_ports
 }
 
-pub fn get_os_ttl_map() -> HashMap<u8, String> {
-    let mut os_ttl_map: HashMap<u8, String> = HashMap::new();
-    let ds_os_ttl: Vec<models::OsTtl> = serde_json::from_str(define::OS_TTL_JSON).unwrap_or(vec![]);
-    for os_ttl in ds_os_ttl {
-        os_ttl_map.insert(os_ttl.initial_ttl, os_ttl.os_description);
-    }
-    os_ttl_map
-}
-
-pub fn get_os_ttl_list() -> Vec<models::OsTtl> {
-    let ds_os_ttl: Vec<models::OsTtl> = serde_json::from_str(define::OS_TTL_JSON).unwrap_or(vec![]);
+pub fn get_os_ttl_list() -> Vec<model::OsTtl> {
+    let ds_os_ttl: Vec<model::OsTtl> = serde_json::from_str(define::OS_TTL_JSON).unwrap_or(vec![]);
     ds_os_ttl
 }
 
-pub fn get_os_fingerprints() -> Vec<models::OsFingerprint> {
-    let ds_os_fingerprints: Vec<models::OsFingerprint> =
+pub fn get_os_fingerprints() -> Vec<model::OsFingerprint> {
+    let ds_os_fingerprints: Vec<model::OsFingerprint> =
         serde_json::from_str(define::OS_FINGERPRINT_JSON).unwrap_or(vec![]);
     ds_os_fingerprints
+}
+
+pub fn get_os_family_list() -> Vec<String> {
+    let ds_os_families: Vec<&str> = define::OS_FAMILY_TXT.trim().split("\n").collect();
+    let mut os_families: Vec<String> = vec![];
+    for r in ds_os_families {
+        os_families.push(r.to_string());
+    }
+    os_families
+}
+
+pub fn verify_os_fingerprint(fingerprint: np_listener::packet::TcpIpFingerprint) -> model::OsFingerprint {
+    let os_family_list: Vec<String> = get_os_family_list();
+    let os_fingerprints: Vec<model::OsFingerprint> = get_os_fingerprints();
+    // 1. Select OS Fingerprint that match tcp_window_size and tcp_option_pattern
+    let mut matched_fingerprints: Vec<model::OsFingerprint> = vec![];
+    for f in &os_fingerprints {
+        let mut window_size_match: bool = false;
+        let mut option_pattern_match: bool = false;
+        if let Some(ref tcp_fingerprint) = fingerprint.tcp_fingerprint {
+            if f.tcp_window_size == tcp_fingerprint.window_size {
+                window_size_match = true;
+            }
+            let option_patterns: Vec<String> = f.tcp_option_pattern.split("|").map(|s| s.to_string()).collect();
+            let mut options: Vec<String> = vec![];
+            for option in &tcp_fingerprint.options {
+                options.push(option.name());
+            }
+            for option_pattern in option_patterns {
+                if option_pattern == options.join("-") {
+                    option_pattern_match = true;
+                }
+            }
+            if window_size_match && option_pattern_match {
+                matched_fingerprints.push(f.clone());
+            }
+        }
+    }
+    if matched_fingerprints.len() == 1 {
+        return matched_fingerprints[0].clone();
+    }else if matched_fingerprints.len() > 1 {
+        // Search fingerprint that match general OS Family
+        matched_fingerprints.reverse();
+        for f in matched_fingerprints {
+            if os_family_list.contains(&f.os_family) {
+                return f;
+            }
+        }
+    }
+    // 2. Select OS Fingerprint that match tcp_option_pattern and have most closely tcp_window_size
+    let mut matched_fingerprints: Vec<model::OsFingerprint> = vec![];
+    for f in os_fingerprints {
+        let mut window_size_match: bool = false;
+        let mut option_pattern_match: bool = false;
+        if let Some(ref tcp_fingerprint) = fingerprint.tcp_fingerprint {
+            if tcp_fingerprint.window_size - 100 < f.tcp_window_size && f.tcp_window_size < tcp_fingerprint.window_size + 100 {
+                window_size_match = true;
+            }
+            let option_patterns: Vec<String> = f.tcp_option_pattern.split("|").map(|s| s.to_string()).collect();
+            let mut options: Vec<String> = vec![];
+            for option in &tcp_fingerprint.options {
+                options.push(option.name());
+            }
+            for option_pattern in option_patterns {
+                if option_pattern == options.join("-") {
+                    option_pattern_match = true;
+                }
+            }
+            if window_size_match && option_pattern_match {
+                matched_fingerprints.push(f.clone());
+            }
+        }
+    }
+    if matched_fingerprints.len() == 1 {
+        return matched_fingerprints[0].clone();
+    }else if matched_fingerprints.len() > 1 {
+        // Search fingerprint that match general OS Family
+        matched_fingerprints.reverse();
+        for f in matched_fingerprints {
+            if os_family_list.contains(&f.os_family) {
+                return f;
+            }
+        }
+    }
+    // 3. from TTL
+    let os_ttl_list: Vec<model::OsTtl> = get_os_ttl_list();
+    let initial_ttl = ip::guess_initial_ttl(fingerprint.ip_fingerprint.ttl);
+    for os_ttl in os_ttl_list {
+        if os_ttl.initial_ttl == initial_ttl {
+            return model::OsFingerprint {
+                cpe: String::from("(Failed to OS Fingerprinting)"),
+                os_name: os_ttl.os_description,
+                os_vendor: String::new(),
+                os_family: os_ttl.os_family,
+                os_generation: String::new(),
+                device_type: String::new(),
+                tcp_window_size: 0,
+                tcp_option_pattern: String::new(),
+            };
+        }
+    }
+    model::OsFingerprint::new()
 }

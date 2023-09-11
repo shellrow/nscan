@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
-use chrono::{Local};
-use crate::{result::{HostScanResult, PortScanResult}, option};
+use crate::result::{HostScanResult, PortScanResult};
+use crate::option;
 use crate::db;
+use crate::sys;
 
 // Shared model
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -83,29 +84,30 @@ impl JsonPortScanResult {
             protocol: String::new(),
             ports: Vec::new(),
             os: JsonOsInfo::new(),
-            issued_at: Local::now().to_rfc3339(),
+            issued_at: sys::get_sysdate(),
         }
     }
     pub fn from_result(probe_id: String, result: PortScanResult) -> JsonPortScanResult {
+        let node = result.nodes[0].clone();
         let mut json_result: JsonPortScanResult = JsonPortScanResult::new();
         json_result.probe_id = probe_id;
-        json_result.ip_addr = result.host.ip_addr;
-        json_result.hostname = result.host.host_name;
-        json_result.protocol = option::Protocol::TCP.name();
+        json_result.ip_addr = node.ip_addr.to_string();
+        json_result.hostname = node.host_name;
+        json_result.protocol = option::IpNextLevelProtocol::TCP.name();
         json_result.ports = result
-            .ports
+            .nodes[0].services
             .iter()
             .map(|port| {
                 let mut json_port = JsonPortResult::new();
                 json_port.port = port.port_number;
-                json_port.port_status = port.port_status.clone();
+                json_port.port_status = port.port_status.name().to_lowercase();
                 json_port.service = port.service_name.clone();
                 json_port.service_version = port.service_version.clone();
                 json_port
             })
             .collect();
-        json_result.os = JsonOsInfo::from_cpe(result.host.cpe);
-        json_result.issued_at = Local::now().to_rfc3339();
+        json_result.os = JsonOsInfo::from_cpe(node.cpe);
+        json_result.issued_at = sys::get_sysdate();
         json_result
     }
 }
@@ -115,6 +117,7 @@ impl JsonPortScanResult {
 pub struct JsonHostResult {
     pub ip_addr: String,
     pub hostname: String,
+    pub ttl: u16,
     pub os_info: String,
     pub mac_addr: String,
     pub vendor: String,
@@ -125,6 +128,7 @@ impl JsonHostResult {
         JsonHostResult {
             ip_addr: String::new(),
             hostname: String::new(),
+            ttl: 0,
             os_info: String::new(),
             mac_addr: String::new(),
             vendor: String::new(),
@@ -148,28 +152,59 @@ impl JsonHostScanResult {
             protocol: String::new(),
             port: 0,
             hosts: Vec::new(),
-            issued_at: Local::now().to_rfc3339(),
+            issued_at: sys::get_sysdate(),
         }
     }
     pub fn from_result(probe_id: String, result: HostScanResult) -> JsonHostScanResult {
         let mut json_result: JsonHostScanResult = JsonHostScanResult::new();
         json_result.probe_id = probe_id;
         json_result.protocol = result.protocol.name();
-        json_result.port = result.port_number;
+        json_result.port = 
+            if result.nodes.len() > 0 {
+                if result.nodes[0].services.len() > 0 {
+                    result.nodes[0].services[0].port_number
+                }else{
+                    0
+                }
+            }else{
+                0
+            };
         json_result.hosts = result
-            .hosts
+            .nodes
             .iter()
             .map(|host| {
                 let mut json_host = JsonHostResult::new();
-                json_host.ip_addr = host.ip_addr.clone();
+                json_host.ip_addr = host.ip_addr.to_string();
                 json_host.hostname = host.host_name.clone();
+                json_host.ttl = host.ttl as u16;
                 json_host.os_info = host.os_name.clone();
                 json_host.mac_addr = host.mac_addr.clone();
                 json_host.vendor = host.vendor_info.clone();
                 json_host
             })
             .collect();
-        json_result.issued_at = Local::now().to_rfc3339();
+        json_result.issued_at = sys::get_sysdate();
         json_result
     }
+}
+
+// Ping JSON model
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct JsonPingResult {
+    pub seq: u16,
+    pub ttl: u16,
+    pub hop: u16,
+    pub rtt: u64,
+    pub status: String,
+}
+
+// Traceroute JSON model
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct JsonTracerouteResult {
+    pub seq: u16,
+    pub ip_addr: String,
+    pub hostname: String,
+    pub ttl: u16,
+    pub hop: u16,
+    pub rtt: u64,
 }

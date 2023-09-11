@@ -1,9 +1,9 @@
-use crate::network;
-use regex::Regex;
 use ipnet::IpNet;
+use regex::Regex;
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::str::FromStr;
+use crate::{dns, interface};
 
 pub fn validate_port_opt(v: &str) -> Result<(), String> {
     let re_addr_range = Regex::new(r"\S+:\d+-\d+$").unwrap();
@@ -25,7 +25,7 @@ pub fn validate_port_opt(v: &str) -> Result<(), String> {
     let ipaddr = IpAddr::from_str(a_vec[0]);
     match ipaddr {
         Ok(_) => return Ok(()),
-        Err(_) => match network::lookup_host_name(a_vec[0].to_string()) {
+        Err(_) => match dns::lookup_host_name(a_vec[0].to_string()) {
             Some(_) => return Ok(()),
             None => {
                 return Err(String::from("Please specify ip address or hostname"));
@@ -37,23 +37,19 @@ pub fn validate_port_opt(v: &str) -> Result<(), String> {
 pub fn validate_network_opt(v: &str) -> Result<(), String> {
     match v.parse::<IpNet>() {
         Ok(_) => return Ok(()),
-        Err(_) => {
-            match IpAddr::from_str(&v) {
-                Ok(_) => {
-                    return Ok(())
-                },
-                Err(_) => {
-                    return Err(String::from("Please specify network address"));
-                }
+        Err(_) => match IpAddr::from_str(&v) {
+            Ok(_) => return Ok(()),
+            Err(_) => {
+                return Err(String::from("Please specify network address"));
             }
-        }
+        },
     }
 }
 
 pub fn validate_hostscan_opt(v: &str) -> Result<(), String> {
     match validate_network_opt(v) {
         Ok(_) => return Ok(()),
-        Err(_) => {},
+        Err(_) => {}
     }
     let re_host = Regex::new(r"[\w\-._]+\.[A-Za-z]+").unwrap();
     if Path::new(&v).exists() {
@@ -118,7 +114,7 @@ pub fn validate_interface(v: &str) -> Result<(), String> {
             return Err(String::from("Please specify ip address"));
         }
     };
-    match network::get_interface_by_ip(ip_addr) {
+    match interface::get_interface_by_ip(ip_addr) {
         Some(_) => Ok(()),
         None => Err(String::from("Invalid network interface name")),
     }

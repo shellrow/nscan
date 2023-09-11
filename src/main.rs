@@ -1,24 +1,31 @@
 #[macro_use]
 extern crate clap;
 
-mod db;
-mod define;
-mod handler;
-mod models;
-mod network;
+mod model;
 mod option;
-mod os;
+mod process;
+mod sys;
+mod interface;
+mod ip;
+mod dns;
+mod define;
+mod db;
+mod util;
+mod result;
+mod handler;
+mod json_models;
 mod output;
 mod parser;
-mod result;
-mod scan;
-mod sys;
 mod validator;
-mod json_models;
+mod scan;
 
-use chrono::{DateTime, Local};
-use clap::{App, AppSettings, Arg, ArgGroup, Command};
+use clap::{App, AppSettings, Arg, ArgGroup, Command, ArgMatches};
 use std::env;
+
+// APP information
+pub const CRATE_BIN_NAME: &str = "nscan";
+pub const CRATE_UPDATE_DATE: &str = "2023-09-10";
+pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -26,57 +33,76 @@ fn main() {
         show_app_desc();
         std::process::exit(0);
     }
-    let app = get_app_settings();
-    let matches = app.get_matches();
+    //let app = get_app_settings();
+    let matches = get_app_settings();
+
     show_banner_with_starttime();
-    
+
     let pb = output::get_spinner();
     pb.set_message("Initializing ...");
-    let opt: option::ScanOption = parser::parse_args(matches);
+
+    // Default is port scan
+    let command_type: option::CommandType = 
+    if matches.contains_id("host") {
+        option::CommandType::HostScan
+    } else {
+        option::CommandType::PortScan
+    };
+
     pb.finish_and_clear();
 
-    output::show_options(opt.clone());
-    match opt.command_type {
-        option::CommandType::PortScan => match opt.port_scan_type {
-            option::ScanType::TcpSynScan => {
-                if opt.async_scan && sys::get_os_type() == "windows" {
-                    exit_with_error_message("Async TCP SYN Scan is not supported on Windows");
-                }
-                if privilege::user::privileged() {
+    //output::show_options(opt.clone());
+    match command_type {
+        option::CommandType::PortScan => {
+            let opt = parser::parse_port_args(matches).unwrap();
+            output::show_port_options(opt.clone());
+            match opt.scan_type {
+                option::PortScanType::TcpSynScan => {
+                    if opt.async_scan && sys::get_os_type() == "windows" {
+                        exit_with_error_message("Async TCP SYN Scan is not supported on Windows");
+                    }
+                    if process::privileged() {
+                        async_io::block_on(async {
+                            handler::handle_port_scan(opt).await;
+                        })
+                    } else {
+                        exit_with_error_message("Requires administrator privilege");
+                    }
+                },
+                option::PortScanType::TcpConnectScan => {
                     async_io::block_on(async {
                         handler::handle_port_scan(opt).await;
                     })
-                } else {
-                    exit_with_error_message("Requires administrator privilege");
-                }
+                },
             }
-            option::ScanType::TcpConnectScan => async_io::block_on(async {
-                handler::handle_port_scan(opt).await;
-            }),
-            _ => {}
         },
-        option::CommandType::HostScan => match opt.protocol {
-            option::Protocol::ICMPv4 | option::Protocol::ICMPv6 => {
-                if privilege::user::privileged() {
-                    async_io::block_on(async {
-                        handler::handle_host_scan(opt).await;
-                    })
-                } else {
-                    exit_with_error_message("Requires administrator privilege");
-                }
+        option::CommandType::HostScan => {
+            let opt = parser::parse_host_args(matches).unwrap();
+            output::show_host_options(opt.clone());
+            match opt.scan_type {
+                option::HostScanType::IcmpPingScan => {
+                    if process::privileged() {
+                        async_io::block_on(async {
+                            handler::handle_host_scan(opt).await;
+                        })
+                    } else {
+                        exit_with_error_message("Requires administrator privilege");
+                    }
+                },
+                _ => async_io::block_on(async {
+                    handler::handle_host_scan(opt).await;
+                }),
             }
-            _ => async_io::block_on(async {
-                handler::handle_host_scan(opt).await;
-            }),
-        }
+        },
     }
 }
 
-fn get_app_settings<'a>() -> Command<'a> {
+fn get_app_settings() -> ArgMatches {
+    let app_description: &str = crate_description!();
+    let app_about: String = format!("{} \n{}", app_description, CRATE_REPOSITORY);
     let app: App = Command::new(crate_name!())
         .version(crate_version!())
-        .author(crate_authors!())
-        .about(crate_description!())
+        .about(app_about.as_str())
         .arg(Arg::new("port")
             .help("Scan ports of the specified host. \nUse default port list if port range omitted. \nExamples: \n--port 192.168.1.8 -S -O \n--port 192.168.1.8:1-1000 \n--port 192.168.1.8:22,80,8080 \n--port 192.168.1.8 -l custom-list.txt")
             .short('p')
@@ -196,6 +222,12 @@ fn get_app_settings<'a>() -> Command<'a> {
             .short('W')
             .long("wellknown")
         )
+        .arg(Arg::new("json")
+            .help("Displays results in JSON format.")
+            .short('j')
+            .long("json")
+            .takes_value(false)
+        )
         .arg(Arg::new("save")
             .help("Save scan result in json format - Example: -o result.json")
             .short('o')
@@ -211,36 +243,36 @@ fn get_app_settings<'a>() -> Command<'a> {
         .group(ArgGroup::new("mode").args(&["port", "host"]))
         .setting(AppSettings::DeriveDisplayOrder)
         ;
-    app
+    app.get_matches()
 }
 
 fn show_app_desc() {
     println!(
-        "{} {} ({}) {}",
+        "{}({}) {} ({}) {}",
         crate_name!(),
+        CRATE_BIN_NAME,
         crate_version!(),
-        define::CRATE_UPDATE_DATE,
+        CRATE_UPDATE_DATE,
         sys::get_os_type()
     );
     println!("{}", crate_description!());
-    println!("{}", crate_authors!());
-    println!("{}", define::CRATE_REPOSITORY);
+    println!("{}", CRATE_REPOSITORY);
     println!();
-    println!("'{} --help' for more information.", crate_name!());
+    println!("'{} --help' for more information.", CRATE_BIN_NAME);
     println!();
 }
 
 fn show_banner_with_starttime() {
     println!(
-        "{} {} {}",
+        "{}({}) {} {}",
         crate_name!(),
+        CRATE_BIN_NAME,
         crate_version!(),
         sys::get_os_type()
     );
-    println!("{}", define::CRATE_REPOSITORY);
+    println!("{}", CRATE_REPOSITORY);
     println!();
-    let local_datetime: DateTime<Local> = Local::now();
-    println!("Probe started at {}", local_datetime);
+    println!("Scan started at {}", sys::get_sysdate());
     println!();
 }
 

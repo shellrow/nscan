@@ -1,7 +1,8 @@
-use crate::option::Protocol;
-use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
-use std::{time::Duration, vec};
+
+use serde::{Deserialize, Serialize};
+
+use crate::{model::{NodeInfo, NodeType}, option::{CommandType, PortScanType, IpNextLevelProtocol, HostScanType}};
 
 /// Exit status of probe
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -14,138 +15,8 @@ pub enum ProbeStatus {
     Timeout,
 }
 
-/// Node type
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum NodeType {
-    /// Default gateway
-    DefaultGateway,
-    /// Relay node
-    Relay,
-    /// Destination host
-    Destination,
-}
-
-impl NodeType {
-    /* pub fn name(&self) -> String {
-        match *self {
-            NodeType::DefaultGateway => String::from("DefaultGateway"),
-            NodeType::Relay => String::from("Relay"),
-            NodeType::Destination => String::from("Destination"),
-        }
-    } */
-}
-
-/// Node structure
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Node {
-    /// Sequence number
-    pub seq: u8,
-    /// IP address
-    pub ip_addr: IpAddr,
-    /// Host name
-    pub host_name: String,
-    /// Time To Live
-    pub ttl: Option<u8>,
-    /// Number of hops
-    pub hop: Option<u8>,
-    /// Node type
-    pub node_type: NodeType,
-    /// Round Trip Time
-    pub rtt: Duration,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PortInfo {
-    pub port_number: u16,
-    pub port_status: String,
-    pub service_name: String,
-    pub service_version: String,
-    pub remark: String,
-}
-
-impl PortInfo {
-    /* pub fn new() -> PortInfo {
-        PortInfo {
-            port_number: 0,
-            port_status: String::new(),
-            service_name: String::new(),
-            service_version: String::new(),
-            remark: String::new(),
-        }
-    } */
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct HostInfo {
-    pub ip_addr: String,
-    pub host_name: String,
-    pub mac_addr: String,
-    pub vendor_info: String,
-    pub os_name: String,
-    pub cpe: String,
-}
-
-impl HostInfo {
-    pub fn new() -> HostInfo {
-        HostInfo {
-            ip_addr: String::new(),
-            host_name: String::new(),
-            mac_addr: String::new(),
-            vendor_info: String::new(),
-            os_name: String::new(),
-            cpe: String::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PortScanResult {
-    pub ports: Vec<PortInfo>,
-    pub host: HostInfo,
-    pub port_scan_time: Duration,
-    pub service_detection_time: Duration,
-    pub os_detection_time: Duration,
-    pub total_scan_time: Duration,
-}
-
-impl PortScanResult {
-    pub fn new() -> PortScanResult {
-        PortScanResult {
-            ports: vec![],
-            host: HostInfo::new(),
-            port_scan_time: Duration::from_millis(0),
-            service_detection_time: Duration::from_millis(0),
-            os_detection_time: Duration::from_millis(0),
-            total_scan_time: Duration::from_millis(0),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct HostScanResult {
-    pub hosts: Vec<HostInfo>,
-    pub protocol: Protocol,
-    pub port_number: u16,
-    pub host_scan_time: Duration,
-    pub lookup_time: Duration,
-    pub total_scan_time: Duration,
-}
-
-impl HostScanResult {
-    pub fn new() -> HostScanResult {
-        HostScanResult {
-            hosts: vec![],
-            protocol: Protocol::ICMPv4,
-            port_number: 0,
-            host_scan_time: Duration::from_millis(0),
-            lookup_time: Duration::from_millis(0),
-            total_scan_time: Duration::from_millis(0),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PingResult {
+pub struct PingResponse {
     /// Sequence number
     pub seq: u8,
     /// IP address
@@ -164,34 +35,88 @@ pub struct PingResult {
     pub status: ProbeStatus,
     /// Protocol
     pub protocol: String,
+    /// Node type
+    pub node_type: NodeType,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Domain {
-    pub domain_name: String,
-    pub ips: Vec<IpAddr>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PingStat {
+    /// Ping responses
+    pub responses: Vec<PingResponse>,
+    /// The entire ping probe time (microsecond)
+    pub probe_time: u64,
+    /// Transmitted packets
+    pub transmitted_count: usize,
+    /// Received packets
+    pub received_count: usize,
+    /// Minimum RTT (microsecond)
+    pub min: u64,
+    /// Avarage RTT (microsecond)
+    pub avg: u64,
+    /// Maximum RTT (microsecond)
+    pub max: u64,
 }
 
-/// Result of domain scan  
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DomainScanResult {
-    pub base_domain: String,
-    /// HashMap of domain.
-    ///
-    /// (Domain, IP Addresses)
-    pub domains: Vec<Domain>,
-    /// Time from start to end of scan.  
-    pub scan_time: Duration,
-    /// Scan job status
-    pub scan_status: ProbeStatus,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PortScanResult {
+    pub probe_id: String,
+    pub nodes: Vec<NodeInfo>,
+    pub probe_status: ProbeStatus,
+    /// start-time in RFC 3339 and ISO 8601 date and time string
+    pub start_time: String,
+    /// end-time in RFC 3339 and ISO 8601 date and time string
+    pub end_time: String,
+    /// Elapsed time in milliseconds
+    pub elapsed_time: u64,
+    pub protocol: IpNextLevelProtocol,
+    pub command_type: CommandType,
+    pub scan_type: PortScanType,
 }
 
-impl DomainScanResult {
-    /* pub fn new() -> DomainScanResult {
-        DomainScanResult {
-            domains: vec![],
-            scan_time: Duration::from_millis(0),
-            scan_status: ProbeStatus::Done,
+impl PortScanResult {
+    pub fn new() -> PortScanResult {
+        PortScanResult {
+            probe_id: String::new(),
+            nodes: Vec::new(),
+            probe_status: ProbeStatus::Done,
+            start_time: String::new(),
+            end_time: String::new(),
+            elapsed_time: 0,
+            protocol: IpNextLevelProtocol::TCP,
+            command_type: CommandType::PortScan,
+            scan_type: PortScanType::TcpSynScan,
         }
-    } */
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct HostScanResult {
+    pub probe_id: String,
+    pub nodes: Vec<NodeInfo>,
+    pub probe_status: ProbeStatus,
+    /// start-time in RFC 3339 and ISO 8601 date and time string
+    pub start_time: String,
+    /// end-time in RFC 3339 and ISO 8601 date and time string
+    pub end_time: String,
+    /// Elapsed time in milliseconds
+    pub elapsed_time: u64,
+    pub protocol: IpNextLevelProtocol,
+    pub command_type: CommandType,
+    pub scan_type: HostScanType,
+}
+
+impl HostScanResult {
+    pub fn new() -> HostScanResult {
+        HostScanResult {
+            probe_id: String::new(),
+            nodes: Vec::new(),
+            probe_status: ProbeStatus::Done,
+            start_time: String::new(),
+            end_time: String::new(),
+            elapsed_time: 0,
+            protocol: IpNextLevelProtocol::ICMPv4,
+            command_type: CommandType::HostScan,
+            scan_type: HostScanType::IcmpPingScan,
+        }
+    }
 }

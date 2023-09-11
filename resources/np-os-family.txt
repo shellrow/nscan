@@ -1,0 +1,11 @@
+Linux
+NetBSD
+macOS
+Mac OS X
+Mac OS
+BSD
+BSD/OS
+DragonFly BSD
+FreeBSD
+OpenBSD
+Windows
