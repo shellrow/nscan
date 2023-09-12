@@ -98,6 +98,16 @@ pub fn get_os_family_list() -> Vec<String> {
     os_families
 }
 
+fn contain_word(check_string: &String, word_list: &Vec<String>) -> bool {
+    let lower_check_string: String = check_string.to_lowercase();
+    for word in word_list {
+        if lower_check_string.contains(&word.to_lowercase()) {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn verify_os_fingerprint(fingerprint: np_listener::packet::TcpIpFingerprint) -> model::OsFingerprint {
     let os_family_list: Vec<String> = get_os_family_list();
     let os_fingerprints: Vec<model::OsFingerprint> = get_os_fingerprints();
@@ -131,7 +141,7 @@ pub fn verify_os_fingerprint(fingerprint: np_listener::packet::TcpIpFingerprint)
         // Search fingerprint that match general OS Family
         matched_fingerprints.reverse();
         for f in matched_fingerprints {
-            if os_family_list.contains(&f.os_family) {
+            if os_family_list.contains(&f.os_family) && contain_word(&f.cpe, &os_family_list) {
                 return f;
             }
         }
@@ -166,7 +176,7 @@ pub fn verify_os_fingerprint(fingerprint: np_listener::packet::TcpIpFingerprint)
         // Search fingerprint that match general OS Family
         matched_fingerprints.reverse();
         for f in matched_fingerprints {
-            if os_family_list.contains(&f.os_family) {
+            if os_family_list.contains(&f.os_family) && contain_word(&f.cpe, &os_family_list) {
                 return f;
             }
         }
@@ -177,7 +187,7 @@ pub fn verify_os_fingerprint(fingerprint: np_listener::packet::TcpIpFingerprint)
     for os_ttl in os_ttl_list {
         if os_ttl.initial_ttl == initial_ttl {
             return model::OsFingerprint {
-                cpe: String::from("(Failed to OS Fingerprinting)"),
+                cpe: String::from("(Failed to OS Detection)"),
                 os_name: os_ttl.os_description,
                 os_vendor: String::new(),
                 os_family: os_ttl.os_family,
