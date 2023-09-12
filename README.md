@@ -54,6 +54,7 @@ OPTIONS:
     -A, --async                  Perform asynchronous scan
     -l, --list <file_path>       Use list - Example: -l custom-list.txt
     -W, --wellknown              Use well-known ports
+    -j, --json                   Displays results in JSON format.
     -o, --save <file_path>       Save scan result in json format - Example: -o result.json
         --acceptinvalidcerts     Accept invalid certs (This introduces significant vulnerabilities)
     -h, --help                   Print help information
