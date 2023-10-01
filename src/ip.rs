@@ -1,6 +1,7 @@
 use ipnet::{Ipv4Net, Ipv6Net};
-use std::{net::{IpAddr, Ipv4Addr}, collections::HashMap};
-use pnet::packet::{MutablePacket, Packet};
+use std::{net::{IpAddr, Ipv4Addr}, collections::HashMap, time::Duration};
+use cross_socket::{datalink::interface::Interface, socket::DataLinkSocket, packet::builder::PacketBuildOption};
+use cross_socket::datalink::MacAddr;
 
 pub fn get_network_address(ip_addr: IpAddr) -> Result<String, String> {
     match ip_addr {
@@ -48,71 +49,57 @@ pub fn guess_initial_ttl(ttl: u8) -> u8 {
     }
 }
 
-pub fn get_mac_through_arp(interface: &pnet::datalink::NetworkInterface, target_ip: Ipv4Addr) -> pnet::datalink::MacAddr {
-    let source_ip = interface
-        .ips
-        .iter()
-        .find(|ip| ip.is_ipv4())
-        .map(|ip| match ip.ip() {
-            IpAddr::V4(ip) => ip,
-            _ => unreachable!(),
-        })
-        .unwrap();
+fn get_mac_through_arp(
+    interface: Interface,
+    target_ip: Ipv4Addr,
+) -> MacAddr {
+    // Create new socket
+    let mut socket: DataLinkSocket = DataLinkSocket::new(interface, false).unwrap();
+    // Packet option for ARP request
+    let mut packet_option = PacketBuildOption::new();
+    packet_option.src_mac = socket.interface.mac_addr.clone().unwrap();
+    packet_option.dst_mac = MacAddr::zero();
+    packet_option.ether_type = cross_socket::packet::ethernet::EtherType::Arp;
+    packet_option.src_ip = IpAddr::V4(socket.interface.ipv4[0].addr);
+    packet_option.dst_ip = IpAddr::V4(target_ip);
 
-    let (mut sender, mut receiver) = match pnet::datalink::channel(&interface, Default::default()) {
-        Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => (tx, rx),
-        Ok(_) => panic!("Unknown channel type"),
-        Err(e) => panic!("Error happened {}", e),
-    };
-
-    let mut ethernet_buffer = [0u8; 42];
-    let mut ethernet_packet = pnet::packet::ethernet::MutableEthernetPacket::new(&mut ethernet_buffer).unwrap();
-
-    ethernet_packet.set_destination(pnet::datalink::MacAddr::broadcast());
-    ethernet_packet.set_source(interface.mac.unwrap());
-    ethernet_packet.set_ethertype(pnet::packet::ethernet::EtherTypes::Arp);
-
-    let mut arp_buffer = [0u8; 28];
-    let mut arp_packet = pnet::packet::arp::MutableArpPacket::new(&mut arp_buffer).unwrap();
-
-    arp_packet.set_hardware_type(pnet::packet::arp::ArpHardwareTypes::Ethernet);
-    arp_packet.set_protocol_type(pnet::packet::ethernet::EtherTypes::Ipv4);
-    arp_packet.set_hw_addr_len(6);
-    arp_packet.set_proto_addr_len(4);
-    arp_packet.set_operation(pnet::packet::arp::ArpOperations::Request);
-    arp_packet.set_sender_hw_addr(interface.mac.unwrap());
-    arp_packet.set_sender_proto_addr(source_ip);
-    arp_packet.set_target_hw_addr(pnet::datalink::MacAddr::zero());
-    arp_packet.set_target_proto_addr(target_ip);
-
-    ethernet_packet.set_payload(arp_packet.packet_mut());
-
-    sender
-        .send_to(ethernet_packet.packet(), None)
-        .unwrap()
-        .unwrap();
-
-    let mut target_mac_addr: pnet::datalink::MacAddr = pnet::datalink::MacAddr::zero();
-
-    for _x in 0..2 {
-        let buf = receiver.next().unwrap();
-        let arp = pnet::packet::arp::ArpPacket::new(&buf[pnet::packet::ethernet::MutableEthernetPacket::minimum_packet_size()..]).unwrap();
-        if arp.get_sender_hw_addr() != interface.mac.unwrap() {
-            target_mac_addr = arp.get_sender_hw_addr();
-            break;
+    // Send ARP request to default gateway
+    match socket.send(packet_option) {
+        Ok(_) => {}
+        Err(_) => {}
+    }
+    let src_mac = socket.interface.mac_addr.clone().unwrap();
+    let timeout = Duration::from_millis(10000);
+    let start = std::time::Instant::now();
+    // Receive packets
+    loop {
+        match socket.receive() {
+            Ok(packet) => {
+                let ethernet_packet = cross_socket::packet::ethernet::EthernetPacket::from_bytes(&packet);
+                if ethernet_packet.ethertype != cross_socket::packet::ethernet::EtherType::Arp {
+                    continue;
+                }
+                let arp_packet =
+                    cross_socket::packet::arp::ArpPacket::from_bytes(&ethernet_packet.payload);
+                if arp_packet.sender_hw_addr.address() != src_mac.address() {
+                    return arp_packet.sender_hw_addr;
+                }
+            }
+            Err(_) => {}
+        }
+        // break if timeout
+        if start.elapsed() > timeout {
+            return MacAddr::zero();
         }
     }
-    return target_mac_addr;
 }
 
 pub fn get_mac_addresses(ips: Vec<IpAddr>, src_ip: IpAddr) -> HashMap<IpAddr, String> {
     let mut map : HashMap<IpAddr, String> = HashMap::new();
     if let Some(c_interface) = crate::interface::get_interface_by_ip(src_ip) {
-        let interfaces = pnet::datalink::interfaces();
-        let iface = interfaces.into_iter().filter(|interface: &pnet::datalink::NetworkInterface| interface.index == c_interface.index).next().expect("Failed to get Interface");
         for ip in ips {
             if !is_global_addr(ip) && in_same_network(src_ip, ip) {
-                let mac_addr = get_mac_through_arp(&iface, ip.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
+                let mac_addr = get_mac_through_arp(c_interface.clone(), ip.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
                 map.insert(ip, mac_addr);
                 /* if mac_addr.len() > 16 {
                     let prefix8 = mac_addr[0..8].to_uppercase();

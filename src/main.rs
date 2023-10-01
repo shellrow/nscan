@@ -124,7 +124,7 @@ fn get_app_settings() -> ArgMatches {
             .short('i')
             .long("interface")
             .takes_value(true)
-            .value_name("name")
+            .value_name("interface_ip")
             .validator(validator::validate_interface)
         )
         .arg(Arg::new("source")
