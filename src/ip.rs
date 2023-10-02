@@ -71,8 +71,11 @@ fn get_mac_through_arp(
     let src_mac = socket.interface.mac_addr.clone().unwrap();
     let timeout = Duration::from_millis(10000);
     let start = std::time::Instant::now();
-    // Receive packets
+    // Receive packets until timeout
     loop {
+        if start.elapsed() > timeout {
+            return MacAddr::zero();
+        }
         match socket.receive() {
             Ok(packet) => {
                 let ethernet_packet = cross_socket::packet::ethernet::EthernetPacket::from_bytes(&packet);
@@ -81,15 +84,11 @@ fn get_mac_through_arp(
                 }
                 let arp_packet =
                     cross_socket::packet::arp::ArpPacket::from_bytes(&ethernet_packet.payload);
-                if arp_packet.sender_hw_addr.address() != src_mac.address() {
+                if arp_packet.sender_hw_addr.address() != src_mac.address() && arp_packet.sender_proto_addr == target_ip {
                     return arp_packet.sender_hw_addr;
                 }
             }
             Err(_) => {}
-        }
-        // break if timeout
-        if start.elapsed() > timeout {
-            return MacAddr::zero();
         }
     }
 }
@@ -101,12 +100,6 @@ pub fn get_mac_addresses(ips: Vec<IpAddr>, src_ip: IpAddr) -> HashMap<IpAddr, St
             if !is_global_addr(ip) && in_same_network(src_ip, ip) {
                 let mac_addr = get_mac_through_arp(c_interface.clone(), ip.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
                 map.insert(ip, mac_addr);
-                /* if mac_addr.len() > 16 {
-                    let prefix8 = mac_addr[0..8].to_uppercase();
-                    vendor_map.insert(ip.to_string(), (mac_addr, oui_map.get(&prefix8).unwrap_or(&String::from("Unknown")).to_string()));
-                }else{
-                    vendor_map.insert(ip.to_string(), (mac_addr, String::from("Unknown")));
-                } */
             }
         }
     }
