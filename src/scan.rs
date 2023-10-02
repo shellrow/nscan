@@ -65,6 +65,11 @@ pub fn run_service_detection(hosts: Vec<model::Host>) -> HashMap<IpAddr, HashMap
 pub fn run_os_fingerprinting(src_ip: IpAddr, target_hosts: Vec<model::Host>) -> Vec<netscan::os::ProbeResult> {
     let mut fingerprinter = netscan::os::Fingerprinter::new(src_ip).unwrap();
     for host in target_hosts {
+        let open_port: u16 = if host.get_open_ports().len() > 0 {
+            host.get_open_ports()[0]
+        } else {
+            0
+        };
         let closed_port: u16 = if host.get_closed_ports().len() > 0 {
             host.get_closed_ports()[0]
         } else {
@@ -72,7 +77,7 @@ pub fn run_os_fingerprinting(src_ip: IpAddr, target_hosts: Vec<model::Host>) -> 
         };
         let probe_target: netscan::os::ProbeTarget = netscan::os::ProbeTarget {
             ip_addr: host.ip_addr,
-            open_tcp_ports: host.get_open_ports(),
+            open_tcp_port: open_port,
             closed_tcp_port: closed_port,
             open_udp_port: 0,
             closed_udp_port: 33455,
@@ -412,8 +417,21 @@ pub async fn run_node_scan(opt: option::HostScanOption, msg_tx: &mpsc::Sender<St
 
         let mut os_fingerprint: model::OsFingerprint = model::OsFingerprint::new();
         for fingerprint in &ns_scan_result.fingerprints {
-            if fingerprint.ip_fingerprint.source_ip == scanned_host.ip_addr {
-                os_fingerprint = db::verify_os_fingerprint(fingerprint.clone());
+            match scanned_host.ip_addr {
+                IpAddr::V4(ipv4_addr) => {
+                    if let Some(ipv4_packet) = &fingerprint.ipv4_packet {
+                        if ipv4_packet.source == ipv4_addr {
+                            os_fingerprint = db::verify_os_fingerprint(fingerprint.clone());
+                        }
+                    }
+                }
+                IpAddr::V6(ipv6_addr) => {
+                    if let Some(ipv6_packet) = &fingerprint.ipv6_packet {
+                        if ipv6_packet.source == ipv6_addr {
+                            os_fingerprint = db::verify_os_fingerprint(fingerprint.clone());
+                        }
+                    }
+                }
             }
         }
         node_info.cpe = os_fingerprint.cpe;

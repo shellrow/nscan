@@ -108,15 +108,11 @@ pub fn validate_waittime(v: &str) -> Result<(), String> {
 }
 
 pub fn validate_interface(v: &str) -> Result<(), String> {
-    let ip_addr = match IpAddr::from_str(&v) {
-        Ok(ip_addr) => ip_addr,
-        Err(_) => {
-            return Err(String::from("Please specify ip address"));
-        }
-    };
-    match interface::get_interface_by_ip(ip_addr) {
+    match interface::get_interface_by_name(v.to_string()) {
         Some(_) => Ok(()),
-        None => Err(String::from("Invalid network interface name")),
+        None => {
+            return Err(String::from("Invalid interface name"));
+        }
     }
 }
 

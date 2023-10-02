@@ -23,8 +23,7 @@ use clap::{App, AppSettings, Arg, ArgGroup, Command, ArgMatches};
 use std::env;
 
 // APP information
-pub const CRATE_BIN_NAME: &str = "nscan";
-pub const CRATE_UPDATE_DATE: &str = "2023-09-10";
+pub const CRATE_UPDATE_DATE: &str = "2023-10-02";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 fn main() {
@@ -124,7 +123,7 @@ fn get_app_settings() -> ArgMatches {
             .short('i')
             .long("interface")
             .takes_value(true)
-            .value_name("name")
+            .value_name("interface_name")
             .validator(validator::validate_interface)
         )
         .arg(Arg::new("source")
@@ -248,9 +247,8 @@ fn get_app_settings() -> ArgMatches {
 
 fn show_app_desc() {
     println!(
-        "{}({}) {} ({}) {}",
+        "{} {} ({}) {}",
         crate_name!(),
-        CRATE_BIN_NAME,
         crate_version!(),
         CRATE_UPDATE_DATE,
         sys::get_os_type()
@@ -258,15 +256,14 @@ fn show_app_desc() {
     println!("{}", crate_description!());
     println!("{}", CRATE_REPOSITORY);
     println!();
-    println!("'{} --help' for more information.", CRATE_BIN_NAME);
+    println!("'{} --help' for more information.", crate_name!());
     println!();
 }
 
 fn show_banner_with_starttime() {
     println!(
-        "{}({}) {} {}",
+        "{} {} {}",
         crate_name!(),
-        CRATE_BIN_NAME,
         crate_version!(),
         sys::get_os_type()
     );

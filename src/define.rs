@@ -20,6 +20,7 @@ pub const OS_FINGERPRINT_JSON: &str = include_str!("../resources/np-os-fingerpri
 pub const OS_TTL_JSON: &str = include_str!("../resources/np-os-ttl.json");
 pub const OS_FAMILY_TXT: &str = include_str!("../resources/np-os-family.txt");
 pub const OUI_JSON: &str = include_str!("../resources/np-oui.json");
+pub const OUI_VM_JSON: &str = include_str!("../resources/np-oui-vm.json");
 pub const TCP_SERVICE_JSON: &str = include_str!("../resources/np-tcp-service.json");
 pub const WELLKNOWN_PORTS_TXT: &str = include_str!("../resources/np-wellknown-ports.txt");
 
