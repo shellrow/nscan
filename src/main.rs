@@ -23,7 +23,7 @@ use clap::{App, AppSettings, Arg, ArgGroup, Command, ArgMatches};
 use std::env;
 
 // APP information
-pub const CRATE_UPDATE_DATE: &str = "2023-09-10";
+pub const CRATE_UPDATE_DATE: &str = "2023-10-02";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 fn main() {
