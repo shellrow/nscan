@@ -18,7 +18,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 default-net = "0.17"
 cross-socket = "0.5"
-netscan = { version = "0.19", features = ["full"] }
+netscan = { version = "0.20", features = ["full"] }
 privilege = "0.3"
 trust-dns-resolver = "0.22.0"
 chrono = "0.4"
