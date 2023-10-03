@@ -69,7 +69,7 @@ fn get_mac_through_arp(
         Err(_) => {}
     }
     let src_mac = socket.interface.mac_addr.clone().unwrap();
-    let timeout = Duration::from_millis(10000);
+    let timeout = Duration::from_millis(100);
     let start = std::time::Instant::now();
     // Receive packets until timeout
     loop {
@@ -97,6 +97,10 @@ pub fn get_mac_addresses(ips: Vec<IpAddr>, src_ip: IpAddr) -> HashMap<IpAddr, St
     let mut map : HashMap<IpAddr, String> = HashMap::new();
     if let Some(c_interface) = crate::interface::get_interface_by_ip(src_ip) {
         for ip in ips {
+            if ip == src_ip {
+                map.insert(ip, c_interface.clone().mac_addr.unwrap_or(MacAddr::zero()).to_string());
+                continue;
+            }
             if !is_global_addr(ip) && in_same_network(src_ip, ip) {
                 let mac_addr = get_mac_through_arp(c_interface.clone(), ip.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
                 map.insert(ip, mac_addr);
