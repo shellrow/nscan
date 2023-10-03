@@ -7,6 +7,7 @@ use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
+use rand::seq::SliceRandom;
 
 use crate::dns;
 use crate::interface;
@@ -150,6 +151,14 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
     }
     if matches.contains_id("acceptinvalidcerts") {
         opt.accept_invalid_certs = true;
+    }
+    // Randomize targets by default
+    if !matches.contains_id("random") {        
+        let mut rng = rand::thread_rng();
+        for target in opt.targets.iter_mut() {
+            target.ports.shuffle(&mut rng);
+        }
+        opt.targets.shuffle(&mut rng);
     }
     Ok(opt)
 }
@@ -323,6 +332,11 @@ pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
     if matches.contains_id("save") {
         let v_save: String = matches.get_one::<String>("save").unwrap().to_string();
         opt.save_file_path = v_save;
+    }
+    // Randomize targets by default
+    if !matches.contains_id("random") {        
+        let mut rng = rand::thread_rng();
+        opt.targets.shuffle(&mut rng);
     }
     Ok(opt)
 }

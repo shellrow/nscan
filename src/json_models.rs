@@ -88,8 +88,11 @@ impl JsonPortScanResult {
         }
     }
     pub fn from_result(probe_id: String, result: PortScanResult) -> JsonPortScanResult {
-        let node = result.nodes[0].clone();
         let mut json_result: JsonPortScanResult = JsonPortScanResult::new();
+        if result.nodes.len() == 0 {
+            return json_result;
+        }
+        let node = result.nodes[0].clone();
         json_result.probe_id = probe_id;
         json_result.ip_addr = node.ip_addr.to_string();
         json_result.hostname = node.host_name;
