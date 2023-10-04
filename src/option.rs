@@ -206,7 +206,7 @@ pub struct PortScanOption {
 impl PortScanOption {
     pub fn default() -> Self {
         let interface: interface::NetworkInterface = interface::NetworkInterface::default();
-        PortScanOption {
+        let mut opt = PortScanOption {
             interface_index: interface.index,
             interface_name: interface.name,
             src_ip: if interface.ipv4.len() > 0 {
@@ -220,15 +220,7 @@ impl PortScanOption {
             },
             src_port: define::DEFAULT_SRC_PORT,
             targets: Vec::new(),
-            scan_type: if process::privileged() {
-                    if sys::get_os_type() == "windows" {
-                        PortScanType::TcpConnectScan
-                    }else{
-                        PortScanType::TcpSynScan
-                    }
-                } else {
-                    PortScanType::TcpConnectScan
-                },
+            scan_type: PortScanType::TcpSynScan,
             protocol: IpNextLevelProtocol::TCP,
             concurrency: define::DEFAULT_PORTS_CONCURRENCY,
             timeout: Duration::from_millis(define::DEFAULT_TIMEOUT),
@@ -241,7 +233,21 @@ impl PortScanOption {
             save_file_path: String::new(),
             json_output: false,
             accept_invalid_certs: false,
+        };
+        if process::privileged() {
+            opt.scan_type = PortScanType::TcpSynScan;
+            if sys::get_os_type() != "windows" {
+                opt.async_scan = true;
+            }
+        } else {
+            if sys::get_os_type() == "windows" {
+                opt.scan_type = PortScanType::TcpSynScan;
+            }else{
+                opt.scan_type = PortScanType::TcpConnectScan;
+                opt.async_scan = true;
+            }
         }
+        opt
     }
 }
 
