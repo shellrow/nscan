@@ -152,6 +152,15 @@ pub fn validate_ttl(v: &str) -> Result<(), String> {
     }
 }
 
+pub fn validate_ip_address(v: &str) -> Result<(), String> {
+    match IpAddr::from_str(&v) {
+        Ok(_) => Ok(()),
+        Err(_) => {
+            return Err(String::from("Invalid IP Address"));
+        }
+    }
+}
+
 pub fn is_ipaddr(host: String) -> bool {
     let ipaddr = IpAddr::from_str(&host);
     match ipaddr {
