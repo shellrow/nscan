@@ -63,8 +63,9 @@ pub fn run_service_detection(hosts: Vec<model::Host>) -> HashMap<IpAddr, HashMap
 }
 
 pub fn run_os_fingerprinting(src_ip: IpAddr, target_hosts: Vec<model::Host>) -> Vec<netscan::os::ProbeResult> {
-    let mut fingerprinter = netscan::os::Fingerprinter::new(src_ip).unwrap();
+    let mut probe_results: Vec<netscan::os::ProbeResult> = Vec::new();
     for host in target_hosts {
+        let mut fingerprinter = netscan::os::Fingerprinter::new(src_ip).unwrap();
         let open_port: u16 = if host.get_open_ports().len() > 0 {
             host.get_open_ports()[0]
         } else {
@@ -82,14 +83,15 @@ pub fn run_os_fingerprinting(src_ip: IpAddr, target_hosts: Vec<model::Host>) -> 
             open_udp_port: 0,
             closed_udp_port: 33455,
         };
-        fingerprinter.add_probe_target(probe_target);
+        fingerprinter.set_probe_target(probe_target);
+        fingerprinter.add_probe_type(netscan::os::ProbeType::IcmpEchoProbe);
+        fingerprinter.add_probe_type(netscan::os::ProbeType::IcmpUnreachableProbe);
+        fingerprinter.add_probe_type(netscan::os::ProbeType::TcpSynAckProbe);
+        fingerprinter.add_probe_type(netscan::os::ProbeType::TcpRstAckProbe);
+        fingerprinter.add_probe_type(netscan::os::ProbeType::TcpEcnProbe);
+        let probe_result: netscan::os::ProbeResult = fingerprinter.probe();
+        probe_results.push(probe_result);
     }
-    fingerprinter.add_probe_type(netscan::os::ProbeType::IcmpEchoProbe);
-    fingerprinter.add_probe_type(netscan::os::ProbeType::IcmpUnreachableProbe);
-    fingerprinter.add_probe_type(netscan::os::ProbeType::TcpSynAckProbe);
-    fingerprinter.add_probe_type(netscan::os::ProbeType::TcpRstAckProbe);
-    fingerprinter.add_probe_type(netscan::os::ProbeType::TcpEcnProbe);
-    let probe_results: Vec<netscan::os::ProbeResult> = fingerprinter.probe();
     probe_results
 }
 

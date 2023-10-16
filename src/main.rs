@@ -23,7 +23,7 @@ use clap::{App, AppSettings, Arg, ArgGroup, Command, ArgMatches};
 use std::env;
 
 // APP information
-pub const CRATE_UPDATE_DATE: &str = "2023-10-03";
+pub const CRATE_UPDATE_DATE: &str = "2023-10-16";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 fn main() {
@@ -32,7 +32,6 @@ fn main() {
         show_app_desc();
         std::process::exit(0);
     }
-    //let app = get_app_settings();
     let matches = get_app_settings();
 
     show_banner_with_starttime();
@@ -49,8 +48,7 @@ fn main() {
     };
 
     pb.finish_and_clear();
-
-    //output::show_options(opt.clone());
+    
     match command_type {
         option::CommandType::PortScan => {
             let opt = parser::parse_port_args(matches).unwrap();
@@ -69,6 +67,11 @@ fn main() {
                     }
                 },
                 option::PortScanType::TcpConnectScan => {
+                    // nscan's connect scan captures response packets in parallel with connection attempts for speed. 
+                    // This requires administrator privileges on Linux.
+                    if sys::get_os_type() == "linux" && !process::privileged() {
+                        exit_with_error_message("Requires administrator privilege");
+                    }
                     async_io::block_on(async {
                         handler::handle_port_scan(opt).await;
                     })
@@ -138,7 +141,7 @@ fn get_app_settings() -> ArgMatches {
             .long("source")
             .takes_value(true)
             .value_name("ip_addr")
-            .validator(validator::validate_interface)
+            .validator(validator::validate_ip_address)
         )
         .arg(Arg::new("protocol")
             .help("Specify the protocol")

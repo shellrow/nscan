@@ -1,6 +1,6 @@
 [package]
 name = "nscan"
-version = "0.14.0"
+version = "0.15.0"
 authors = ["shellrow <shellrow@protonmail.com>"]
 edition = "2021"
 description = "Cross-platform network scan tool for host and service discovery"
@@ -16,9 +16,9 @@ name = "nscan"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-default-net = "0.17"
-cross-socket = "0.5"
-netscan = { version = "0.20", features = ["full"] }
+default-net = "0.18"
+cross-socket = "0.8"
+netscan = { version = "0.21", features = ["full"] }
 privilege = "0.3"
 trust-dns-resolver = "0.22.0"
 chrono = "0.4"
