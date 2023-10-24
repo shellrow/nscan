@@ -43,6 +43,40 @@ impl NetworkInterface {
             } else {Ipv6Addr::UNSPECIFIED},
         }
     }
+    pub fn from_default_net_type(interface: default_net::Interface) -> NetworkInterface {
+        let if_type = if interface.if_type.name() == String::from("Unknown") && interface.is_tun() {String::from("Tunnel")} else {interface.if_type.name()};
+        NetworkInterface {
+            index: interface.index,
+            name: interface.name,
+            friendly_name: interface.friendly_name.unwrap_or(String::new()),
+            description: interface.description.unwrap_or(String::new()),
+            if_type: if_type,
+            mac_addr: if let Some(mac_addr) = interface.mac_addr {mac_addr.address()} else {default_net::interface::MacAddr::zero().address()},
+            ipv4: interface.ipv4.iter().map(|ip| ip.addr).collect(),
+            ipv6: interface.ipv6.iter().map(|ip| ip.addr).collect(),
+            gateway_mac_addr: if let Some(gateway) = &interface.gateway {gateway.mac_addr.address()} else {default_net::interface::MacAddr::zero().address()},
+            gateway_ipv4: if let Some(gateway) = &interface.gateway {
+                match gateway.ip_addr {
+                    IpAddr::V4(ipv4) => {ipv4}
+                    _ => {Ipv4Addr::UNSPECIFIED}
+                }
+            } else {Ipv4Addr::UNSPECIFIED},
+            gateway_ipv6: if let Some(gateway) = &interface.gateway {
+                match gateway.ip_addr {
+                    IpAddr::V6(ipv6) => {ipv6}
+                    _ => {Ipv6Addr::UNSPECIFIED}
+                }
+            } else {Ipv6Addr::UNSPECIFIED},
+        }
+    }
+}
+
+pub fn get_interfaces() -> Vec<NetworkInterface> {
+    let mut interfaces: Vec<NetworkInterface> = vec![];
+    for iface in default_net::get_interfaces() {
+        interfaces.push(NetworkInterface::from_default_net_type(iface));
+    }
+    interfaces
 }
 
 pub fn get_interface_by_ip(ip_addr: IpAddr) -> Option<default_net::Interface> {
