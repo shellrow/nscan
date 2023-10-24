@@ -114,3 +114,12 @@ pub async fn handle_host_scan(opt: option::HostScanOption) {
         println!("Probe result saved to: {}", opt.save_file_path);
     }
 }
+
+pub fn list_interfaces(json_output: bool) {
+    let interfaces = crate::interface::get_interfaces();
+    if json_output {
+        output::show_interfaces_json(interfaces);
+    }else {
+        output::show_interfaces(interfaces);
+    }
+}

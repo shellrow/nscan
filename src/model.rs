@@ -175,8 +175,8 @@ pub struct OsFingerprint {
     pub os_family: String,
     pub os_generation: String,
     pub device_type: String,
-    pub tcp_window_size: u16,
-    pub tcp_option_pattern: String,
+    pub tcp_window_sizes: Vec<u16>,
+    pub tcp_option_patterns: Vec<String>,
 }
 
 impl OsFingerprint {
@@ -188,8 +188,8 @@ impl OsFingerprint {
             os_family: String::new(),
             os_generation: String::new(),
             device_type: String::new(),
-            tcp_window_size: 0,
-            tcp_option_pattern: String::new(),
+            tcp_window_sizes: vec![],
+            tcp_option_patterns: vec![],
         }
     }
 }

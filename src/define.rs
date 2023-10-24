@@ -13,16 +13,16 @@ pub const DEFAULT_WAIT_TIME: u64 = 500;
 pub const DEFAULT_SEND_RATE: u64 = 0;
 
 // Database
-pub const DEFAULT_PORTS_TXT: &str = include_str!("../resources/np-default-ports.txt");
-pub const HTTP_PORTS_TXT: &str = include_str!("../resources/np-http-ports.txt");
-pub const HTTPS_PORTS_TXT: &str = include_str!("../resources/np-https-ports.txt");
-pub const OS_FINGERPRINT_JSON: &str = include_str!("../resources/np-os-fingerprint.json");
-pub const OS_TTL_JSON: &str = include_str!("../resources/np-os-ttl.json");
-pub const OS_FAMILY_TXT: &str = include_str!("../resources/np-os-family.txt");
-pub const OUI_JSON: &str = include_str!("../resources/np-oui.json");
-pub const OUI_VM_JSON: &str = include_str!("../resources/np-oui-vm.json");
-pub const TCP_SERVICE_JSON: &str = include_str!("../resources/np-tcp-service.json");
-pub const WELLKNOWN_PORTS_TXT: &str = include_str!("../resources/np-wellknown-ports.txt");
+pub const DEFAULT_PORTS_BIN: &[u8] = include_bytes!("../resources/np-default-ports.bin");
+pub const HTTP_PORTS_BIN: &[u8] = include_bytes!("../resources/np-http-ports.bin");
+pub const HTTPS_PORTS_BIN: &[u8] = include_bytes!("../resources/np-https-ports.bin");
+pub const OS_FINGERPRINT_BIN: &[u8] = include_bytes!("../resources/np-os-fingerprint.bin");
+pub const OS_TTL_BIN: &[u8] = include_bytes!("../resources/np-os-ttl.bin");
+pub const OS_FAMILY_BIN: &[u8] = include_bytes!("../resources/np-os-family.bin");
+pub const OUI_BIN: &[u8] = include_bytes!("../resources/np-oui.bin");
+pub const OUI_VM_BIN: &[u8] = include_bytes!("../resources/np-oui-vm.bin");
+pub const TCP_SERVICE_BIN: &[u8] = include_bytes!("../resources/np-tcp-service.bin");
+pub const WELLKNOWN_PORTS_BIN: &[u8] = include_bytes!("../resources/np-wellknown-ports.bin");
 
 // MPSC(Multi Producer, Single Consumer) FIFO queue communication messages
 pub const MESSAGE_START_PORTSCAN: &str = "START_PORTSCAN";
