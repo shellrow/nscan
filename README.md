@@ -40,6 +40,7 @@ OPTIONS:
                                         --host 192.168.1.0/24
                                         --host custom-list.txt
                                         --host 192.168.1.10,192.168.1.20,192.168.1.30
+    -e, --interfaces                    List network interfaces
     -i, --interface <interface_name>    Specify the network interface
     -s, --source <ip_addr>              Specify the source IP address
     -P, --protocol <protocol>           Specify the protocol
