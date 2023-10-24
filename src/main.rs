@@ -23,7 +23,7 @@ use clap::{App, AppSettings, Arg, ArgGroup, Command, ArgMatches};
 use std::env;
 
 // APP information
-pub const CRATE_UPDATE_DATE: &str = "2023-10-16";
+pub const CRATE_UPDATE_DATE: &str = "2023-10-24";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 fn main() {
@@ -34,7 +34,7 @@ fn main() {
     }
     let matches = get_app_settings();
 
-    if matches.contains_id("ifs") {
+    if matches.contains_id("interfaces") {
         show_app_desc();
         handler::list_interfaces(matches.contains_id("json"));
         std::process::exit(0);
@@ -133,10 +133,10 @@ fn get_app_settings() -> ArgMatches {
             .value_name("target")
             .validator(validator::validate_hostscan_opt)
         )
-        .arg(Arg::new("ifs")
+        .arg(Arg::new("interfaces")
             .help("List network interfaces")
             .short('e')
-            .long("ifs")
+            .long("interfaces")
             .takes_value(false)
         )
         .arg(Arg::new("interface")
