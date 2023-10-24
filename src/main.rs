@@ -34,6 +34,12 @@ fn main() {
     }
     let matches = get_app_settings();
 
+    if matches.contains_id("ifs") {
+        show_app_desc();
+        handler::list_interfaces(matches.contains_id("json"));
+        std::process::exit(0);
+    }
+
     show_banner_with_starttime();
 
     let pb = output::get_spinner();
@@ -126,6 +132,12 @@ fn get_app_settings() -> ArgMatches {
             .takes_value(true)
             .value_name("target")
             .validator(validator::validate_hostscan_opt)
+        )
+        .arg(Arg::new("ifs")
+            .help("List network interfaces")
+            .short('e')
+            .long("ifs")
+            .takes_value(false)
         )
         .arg(Arg::new("interface")
             .help("Specify the network interface")
