@@ -1,1 +1,0 @@
-[{"os_family":"linux","os_description":"Linux, Unix-Like OS","initial_ttl":64},{"os_family":"windows","os_description":"Windows","initial_ttl":128},{"os_family":"unix","os_description":"Solaris, Unix-Like OS","initial_ttl":255}]

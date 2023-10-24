@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 pub fn get_oui_detail_map() -> HashMap<String, String> {
     let mut oui_map: HashMap<String, String> = HashMap::new();
-    let ds_oui: Vec<model::Oui> = serde_json::from_str(define::OUI_JSON).unwrap_or(vec![]);
+    let ds_oui: Vec<model::Oui> = bincode::deserialize(define::OUI_BIN).unwrap_or(vec![]);
     for oui in ds_oui {
         oui_map.insert(oui.mac_prefix, oui.vendor_name_detail);
     }
@@ -16,7 +16,7 @@ pub fn get_oui_detail_map() -> HashMap<String, String> {
 
 pub fn get_vm_oui_map() -> HashMap<String, String> {
     let mut oui_map: HashMap<String, String> = HashMap::new();
-    let ds_oui: Vec<model::Oui> = serde_json::from_str(define::OUI_VM_JSON).unwrap_or(vec![]);
+    let ds_oui: Vec<model::Oui> = bincode::deserialize(define::OUI_VM_BIN).unwrap_or(vec![]);
     for oui in ds_oui {
         oui_map.insert(oui.mac_prefix, oui.vendor_name_detail);
     }
@@ -25,8 +25,7 @@ pub fn get_vm_oui_map() -> HashMap<String, String> {
 
 pub fn get_tcp_map() -> HashMap<u16, String> {
     let mut tcp_map: HashMap<u16, String> = HashMap::new();
-    let ds_tcp_service: Vec<model::TcpService> =
-        serde_json::from_str(define::TCP_SERVICE_JSON).unwrap_or(vec![]);
+    let ds_tcp_service: Vec<model::TcpService> = bincode::deserialize(define::TCP_SERVICE_BIN).unwrap_or(vec![]);
     for port in ds_tcp_service {
         tcp_map.insert(port.port, port.service_name);
     }
@@ -34,90 +33,37 @@ pub fn get_tcp_map() -> HashMap<u16, String> {
 }
 
 pub fn get_default_ports() -> Vec<u16> {
-    let ds_default_ports: Vec<&str> = define::DEFAULT_PORTS_TXT.trim().split("\n").collect();
-    let mut default_ports: Vec<u16> = vec![];
-    for r in ds_default_ports {
-        match r.trim_end().parse::<u16>() {
-            Ok(port) => {
-                default_ports.push(port);
-            }
-            Err(_) => {}
-        }
-    }
+    let default_ports: Vec<u16> = bincode::deserialize(define::DEFAULT_PORTS_BIN).unwrap_or(vec![]);
     default_ports
 }
 
 pub fn get_wellknown_ports() -> Vec<u16> {
-    let ds_wellknown_ports: Vec<&str> = define::WELLKNOWN_PORTS_TXT.trim().split("\n").collect();
-    let mut wellknown_ports: Vec<u16> = vec![];
-    for r in ds_wellknown_ports {
-        match r.trim_end().parse::<u16>() {
-            Ok(port) => {
-                wellknown_ports.push(port);
-            }
-            Err(_) => {}
-        }
-    }
+    let wellknown_ports: Vec<u16> = bincode::deserialize(define::WELLKNOWN_PORTS_BIN).unwrap_or(vec![]);
     wellknown_ports
 }
 
 pub fn get_http_ports() -> Vec<u16> {
-    let ds_http_ports: Vec<&str> = define::HTTP_PORTS_TXT.trim().split("\n").collect();
-    let mut http_ports: Vec<u16> = vec![];
-    for r in ds_http_ports {
-        match r.trim_end().parse::<u16>() {
-            Ok(port) => {
-                http_ports.push(port);
-            }
-            Err(_) => {}
-        }
-    }
+    let http_ports: Vec<u16> = bincode::deserialize(define::HTTP_PORTS_BIN).unwrap_or(vec![]);
     http_ports
 }
 
 pub fn get_https_ports() -> Vec<u16> {
-    let ds_https_ports: Vec<&str> = define::HTTPS_PORTS_TXT.trim().split("\n").collect();
-    let mut https_ports: Vec<u16> = vec![];
-    for r in ds_https_ports {
-        match r.trim_end().parse::<u16>() {
-            Ok(port) => {
-                https_ports.push(port);
-            }
-            Err(_) => {}
-        }
-    }
+    let https_ports: Vec<u16> = bincode::deserialize(define::HTTPS_PORTS_BIN).unwrap_or(vec![]);
     https_ports
 }
 
 pub fn get_os_ttl_list() -> Vec<model::OsTtl> {
-    let ds_os_ttl: Vec<model::OsTtl> = serde_json::from_str(define::OS_TTL_JSON).unwrap_or(vec![]);
+    let ds_os_ttl: Vec<model::OsTtl> = bincode::deserialize(define::OS_TTL_BIN).unwrap_or(vec![]);
     ds_os_ttl
 }
 
 pub fn get_os_fingerprints() -> Vec<model::OsFingerprint> {
-    let ds_os_fingerprints: Vec<model::OsFingerprint> =
-        serde_json::from_str(define::OS_FINGERPRINT_JSON).unwrap_or(vec![]);
+    let ds_os_fingerprints: Vec<model::OsFingerprint> = bincode::deserialize(define::OS_FINGERPRINT_BIN).unwrap_or(vec![]);
     ds_os_fingerprints
 }
 
-#[cfg(not(target_os = "windows"))]
 pub fn get_os_family_list() -> Vec<String> {
-    let ds_os_families: Vec<&str> = define::OS_FAMILY_TXT.trim().split("\n").collect();
-    let mut os_families: Vec<String> = vec![];
-    for r in ds_os_families {
-        os_families.push(r.to_string());
-    }
-    os_families
-}
-
-#[cfg(target_os = "windows")]
-pub fn get_os_family_list() -> Vec<String> {
-    let os_family_txt: String = define::OS_FAMILY_TXT.trim().replace("\r\n", "\n");
-    let ds_os_families: Vec<&str> = os_family_txt.split("\n").collect();
-    let mut os_families: Vec<String> = vec![];
-    for r in ds_os_families {
-        os_families.push(r.to_string());
-    }
+    let os_families: Vec<String> = bincode::deserialize(define::OS_FAMILY_BIN).unwrap_or(vec![]);
     os_families
 }
 
@@ -147,28 +93,53 @@ pub fn verify_os_fingerprint(fingerprint: cross_socket::packet::PacketFrame) -> 
     } else {
         false
     };
+    // 0. Check TTL
+    let os_ttl_list: Vec<model::OsTtl> = get_os_ttl_list();
+    let initial_ttl = if let Some(ipv4_packet) = fingerprint.ipv4_packet {
+        ip::guess_initial_ttl(ipv4_packet.ttl)
+    } else {
+        if let Some(ipv6_packet) = fingerprint.ipv6_packet {
+            ip::guess_initial_ttl(ipv6_packet.hop_limit)
+        } else {
+            0
+        }
+    };
+    let mut tcp_window_size = 0;
+    let mut tcp_options: Vec<String> = vec![];
+    if let Some(ref tcp_fingerprint) = fingerprint.tcp_packet {
+        tcp_window_size = tcp_fingerprint.window;
+        for option in &tcp_fingerprint.options {
+            tcp_options.push(option.kind.name());
+        }
+    }
+    let tco_option_pattern = tcp_options.join("-");
+    let mut os_ttl_info: model::OsTtl = model::OsTtl {
+        initial_ttl: initial_ttl,
+        os_description: String::new(),
+        os_family: String::new(),
+    };
+    for os_ttl in os_ttl_list {
+        if os_ttl.initial_ttl == initial_ttl {
+            os_ttl_info.initial_ttl = os_ttl.initial_ttl;
+            os_ttl_info.os_description = os_ttl.os_description;
+            os_ttl_info.os_family = os_ttl.os_family;
+        }
+    }
     // 1. Select OS Fingerprint that match tcp_window_size and tcp_option_pattern
     let mut matched_fingerprints: Vec<model::OsFingerprint> = vec![];
     for f in &os_fingerprints {
         let mut window_size_match: bool = false;
         let mut option_pattern_match: bool = false;
-        if let Some(ref tcp_fingerprint) = fingerprint.tcp_packet {
-            if f.tcp_window_size == tcp_fingerprint.window {
-                window_size_match = true;
+        if f.tcp_window_sizes.contains(&tcp_window_size) {
+            window_size_match = true;
+        }
+        for option_pattern in &f.tcp_option_patterns {
+            if option_pattern == &tco_option_pattern {
+                option_pattern_match = true;
             }
-            let option_patterns: Vec<String> = f.tcp_option_pattern.split("|").map(|s| s.to_string()).collect();
-            let mut options: Vec<String> = vec![];
-            for option in &tcp_fingerprint.options {
-                options.push(option.kind.name());
-            }
-            for option_pattern in option_patterns {
-                if option_pattern == options.join("-") {
-                    option_pattern_match = true;
-                }
-            }
-            if window_size_match && option_pattern_match {
-                matched_fingerprints.push(f.clone());
-            }
+        }
+        if window_size_match && option_pattern_match {
+            matched_fingerprints.push(f.clone());
         }
     }
     if matched_fingerprints.len() == 1 {
@@ -187,6 +158,11 @@ pub fn verify_os_fingerprint(fingerprint: cross_socket::packet::PacketFrame) -> 
         }
         // Search fingerprint that match general OS Family
         matched_fingerprints.reverse();
+        for f in &matched_fingerprints {
+            if os_ttl_info.os_family == f.os_family.to_lowercase() {
+                return f.clone();
+            }
+        }
         for f in matched_fingerprints {
             if os_family_list.contains(&f.os_family) {
                 return f;
@@ -198,23 +174,18 @@ pub fn verify_os_fingerprint(fingerprint: cross_socket::packet::PacketFrame) -> 
     for f in os_fingerprints {
         let mut window_size_match: bool = false;
         let mut option_pattern_match: bool = false;
-        if let Some(ref tcp_fingerprint) = fingerprint.tcp_packet {
-            if tcp_fingerprint.window - 100 < f.tcp_window_size && f.tcp_window_size < tcp_fingerprint.window + 100 {
+        for window_size in &f.tcp_window_sizes {
+            if tcp_window_size - 100 < *window_size && *window_size < tcp_window_size + 100 {
                 window_size_match = true;
             }
-            let option_patterns: Vec<String> = f.tcp_option_pattern.split("|").map(|s| s.to_string()).collect();
-            let mut options: Vec<String> = vec![];
-            for option in &tcp_fingerprint.options {
-                options.push(option.kind.name());
+        }
+        for option_pattern in &f.tcp_option_patterns {
+            if option_pattern == &tco_option_pattern {
+                option_pattern_match = true;
             }
-            for option_pattern in option_patterns {
-                if option_pattern == options.join("-") {
-                    option_pattern_match = true;
-                }
-            }
-            if window_size_match && option_pattern_match {
-                matched_fingerprints.push(f.clone());
-            }
+        }
+        if window_size_match && option_pattern_match {
+            matched_fingerprints.push(f.clone());
         }
     }
     if matched_fingerprints.len() == 1 {
@@ -233,6 +204,11 @@ pub fn verify_os_fingerprint(fingerprint: cross_socket::packet::PacketFrame) -> 
         }
         // Search fingerprint that match general OS Family
         matched_fingerprints.reverse();
+        for f in &matched_fingerprints {
+            if os_ttl_info.os_family == f.os_family.to_lowercase() {
+                return f.clone();
+            }
+        }
         for f in matched_fingerprints {
             if os_family_list.contains(&f.os_family) {
                 return f;
@@ -240,29 +216,14 @@ pub fn verify_os_fingerprint(fingerprint: cross_socket::packet::PacketFrame) -> 
         }
     }
     // 3. from TTL
-    let os_ttl_list: Vec<model::OsTtl> = get_os_ttl_list();
-    let initial_ttl = if let Some(ipv4_packet) = fingerprint.ipv4_packet {
-        ip::guess_initial_ttl(ipv4_packet.ttl)
-    } else {
-        if let Some(ipv6_packet) = fingerprint.ipv6_packet {
-            ip::guess_initial_ttl(ipv6_packet.hop_limit)
-        } else {
-            0
-        }
+    return model::OsFingerprint {
+        cpe: String::from("(Failed to OS Fingerprinting)"),
+        os_name: os_ttl_info.os_description,
+        os_vendor: String::new(),
+        os_family: os_ttl_info.os_family,
+        os_generation: String::new(),
+        device_type: String::new(),
+        tcp_window_sizes: vec![tcp_window_size],
+        tcp_option_patterns: vec![tco_option_pattern],
     };
-    for os_ttl in os_ttl_list {
-        if os_ttl.initial_ttl == initial_ttl {
-            return model::OsFingerprint {
-                cpe: String::from("(Failed to OS Fingerprinting)"),
-                os_name: os_ttl.os_description,
-                os_vendor: String::new(),
-                os_family: os_ttl.os_family,
-                os_generation: String::new(),
-                device_type: String::new(),
-                tcp_window_size: 0,
-                tcp_option_pattern: String::new(),
-            };
-        }
-    }
-    model::OsFingerprint::new()
 }
