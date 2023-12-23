@@ -437,8 +437,12 @@ pub async fn run_node_scan(opt: option::HostScanOption, msg_tx: &mpsc::Sender<St
             }
         }
         node_info.cpe = os_fingerprint.cpe;
-        node_info.os_name = os_fingerprint.os_name;
-
+        if opt.protocol == crate::option::IpNextLevelProtocol::TCP {
+            node_info.os_name = os_fingerprint.os_name;
+        }else {
+            node_info.os_name = os_fingerprint.os_family;
+        }
+        
         scan_result.nodes.push(node_info);
     }
     match msg_tx.send(String::from(define::MESSAGE_END_CHECK_RESULTS)) {

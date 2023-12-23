@@ -297,6 +297,7 @@ pub fn show_hostscan_result(result: HostScanResult) {
         TableCell::new_with_alignment("IP Address", 1, Alignment::Left),
         TableCell::new_with_alignment("Host Name", 1, Alignment::Left),
         TableCell::new_with_alignment("TTL", 1, Alignment::Left),
+        TableCell::new_with_alignment("OS Info", 1, Alignment::Left),
         TableCell::new_with_alignment("MAC Address", 1, Alignment::Left),
         TableCell::new_with_alignment("Vendor Info", 1, Alignment::Left),
     ]));
@@ -305,6 +306,7 @@ pub fn show_hostscan_result(result: HostScanResult) {
             TableCell::new_with_alignment(host.ip_addr, 1, Alignment::Left),
             TableCell::new_with_alignment(host.host_name, 1, Alignment::Left),
             TableCell::new_with_alignment(host.ttl, 1, Alignment::Left),
+            TableCell::new_with_alignment(host.os_name, 1, Alignment::Left),
             TableCell::new_with_alignment(host.mac_addr, 1, Alignment::Left),
             TableCell::new_with_alignment(host.vendor_info, 1, Alignment::Left),
         ]));
