@@ -336,7 +336,9 @@ pub fn show_interfaces(interfaces: Vec<Interface>) {
         println!("{}:", interface.index);
         println!("{}Name: {}", INDENT, interface.name);
         println!("{}Interface Type: {}", INDENT, interface.if_type.name());
-        println!("{}MAC Address: {}", INDENT, interface.mac_addr.unwrap().address());
+        if let Some(mac_addr) = interface.mac_addr {
+            println!("{}MAC Address: {}", INDENT, mac_addr.address());
+        }
         println!("{}IPv4 Address: {:?}", INDENT, interface.ipv4);
         println!("{}IPv6 Address: {:?}", INDENT, interface.ipv6);
         if let Some(gateway) = interface.gateway {
