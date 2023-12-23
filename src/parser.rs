@@ -132,9 +132,6 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
     if matches.contains_id("service") {
         opt.service_detection = true;
     }
-    if matches.contains_id("os") {
-        opt.os_detection = true;
-    }
     if matches.contains_id("async") {
         opt.async_scan = true;
     }
