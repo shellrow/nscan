@@ -144,15 +144,6 @@ pub fn validate_count(v: &str) -> Result<(), String> {
     }
 }
 
-pub fn validate_ttl(v: &str) -> Result<(), String> {
-    match v.parse::<u8>() {
-        Ok(_) => Ok(()),
-        Err(_) => {
-            return Err(String::from("Invalid value"));
-        }
-    }
-}
-
 pub fn validate_ip_address(v: &str) -> Result<(), String> {
     match IpAddr::from_str(&v) {
         Ok(_) => Ok(()),
