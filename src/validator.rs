@@ -127,11 +127,11 @@ pub fn validate_portscantype(v: &str) -> Result<(), String> {
 }
 
 pub fn validate_protocol(v: &str) -> Result<(), String> {
-    let valid_scan_types = vec!["ICMP", "ICMPv4", "ICMPv6", "TCP", "UDP"];
-    if valid_scan_types.contains(&v) {
+    let valid_protocols = vec!["ICMP", "ICMPv4", "ICMPv6", "TCP", "UDP"];
+    if valid_protocols.contains(&v) {
         Ok(())
     } else {
-        Err(String::from("Invalid PortScanType"))
+        Err(String::from("Invalid Protocol"))
     }
 }
 
