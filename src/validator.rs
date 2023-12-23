@@ -3,7 +3,8 @@ use regex::Regex;
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::str::FromStr;
-use crate::{dns, interface};
+use netprobe::dns;
+use crate::interface;
 
 pub fn validate_port_opt(v: &str) -> Result<(), String> {
     let re_addr_range = Regex::new(r"\S+:\d+-\d+$").unwrap();
@@ -117,7 +118,7 @@ pub fn validate_interface(v: &str) -> Result<(), String> {
 }
 
 pub fn validate_portscantype(v: &str) -> Result<(), String> {
-    let valid_scan_types = vec!["SYN", "CONNECT", "FIN", "XMAS", "NULL"];
+    let valid_scan_types = vec!["SYN", "CONNECT"];
     if valid_scan_types.contains(&v) {
         Ok(())
     } else {

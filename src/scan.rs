@@ -3,6 +3,19 @@ use std::net::IpAddr;
 use std::time::Instant;
 use std::sync::mpsc;
 
+use netprobe::fp::Fingerprint;
+use netprobe::fp::FingerprintType;
+use netprobe::fp::Fingerprinter;
+use netprobe::setting::ProbeSetting;
+//use netprobe::fp::Fingerprint;
+//use netprobe::fp::FingerprintType;
+//use netprobe::fp::Fingerprinter;
+//use netprobe::setting::ProbeSetting;
+use netscan::service::detector::ServiceDetector;
+use netscan::service::payload::PayloadBuilder;
+use netscan::service::result::ServiceProbeResult;
+use netscan::service::setting::ProbeSetting as ServiceProbeSetting;
+
 use crate::option;
 use crate::result;
 use crate::sys;
@@ -46,53 +59,53 @@ pub async fn run_async_port_scan(opt: option::PortScanOption) -> netscan::result
 
 pub fn run_service_detection(hosts: Vec<model::Host>) -> HashMap<IpAddr, HashMap<u16, String>> {
     let mut map: HashMap<IpAddr, HashMap<u16, String>> = HashMap::new();
-    let port_db: netscan::service::PortDatabase = netscan::service::PortDatabase {
-        payload_map: HashMap::new(),
-        http_ports: db::get_http_ports(),
-        https_ports: db::get_https_ports(),
-    };
     for host in hosts {
-        let mut service_detector = netscan::service::ServiceDetector::new();
-        service_detector.set_dst_ip(host.ip_addr);
-        service_detector.set_dst_name(host.host_name.clone());
-        service_detector.set_ports(host.get_open_ports());
-        let service_map: HashMap<u16, String> = service_detector.detect(Some(port_db.clone()));
+        let mut probe_setting: ServiceProbeSetting = ServiceProbeSetting::default(
+            host.ip_addr,
+            host.host_name.clone(),
+            host.get_open_ports(),
+        );
+        let http_head = PayloadBuilder::http_head();
+        let https_head = PayloadBuilder::https_head(host.host_name);
+        let http_ports = db::get_http_ports();
+        let https_ports = db::get_https_ports();
+        probe_setting.payload_map = HashMap::new();
+        for port in http_ports {
+            probe_setting.payload_map.insert(port, http_head.clone());
+        }
+        for port in https_ports {
+            probe_setting.payload_map.insert(port, https_head.clone());
+        }
+        let service_detector = ServiceDetector::new(probe_setting);
+        let service_result: HashMap<u16, ServiceProbeResult> = service_detector.detect();
+        let mut service_map: HashMap<u16, String> = HashMap::new();
+        for (port, probe_result) in service_result {
+            if probe_result.service_name.is_empty() {
+                continue;
+            }
+            service_map.insert(port, probe_result.service_detail.unwrap_or(String::new()));
+        }
         map.insert(host.ip_addr, service_map);
     }
     map
 }
 
-pub fn run_os_fingerprinting(src_ip: IpAddr, target_hosts: Vec<model::Host>) -> Vec<netscan::os::ProbeResult> {
-    let mut probe_results: Vec<netscan::os::ProbeResult> = Vec::new();
+#[allow(dead_code)]
+pub fn run_os_fingerprinting(src_ip: IpAddr, target_hosts: Vec<model::Host>) -> Vec<Fingerprint> {
+    let mut fingerprints: Vec<Fingerprint> = Vec::new();
     for host in target_hosts {
-        let mut fingerprinter = netscan::os::Fingerprinter::new(src_ip).unwrap();
         let open_port: u16 = if host.get_open_ports().len() > 0 {
             host.get_open_ports()[0]
         } else {
-            0
+            80
         };
-        let closed_port: u16 = if host.get_closed_ports().len() > 0 {
-            host.get_closed_ports()[0]
-        } else {
-            0
-        };
-        let probe_target: netscan::os::ProbeTarget = netscan::os::ProbeTarget {
-            ip_addr: host.ip_addr,
-            open_tcp_port: open_port,
-            closed_tcp_port: closed_port,
-            open_udp_port: 0,
-            closed_udp_port: 33455,
-        };
-        fingerprinter.set_probe_target(probe_target);
-        fingerprinter.add_probe_type(netscan::os::ProbeType::IcmpEchoProbe);
-        fingerprinter.add_probe_type(netscan::os::ProbeType::IcmpUnreachableProbe);
-        fingerprinter.add_probe_type(netscan::os::ProbeType::TcpSynAckProbe);
-        fingerprinter.add_probe_type(netscan::os::ProbeType::TcpRstAckProbe);
-        fingerprinter.add_probe_type(netscan::os::ProbeType::TcpEcnProbe);
-        let probe_result: netscan::os::ProbeResult = fingerprinter.probe();
-        probe_results.push(probe_result);
+        let interface = crate::interface::get_interface_by_ip(src_ip).unwrap();
+        let setting: ProbeSetting = ProbeSetting::fingerprinting(interface, host.ip_addr, Some(open_port), FingerprintType::TcpSynAck).unwrap();
+        let fingerprinter: Fingerprinter = Fingerprinter::new(setting, FingerprintType::TcpSynAck);
+        let fingerprint: Fingerprint = fingerprinter.probe();
+        fingerprints.push(fingerprint);
     }
-    probe_results
+    fingerprints
 }
 
 pub async fn run_service_scan(opt: option::PortScanOption, msg_tx: &mpsc::Sender<String>) -> result::PortScanResult {
@@ -137,37 +150,6 @@ pub async fn run_service_scan(opt: option::PortScanOption, msg_tx: &mpsc::Sender
         }
         service_map = run_service_detection(hosts);
         match msg_tx.send(String::from(define::MESSAGE_END_SERVICEDETECTION)) {
-            Ok(_) => {}
-            Err(_) => {}
-        }
-    }
-    // Run OS fingerprinting
-    let mut os_probe_results: Vec<netscan::os::ProbeResult> = Vec::new();
-    if opt.os_detection {
-        match msg_tx.send(String::from(define::MESSAGE_START_OSDETECTION)) {
-            Ok(_) => {}
-            Err(_) => {}
-        }
-        let mut hosts: Vec<model::Host> = Vec::new();
-        for scanned_host in &ns_scan_result.hosts {
-            let mut host: model::Host = model::Host::new();
-            host.ip_addr = scanned_host.ip_addr;
-            host.host_name = scanned_host.host_name.clone();
-            for port in &scanned_host.ports {
-                match port.status {
-                    netscan::host::PortStatus::Open => {
-                        host.add_open_port(port.port, String::new());
-                    },
-                    netscan::host::PortStatus::Closed => {
-                        host.add_closed_port(port.port);
-                    },
-                    _ => {},
-                }
-            }
-            hosts.push(host);
-        }
-        os_probe_results = run_os_fingerprinting(opt.src_ip, hosts);
-        match msg_tx.send(String::from(define::MESSAGE_END_OSDETECTION)) {
             Ok(_) => {}
             Err(_) => {}
         }
@@ -242,20 +224,36 @@ pub async fn run_service_scan(opt: option::PortScanOption, msg_tx: &mpsc::Sender
             String::new()
         };
         
+        // OS detection
         let mut os_fingerprint: model::OsFingerprint = model::OsFingerprint::new();
-        for os_probe_result in &os_probe_results {
-            if os_probe_result.ip_addr == scanned_host.ip_addr {
-                if let Some(syn_ack_result) = &os_probe_result.tcp_syn_ack_result {
-                    if syn_ack_result.fingerprints.len() > 0 {
-                        os_fingerprint = db::verify_os_fingerprint(syn_ack_result.fingerprints[0].clone());
-                    }
-                }else {
-                    if let Some(ecn_result) = &os_probe_result.tcp_ecn_result {
-                        if ecn_result.fingerprints.len() > 0 {
-                            os_fingerprint = db::verify_os_fingerprint(ecn_result.fingerprints[0].clone());
+        let open_ports: Vec<u16> = node_info.get_open_ports();
+        for fingerprint in &ns_scan_result.fingerprints {
+            match scanned_host.ip_addr {
+                IpAddr::V4(ipv4_addr) => {
+                    if let Some(ipv4_header) = &fingerprint.ipv4_header {
+                        if ipv4_header.source != ipv4_addr {
+                            continue;
                         }
                     }
                 }
+                IpAddr::V6(ipv6_addr) => {
+                    if let Some(ipv6_header) = &fingerprint.ipv6_header {
+                        if ipv6_header.source != ipv6_addr {
+                            continue;
+                        }
+                    }
+                }
+            }
+            if let Some(tcp_header) = &fingerprint.tcp_header {
+                if open_ports.contains(&tcp_header.source) {
+                    os_fingerprint = db::verify_os_fingerprint(fingerprint);
+                    break;
+                }
+            }
+        }
+        if os_fingerprint.os_family.is_empty() {
+            if ns_scan_result.fingerprints.len() > 0 {
+                os_fingerprint = db::verify_os_fingerprint(&ns_scan_result.fingerprints[0]);
             }
         }
 
@@ -345,7 +343,7 @@ pub async fn run_node_scan(opt: option::HostScanOption, msg_tx: &mpsc::Sender<St
             dns_map.insert(host.ip_addr, host.host_name.clone());
         }
     }
-    let resolved_map: HashMap<IpAddr, String> = crate::dns::lookup_ips(lookup_target_ips);
+    let resolved_map: HashMap<IpAddr, String> = netprobe::dns::lookup_ips(lookup_target_ips);
     for (ip, host_name) in resolved_map {
         if host_name.is_empty() {
             dns_map.insert(ip, ip.to_string());
@@ -421,16 +419,18 @@ pub async fn run_node_scan(opt: option::HostScanOption, msg_tx: &mpsc::Sender<St
         for fingerprint in &ns_scan_result.fingerprints {
             match scanned_host.ip_addr {
                 IpAddr::V4(ipv4_addr) => {
-                    if let Some(ipv4_packet) = &fingerprint.ipv4_packet {
-                        if ipv4_packet.source == ipv4_addr {
-                            os_fingerprint = db::verify_os_fingerprint(fingerprint.clone());
+                    if let Some(ipv4_header) = &fingerprint.ipv4_header {
+                        if ipv4_header.source == ipv4_addr {
+                            os_fingerprint = db::verify_os_fingerprint(fingerprint);
+                            break;
                         }
                     }
                 }
                 IpAddr::V6(ipv6_addr) => {
-                    if let Some(ipv6_packet) = &fingerprint.ipv6_packet {
-                        if ipv6_packet.source == ipv6_addr {
-                            os_fingerprint = db::verify_os_fingerprint(fingerprint.clone());
+                    if let Some(ipv6_header) = &fingerprint.ipv6_header {
+                        if ipv6_header.source == ipv6_addr {
+                            os_fingerprint = db::verify_os_fingerprint(fingerprint);
+                            break;
                         }
                     }
                 }

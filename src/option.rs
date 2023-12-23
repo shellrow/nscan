@@ -1,8 +1,9 @@
 use std::{net::{IpAddr, Ipv4Addr}, time::Duration};
 use serde::{Deserialize, Serialize};
 use ipnet::Ipv4Net;
-
-use crate::{define, db, util, dns, interface, process, sys};
+use netprobe::dns;
+use xenet::net::interface::Interface;
+use crate::{define, db, util, process, sys};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CommandType {
@@ -205,15 +206,15 @@ pub struct PortScanOption {
 
 impl PortScanOption {
     pub fn default() -> Self {
-        let interface: interface::NetworkInterface = interface::NetworkInterface::default();
+        let interface: Interface = Interface::default().unwrap();
         let mut opt = PortScanOption {
             interface_index: interface.index,
             interface_name: interface.name,
             src_ip: if interface.ipv4.len() > 0 {
-                IpAddr::V4(interface.ipv4[0])
+                IpAddr::V4(interface.ipv4[0].addr)
             } else {
                 if interface.ipv6.len() > 0 {
-                    IpAddr::V6(interface.ipv6[0])
+                    IpAddr::V6(interface.ipv6[0].addr)
                 } else {
                     IpAddr::V4(Ipv4Addr::UNSPECIFIED)
                 }
@@ -272,12 +273,12 @@ pub struct HostScanOption {
 
 impl HostScanOption {
     pub fn default() -> Self {
-        let interface: interface::NetworkInterface = interface::NetworkInterface::default();
+        let interface: Interface = Interface::default().unwrap();
         let src_ip: IpAddr = if interface.ipv4.len() > 0 {
-            IpAddr::V4(interface.ipv4[0])
+            IpAddr::V4(interface.ipv4[0].addr)
         } else {
             if interface.ipv6.len() > 0 {
-                IpAddr::V6(interface.ipv6[0])
+                IpAddr::V6(interface.ipv6[0].addr)
             } else {
                 IpAddr::V4(Ipv4Addr::UNSPECIFIED)
             }

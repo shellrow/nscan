@@ -8,8 +8,8 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
 use rand::seq::SliceRandom;
+use netprobe::dns;
 
-use crate::dns;
 use crate::interface;
 use crate::option::{PortScanOption, HostScanOption, TargetInfo, PortListOption, PortScanType, IpNextLevelProtocol};
 
@@ -24,7 +24,7 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
     let mut target_info: TargetInfo = TargetInfo::new();
     if validator::is_ipaddr(host.clone()) {
         target_info.ip_addr = host.parse::<IpAddr>().unwrap();
-        target_info.host_name = dns::lookup_ip_addr(host);
+        target_info.host_name = dns::lookup_ip_addr(target_info.ip_addr).unwrap_or(host.clone());
     } else {
         match dns::lookup_host_name(host.clone()) {
             Some(ip) => {

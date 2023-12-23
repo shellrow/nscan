@@ -7,7 +7,6 @@ mod process;
 mod sys;
 mod interface;
 mod ip;
-mod dns;
 mod define;
 mod db;
 mod util;

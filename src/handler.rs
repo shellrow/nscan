@@ -116,7 +116,7 @@ pub async fn handle_host_scan(opt: option::HostScanOption) {
 }
 
 pub fn list_interfaces(json_output: bool) {
-    let interfaces = crate::interface::get_interfaces();
+    let interfaces = xenet::net::interface::get_interfaces();
     if json_output {
         output::show_interfaces_json(interfaces);
     }else {

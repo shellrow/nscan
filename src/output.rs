@@ -1,6 +1,6 @@
+use default_net::Interface;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
-use std::net::{Ipv4Addr, Ipv6Addr};
 use term_table::row::Row;
 use term_table::table_cell::{Alignment, TableCell};
 use term_table::{Table, TableStyle};
@@ -323,7 +323,7 @@ pub fn show_hostscan_result(result: HostScanResult) {
     println!("{}", table.render());
 }
 
-pub fn show_interfaces(interfaces: Vec<crate::interface::NetworkInterface>) {
+pub fn show_interfaces(interfaces: Vec<Interface>) {
     const INDENT: &str = "    ";
     let mut table = Table::new();
     table.max_column_width = 60;
@@ -335,17 +335,20 @@ pub fn show_interfaces(interfaces: Vec<crate::interface::NetworkInterface>) {
     for interface in interfaces {
         println!("{}:", interface.index);
         println!("{}Name: {}", INDENT, interface.name);
-        println!("{}Interface Type: {}", INDENT, interface.if_type);
-        println!("{}MAC Address: {}", INDENT, interface.mac_addr);
+        println!("{}Interface Type: {}", INDENT, interface.if_type.name());
+        println!("{}MAC Address: {}", INDENT, interface.mac_addr.unwrap().address());
         println!("{}IPv4 Address: {:?}", INDENT, interface.ipv4);
         println!("{}IPv6 Address: {:?}", INDENT, interface.ipv6);
-        println!("{}IPv4 Gateway: {}", INDENT, if interface.gateway_ipv4 == Ipv4Addr::UNSPECIFIED {String::new()} else {interface.gateway_ipv4.to_string()});
-        println!("{}IPv6 Gateway: {}", INDENT, if interface.gateway_ipv6 == Ipv6Addr::UNSPECIFIED {String::new()} else {interface.gateway_ipv6.to_string()});
+        if let Some(gateway) = interface.gateway {
+            println!("{}Gateway:", INDENT);
+            println!("{}{}MAC Address: {}", INDENT, INDENT, gateway.mac_addr.address());
+            println!("{}{}IP Address: {}", INDENT, INDENT, gateway.ip_addr);
+        }
     }
     println!("{}", table.render());
 }
 
-pub fn show_interfaces_json(interfaces: Vec<crate::interface::NetworkInterface>) {
+pub fn show_interfaces_json(interfaces: Vec<Interface>) {
     match serde_json::to_string_pretty(&interfaces) {
         Ok(json) => {
             println!("{}", json);
