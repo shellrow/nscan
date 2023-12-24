@@ -22,7 +22,7 @@ use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Command};
 use std::env;
 
 // APP information
-pub const CRATE_UPDATE_DATE: &str = "2023-10-24";
+pub const CRATE_UPDATE_DATE: &str = "2023-12-24";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 fn main() {
@@ -59,15 +59,25 @@ fn main() {
             output::show_port_options(opt.clone());
             match opt.scan_type {
                 option::PortScanType::TcpSynScan => {
-                    if opt.async_scan && sys::get_os_type() == "windows" {
-                        exit_with_error_message("Async TCP SYN Scan is not supported on Windows");
-                    }
-                    if process::privileged() || sys::get_os_type() == "windows" {
-                        async_io::block_on(async {
-                            handler::handle_port_scan(opt).await;
-                        })
+                    if opt.async_scan {
+                        if sys::get_os_type() == "windows" {
+                            exit_with_error_message("Async TCP SYN Scan is not supported on Windows");
+                        }
+                        if process::privileged() {
+                            async_io::block_on(async {
+                                handler::handle_port_scan(opt).await;
+                            })
+                        }else{
+                            exit_with_error_message("Requires administrator privilege");
+                        }
                     } else {
-                        exit_with_error_message("Requires administrator privilege");
+                        if process::privileged() || (sys::get_os_type() == "windows" || sys::get_os_type() == "macos") {
+                            async_io::block_on(async {
+                                handler::handle_port_scan(opt).await;
+                            })
+                        }else {
+                            exit_with_error_message("Requires administrator privilege");
+                        }
                     }
                 }
                 option::PortScanType::TcpConnectScan => {
