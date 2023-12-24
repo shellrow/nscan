@@ -3,7 +3,7 @@ use ipnet::Ipv4Net;
 use netprobe::dns;
 use serde::{Deserialize, Serialize};
 use std::{
-    net::{IpAddr, Ipv4Addr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
     time::Duration,
 };
 use xenet::net::interface::Interface;
@@ -61,7 +61,7 @@ pub struct TargetInfo {
 impl TargetInfo {
     pub fn new() -> Self {
         TargetInfo {
-            ip_addr: IpAddr::from([0, 0, 0, 0]),
+            ip_addr: IpAddr::V4(Ipv4Addr::LOCALHOST),
             host_name: String::new(),
             ports: Vec::new(),
         }
@@ -208,19 +208,31 @@ pub struct PortScanOption {
 }
 
 impl PortScanOption {
-    pub fn default() -> Self {
+    pub fn default(dst_ip: IpAddr) -> Self {
         let interface: Interface = Interface::default().unwrap();
         let mut opt = PortScanOption {
             interface_index: interface.index,
             interface_name: interface.name,
-            src_ip: if interface.ipv4.len() > 0 {
-                IpAddr::V4(interface.ipv4[0].addr)
-            } else {
-                if interface.ipv6.len() > 0 {
-                    IpAddr::V6(interface.ipv6[0].addr)
-                } else {
+            src_ip: if dst_ip.is_ipv4() {
+                if interface.ipv4.len() > 0 {
+                    IpAddr::V4(interface.ipv4[0].addr)
+                }else {
                     IpAddr::V4(Ipv4Addr::UNSPECIFIED)
                 }
+            }else {
+                let mut ip_addr: IpAddr = IpAddr::V6(Ipv6Addr::UNSPECIFIED);
+                for ip in interface.ipv6 {
+                    if crate::ip::is_global_addr(dst_ip) {
+                        if xenet::net::ipnet::is_global_ipv6(&ip.addr) {
+                            ip_addr = IpAddr::V6(ip.addr);
+                            break;
+                        }
+                    }else {
+                        ip_addr = IpAddr::V6(ip.addr);
+                        break;
+                    }
+                }
+                ip_addr
             },
             src_port: define::DEFAULT_SRC_PORT,
             targets: Vec::new(),
@@ -240,11 +252,8 @@ impl PortScanOption {
         };
         if process::privileged() {
             opt.scan_type = PortScanType::TcpSynScan;
-            if sys::get_os_type() != "windows" {
-                opt.async_scan = true;
-            }
         } else {
-            if sys::get_os_type() == "windows" {
+            if sys::get_os_type() == "windows" || sys::get_os_type() == "macos" {
                 opt.scan_type = PortScanType::TcpSynScan;
             } else {
                 opt.scan_type = PortScanType::TcpConnectScan;

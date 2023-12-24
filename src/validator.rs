@@ -11,28 +11,32 @@ pub fn validate_port_opt(v: &str) -> Result<(), String> {
     let re_addr_csv = Regex::new(r"\S+:[0-9]+(?:,[0-9]+)*$").unwrap();
     let re_host_range = Regex::new(r"[\w\-._]+\.[A-Za-z]+:\d+-\d+$").unwrap();
     let re_host_csv = Regex::new(r"[\w\-._]+\.[A-Za-z]+:[0-9]+(?:,[0-9]+)*$").unwrap();
-    if v.to_string().contains(":") {
-        if !re_addr_range.is_match(&v)
-            && !re_addr_csv.is_match(&v)
-            && !re_host_range.is_match(&v)
-            && !re_host_csv.is_match(&v)
-        {
-            return Err(String::from(
-                "Please specify ip address(or hostname) and port number.",
-            ));
-        }
-    }
-    let a_vec: Vec<&str> = v.split(":").collect();
-    let ipaddr = IpAddr::from_str(a_vec[0]);
-    match ipaddr {
+    match IpAddr::from_str(v) {
         Ok(_) => return Ok(()),
-        Err(_) => match dns::lookup_host_name(a_vec[0].to_string()) {
-            Some(_) => return Ok(()),
-            None => {
-                return Err(String::from("Please specify ip address or hostname"));
+        Err(_) => {
+            let addr_vec: Vec<&str> = v.split(":").collect();
+            if addr_vec.len() > 1 {
+                if !re_addr_range.is_match(&v)
+                    && !re_addr_csv.is_match(&v)
+                    && !re_host_range.is_match(&v)
+                    && !re_host_csv.is_match(&v)
+                {
+                    return Err(String::from(
+                        "Please specify ip address(or hostname) and port number.",
+                    ));
+                }
+            }
+            match IpAddr::from_str(addr_vec[0]) {
+                Ok(_) => return Ok(()),
+                Err(_) => {
+                    if dns::lookup_host_name(addr_vec[0].to_string()).is_none() {
+                        return Err(format!("Invalid target: {}", addr_vec[0]));
+                    }
+                }
             }
         },
     }
+    Ok(())
 }
 
 pub fn validate_network_opt(v: &str) -> Result<(), String> {
@@ -52,7 +56,6 @@ pub fn validate_hostscan_opt(v: &str) -> Result<(), String> {
         Ok(_) => return Ok(()),
         Err(_) => {}
     }
-    let re_host = Regex::new(r"[\w\-._]+\.[A-Za-z]+").unwrap();
     if Path::new(&v).exists() {
         return Ok(());
     } else {
@@ -65,8 +68,8 @@ pub fn validate_hostscan_opt(v: &str) -> Result<(), String> {
                         return Ok(());
                     }
                     Err(_) => {
-                        if !re_host.is_match(ip_str) {
-                            return Err(String::from("Please specify ip address or host name"));
+                        if dns::lookup_host_name(ip_str.to_string()).is_none() {
+                            return Err(format!("Invalid target: {}", ip_str));
                         }
                     }
                 },
