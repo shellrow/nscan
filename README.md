@@ -13,6 +13,9 @@ Aim to be simple and fast.
 - OS detection
 
 ## Installation
+### Releases
+You can download archives of precompiled binaries from the [releases](https://github.com/shellrow/nscan/releases) .
+
 ### Cargo Install
 ```
 cargo install nscan
