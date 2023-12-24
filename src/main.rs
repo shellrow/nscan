@@ -1,24 +1,24 @@
 #[macro_use]
 extern crate clap;
 
-mod model;
-mod option;
-mod process;
-mod sys;
+mod db;
+mod define;
+mod handler;
 mod interface;
 mod ip;
-mod define;
-mod db;
-mod util;
-mod result;
-mod handler;
 mod json_models;
+mod model;
+mod option;
 mod output;
 mod parser;
-mod validator;
+mod process;
+mod result;
 mod scan;
+mod sys;
+mod util;
+mod validator;
 
-use clap::{App, AppSettings, Arg, ArgGroup, Command, ArgMatches};
+use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Command};
 use std::env;
 
 // APP information
@@ -45,15 +45,14 @@ fn main() {
     pb.set_message("Initializing ...");
 
     // Default is port scan
-    let command_type: option::CommandType = 
-    if matches.contains_id("host") {
+    let command_type: option::CommandType = if matches.contains_id("host") {
         option::CommandType::HostScan
     } else {
         option::CommandType::PortScan
     };
 
     pb.finish_and_clear();
-    
+
     match command_type {
         option::CommandType::PortScan => {
             let opt = parser::parse_port_args(matches).unwrap();
@@ -70,9 +69,9 @@ fn main() {
                     } else {
                         exit_with_error_message("Requires administrator privilege");
                     }
-                },
+                }
                 option::PortScanType::TcpConnectScan => {
-                    // nscan's connect scan captures response packets in parallel with connection attempts for speed. 
+                    // nscan's connect scan captures response packets in parallel with connection attempts for speed.
                     // This requires administrator privileges on Linux.
                     if sys::get_os_type() == "linux" && !process::privileged() {
                         exit_with_error_message("Requires administrator privilege");
@@ -80,25 +79,27 @@ fn main() {
                     async_io::block_on(async {
                         handler::handle_port_scan(opt).await;
                     })
-                },
+                }
             }
-        },
+        }
         option::CommandType::HostScan => {
             let opt = parser::parse_host_args(matches).unwrap();
             output::show_host_options(opt.clone());
             match opt.scan_type {
                 option::HostScanType::TcpPingScan => {
                     if opt.async_scan && sys::get_os_type() == "windows" {
-                        exit_with_error_message("Async TCP(SYN) Ping Scan is not supported on Windows");
+                        exit_with_error_message(
+                            "Async TCP(SYN) Ping Scan is not supported on Windows",
+                        );
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             }
             if sys::get_os_type() == "windows" {
                 if opt.async_scan && !process::privileged() {
                     exit_with_error_message("Requires administrator privilege");
                 }
-            }else{
+            } else {
                 if !process::privileged() {
                     exit_with_error_message("Requires administrator privilege");
                 }
@@ -106,7 +107,7 @@ fn main() {
             async_io::block_on(async {
                 handler::handle_host_scan(opt).await;
             })
-        },
+        }
     }
 }
 

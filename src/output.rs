@@ -1,12 +1,12 @@
+use crate::model::PortStatus;
+use crate::option::{CommandType, HostScanOption, IpNextLevelProtocol, PortScanOption};
+use crate::result::{HostScanResult, PortScanResult};
 use default_net::Interface;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
 use term_table::row::Row;
 use term_table::table_cell::{Alignment, TableCell};
 use term_table::{Table, TableStyle};
-use crate::model::PortStatus;
-use crate::result::{HostScanResult, PortScanResult};
-use crate::option::{PortScanOption, HostScanOption, CommandType, IpNextLevelProtocol};
 
 pub fn get_spinner() -> ProgressBar {
     let pb = ProgressBar::new_spinner();
@@ -172,11 +172,7 @@ pub fn show_host_options(opt: HostScanOption) {
     println!("────────────────────────────────────────");
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Host", 1, Alignment::Left),
-        TableCell::new_with_alignment(
-            format!("{} host(s)", opt.targets.len()),
-            1,
-            Alignment::Left,
-        ),
+        TableCell::new_with_alignment(format!("{} host(s)", opt.targets.len()), 1, Alignment::Left),
     ]));
     if opt.targets.len() > 0 && opt.protocol == IpNextLevelProtocol::TCP {
         if opt.targets[0].ports.len() > 0 {
@@ -345,7 +341,12 @@ pub fn show_interfaces(interfaces: Vec<Interface>) {
         println!("{}IPv6 Address: {:?}", INDENT, interface.ipv6);
         if let Some(gateway) = interface.gateway {
             println!("{}Gateway:", INDENT);
-            println!("{}{}MAC Address: {}", INDENT, INDENT, gateway.mac_addr.address());
+            println!(
+                "{}{}MAC Address: {}",
+                INDENT,
+                INDENT,
+                gateway.mac_addr.address()
+            );
             println!("{}{}IP Address: {}", INDENT, INDENT, gateway.ip_addr);
         }
     }

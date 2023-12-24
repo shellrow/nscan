@@ -1,10 +1,10 @@
+use crate::interface;
 use ipnet::IpNet;
+use netprobe::dns;
 use regex::Regex;
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::str::FromStr;
-use netprobe::dns;
-use crate::interface;
 
 pub fn validate_port_opt(v: &str) -> Result<(), String> {
     let re_addr_range = Regex::new(r"\S+:\d+-\d+$").unwrap();

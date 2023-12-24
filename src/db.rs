@@ -2,8 +2,8 @@ use netscan::pcap::PacketFrame;
 use xenet::packet::ethernet::EthernetHeader;
 
 use crate::define;
-use crate::model;
 use crate::ip;
+use crate::model;
 use std::collections::HashMap;
 
 pub fn get_oui_detail_map() -> HashMap<String, String> {
@@ -26,7 +26,8 @@ pub fn get_vm_oui_map() -> HashMap<String, String> {
 
 pub fn get_tcp_map() -> HashMap<u16, String> {
     let mut tcp_map: HashMap<u16, String> = HashMap::new();
-    let ds_tcp_service: Vec<model::TcpService> = bincode::deserialize(define::TCP_SERVICE_BIN).unwrap_or(vec![]);
+    let ds_tcp_service: Vec<model::TcpService> =
+        bincode::deserialize(define::TCP_SERVICE_BIN).unwrap_or(vec![]);
     for port in ds_tcp_service {
         tcp_map.insert(port.port, port.service_name);
     }
@@ -39,7 +40,8 @@ pub fn get_default_ports() -> Vec<u16> {
 }
 
 pub fn get_wellknown_ports() -> Vec<u16> {
-    let wellknown_ports: Vec<u16> = bincode::deserialize(define::WELLKNOWN_PORTS_BIN).unwrap_or(vec![]);
+    let wellknown_ports: Vec<u16> =
+        bincode::deserialize(define::WELLKNOWN_PORTS_BIN).unwrap_or(vec![]);
     wellknown_ports
 }
 
@@ -59,7 +61,8 @@ pub fn get_os_ttl_list() -> Vec<model::OsTtl> {
 }
 
 pub fn get_os_fingerprints() -> Vec<model::OsFingerprint> {
-    let ds_os_fingerprints: Vec<model::OsFingerprint> = bincode::deserialize(define::OS_FINGERPRINT_BIN).unwrap_or(vec![]);
+    let ds_os_fingerprints: Vec<model::OsFingerprint> =
+        bincode::deserialize(define::OS_FINGERPRINT_BIN).unwrap_or(vec![]);
     ds_os_fingerprints
 }
 
@@ -69,7 +72,9 @@ pub fn get_os_family_list() -> Vec<String> {
 }
 
 pub fn is_vm_fingerprint(fingerprint: &model::OsFingerprint) -> bool {
-    if fingerprint.os_family == "Player".to_string() && fingerprint.device_type == "specialized".to_string() {
+    if fingerprint.os_family == "Player".to_string()
+        && fingerprint.device_type == "specialized".to_string()
+    {
         return true;
     }
     false
@@ -94,7 +99,7 @@ pub fn verify_os_fingerprint(fingerprint: &PacketFrame) -> model::OsFingerprint 
     } else {
         false
     };
-    
+
     // 0. Check TTL
     let os_ttl_list: Vec<model::OsTtl> = get_os_ttl_list();
     let initial_ttl = if let Some(ipv4_header) = &fingerprint.ipv4_header {
@@ -146,7 +151,7 @@ pub fn verify_os_fingerprint(fingerprint: &PacketFrame) -> model::OsFingerprint 
     }
     if matched_fingerprints.len() == 1 {
         return matched_fingerprints[0].clone();
-    }else if matched_fingerprints.len() > 1 {
+    } else if matched_fingerprints.len() > 1 {
         // Check VM Fingerprint
         if in_vm {
             for f in &matched_fingerprints {
@@ -192,7 +197,7 @@ pub fn verify_os_fingerprint(fingerprint: &PacketFrame) -> model::OsFingerprint 
     }
     if matched_fingerprints.len() == 1 {
         return matched_fingerprints[0].clone();
-    }else if matched_fingerprints.len() > 1 {
+    } else if matched_fingerprints.len() > 1 {
         // Check VM Fingerprint
         if in_vm {
             for f in &matched_fingerprints {

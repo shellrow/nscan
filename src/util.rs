@@ -6,7 +6,7 @@ pub fn read_port_list(file_path: String) -> Result<Vec<u16>, String> {
         Ok(content) => content,
         Err(_) => {
             return Err("Failed to read file".to_string());
-        },
+        }
     };
     let port_list: Vec<&str> = text.trim().split("\n").collect();
     let mut ports: Vec<u16> = Vec::new();
@@ -27,7 +27,7 @@ pub fn read_word_list(file_path: String) -> Result<Vec<String>, String> {
         Ok(content) => content,
         Err(_) => {
             return Err("Failed to read file".to_string());
-        },
+        }
     };
     let word_list: Vec<&str> = text.trim().split("\n").collect();
     let mut words: Vec<String> = Vec::new();

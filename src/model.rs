@@ -1,5 +1,5 @@
-use std::net::{IpAddr, Ipv4Addr};
 use serde::{Deserialize, Serialize};
+use std::net::{IpAddr, Ipv4Addr};
 
 /// Status of the scanned port
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

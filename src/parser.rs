@@ -1,21 +1,23 @@
 use super::validator;
-use clap::ArgMatches;
-use ipnet::IpNet;
 use crate::ip;
 use crate::option::HostScanType;
+use clap::ArgMatches;
+use ipnet::IpNet;
+use netprobe::dns;
+use rand::seq::SliceRandom;
 use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
-use rand::seq::SliceRandom;
-use netprobe::dns;
 
 use crate::interface;
-use crate::option::{PortScanOption, HostScanOption, TargetInfo, PortListOption, PortScanType, IpNextLevelProtocol};
+use crate::option::{
+    HostScanOption, IpNextLevelProtocol, PortListOption, PortScanOption, PortScanType, TargetInfo,
+};
 
-pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
+pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String> {
     if !matches.contains_id("port") {
-        return Err("Invalid command".to_string());  
+        return Err("Invalid command".to_string());
     }
     let mut opt: PortScanOption = PortScanOption::default();
     let target: &str = matches.value_of("port").unwrap();
@@ -150,7 +152,7 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
         opt.accept_invalid_certs = true;
     }
     // Randomize targets by default
-    if !matches.contains_id("random") {        
+    if !matches.contains_id("random") {
         let mut rng = rand::thread_rng();
         for target in opt.targets.iter_mut() {
             target.ports.shuffle(&mut rng);
@@ -160,9 +162,9 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
     Ok(opt)
 }
 
-pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
+pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String> {
     if !matches.contains_id("host") {
-        return Err("Invalid command".to_string());  
+        return Err("Invalid command".to_string());
     }
     let mut opt: HostScanOption = HostScanOption::default();
     // Set protocol
@@ -186,7 +188,9 @@ pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
         let v_scantype: String = matches.get_one::<String>("scantype").unwrap().to_string();
         if v_scantype.to_lowercase() == HostScanType::IcmpPingScan.arg_name() {
             opt.scan_type = HostScanType::IcmpPingScan;
-            if opt.protocol != IpNextLevelProtocol::ICMPv4 && opt.protocol != IpNextLevelProtocol::ICMPv6 {
+            if opt.protocol != IpNextLevelProtocol::ICMPv4
+                && opt.protocol != IpNextLevelProtocol::ICMPv6
+            {
                 opt.protocol = IpNextLevelProtocol::ICMPv4;
             }
         } else if v_scantype.to_lowercase() == HostScanType::TcpPingScan.arg_name() {
@@ -264,7 +268,9 @@ pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
         }
     }
     if opt.targets.len() > 0 {
-        if crate::ip::is_global_addr(opt.targets[0].ip_addr) && opt.scan_type == HostScanType::IcmpPingScan {
+        if crate::ip::is_global_addr(opt.targets[0].ip_addr)
+            && opt.scan_type == HostScanType::IcmpPingScan
+        {
             opt.wait_time = Duration::from_millis(1000);
         }
     }
@@ -331,7 +337,7 @@ pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
         opt.save_file_path = v_save;
     }
     // Randomize targets by default
-    if !matches.contains_id("random") {        
+    if !matches.contains_id("random") {
         let mut rng = rand::thread_rng();
         opt.targets.shuffle(&mut rng);
     }

@@ -1,14 +1,17 @@
-use std::{net::{IpAddr, Ipv4Addr}, time::Duration};
-use serde::{Deserialize, Serialize};
+use crate::{db, define, process, sys, util};
 use ipnet::Ipv4Net;
 use netprobe::dns;
+use serde::{Deserialize, Serialize};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    time::Duration,
+};
 use xenet::net::interface::Interface;
-use crate::{define, db, util, process, sys};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CommandType {
     PortScan,
-    HostScan
+    HostScan,
 }
 
 impl CommandType {
@@ -73,26 +76,26 @@ impl TargetInfo {
     pub fn set_ports_from_range(&mut self, start: u16, end: u16) {
         self.ports = (start..=end).collect();
     }
-    pub fn set_ports_from_option(&mut self, option: PortListOption){
+    pub fn set_ports_from_option(&mut self, option: PortListOption) {
         match option {
             PortListOption::Default => {
                 self.ports = db::get_default_ports();
-            },
+            }
             PortListOption::All => {
                 self.ports = (1..=65535).collect();
-            },
+            }
             PortListOption::Wellknown => {
                 self.ports = db::get_wellknown_ports();
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
     pub fn set_ports_from_list(&mut self, file_path: String) {
         match util::read_port_list(file_path) {
             Ok(ports) => {
                 self.ports = ports;
-            },
-            Err(_) => {},
+            }
+            Err(_) => {}
         }
     }
     pub fn set_ports_from_csv(&mut self, csv: String) {
@@ -113,7 +116,7 @@ impl TargetInfo {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum PortScanType {
     TcpSynScan,
-    TcpConnectScan,   
+    TcpConnectScan,
 }
 
 impl PortScanType {
@@ -243,7 +246,7 @@ impl PortScanOption {
         } else {
             if sys::get_os_type() == "windows" {
                 opt.scan_type = PortScanType::TcpSynScan;
-            }else{
+            } else {
                 opt.scan_type = PortScanType::TcpConnectScan;
                 opt.async_scan = true;
             }
@@ -290,7 +293,11 @@ impl HostScanOption {
             src_port: define::DEFAULT_SRC_PORT,
             targets: Vec::new(),
             scan_type: HostScanType::IcmpPingScan,
-            protocol: if src_ip.is_ipv4() { IpNextLevelProtocol::ICMPv4 } else { IpNextLevelProtocol::ICMPv6 },
+            protocol: if src_ip.is_ipv4() {
+                IpNextLevelProtocol::ICMPv4
+            } else {
+                IpNextLevelProtocol::ICMPv6
+            },
             concurrency: define::DEFAULT_HOSTS_CONCURRENCY,
             timeout: Duration::from_millis(define::DEFAULT_TIMEOUT),
             wait_time: Duration::from_millis(define::DEFAULT_WAIT_TIME),
@@ -301,7 +308,12 @@ impl HostScanOption {
             json_output: false,
         }
     }
-    pub fn set_hosts_from_na(&mut self, network_address:String, prefix_len: u8, port: Option<u16>) {
+    pub fn set_hosts_from_na(
+        &mut self,
+        network_address: String,
+        prefix_len: u8,
+        port: Option<u16>,
+    ) {
         match network_address.parse::<IpAddr>() {
             Ok(addr) => match addr {
                 IpAddr::V4(ipv4_addr) => {
@@ -320,7 +332,7 @@ impl HostScanOption {
                 }
                 IpAddr::V6(_) => {
                     //ICMPv6 network scan is not supported
-                },
+                }
             },
             Err(_) => {}
         }
@@ -332,11 +344,9 @@ impl HostScanOption {
                     match host.parse::<IpAddr>() {
                         Ok(addr) => {
                             if let Some(p) = port {
-                                self.targets
-                                    .push(TargetInfo::new_with_socket(addr, p));
+                                self.targets.push(TargetInfo::new_with_socket(addr, p));
                             } else {
-                                self.targets
-                                    .push(TargetInfo::new_with_socket(addr, 80));
+                                self.targets.push(TargetInfo::new_with_socket(addr, 80));
                             }
                         }
                         Err(_) => {
@@ -344,18 +354,17 @@ impl HostScanOption {
                             let socket: Vec<&str> = host.trim().split(":").collect();
                             if socket.len() == 2 {
                                 match socket[0].parse::<IpAddr>() {
-                                    Ok(addr) => {
-                                        match socket[1].parse::<u16>() {
-                                            Ok(p) => {
-                                                self.targets
-                                                    .push(TargetInfo::new_with_socket(addr, p));
-                                            }
-                                            Err(_) => {}
+                                    Ok(addr) => match socket[1].parse::<u16>() {
+                                        Ok(p) => {
+                                            self.targets.push(TargetInfo::new_with_socket(addr, p));
                                         }
-                                    }
+                                        Err(_) => {}
+                                    },
                                     Err(_) => {
                                         // Resolve host name
-                                        if let Some(ip) = dns::lookup_host_name(socket[0].to_string()) {
+                                        if let Some(ip) =
+                                            dns::lookup_host_name(socket[0].to_string())
+                                        {
                                             match socket[1].parse::<u16>() {
                                                 Ok(p) => {
                                                     self.targets
@@ -366,23 +375,21 @@ impl HostScanOption {
                                         }
                                     }
                                 }
-                            }else{
+                            } else {
                                 // Resolve host name
                                 if let Some(ip) = dns::lookup_host_name(host) {
                                     if let Some(p) = port {
-                                        self.targets
-                                            .push(TargetInfo::new_with_socket(ip, p));
+                                        self.targets.push(TargetInfo::new_with_socket(ip, p));
                                     } else {
-                                        self.targets
-                                            .push(TargetInfo::new_with_socket(ip, 80));
+                                        self.targets.push(TargetInfo::new_with_socket(ip, 80));
                                     }
                                 }
                             }
                         }
                     }
                 }
-            },
-            Err(_) => {},
+            }
+            Err(_) => {}
         }
     }
 }

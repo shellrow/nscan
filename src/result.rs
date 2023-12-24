@@ -2,7 +2,10 @@ use std::net::IpAddr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{model::{NodeInfo, NodeType}, option::{CommandType, PortScanType, IpNextLevelProtocol, HostScanType}};
+use crate::{
+    model::{NodeInfo, NodeType},
+    option::{CommandType, HostScanType, IpNextLevelProtocol, PortScanType},
+};
 
 /// Exit status of probe
 #[derive(Clone, Debug, Serialize, Deserialize)]
