@@ -52,7 +52,7 @@ pub async fn run_async_port_scan(opt: option::PortScanOption) -> netscan::result
     port_scanner.scan_setting.set_timeout(opt.timeout);
     port_scanner.scan_setting.set_wait_time(opt.wait_time);
     port_scanner.scan_setting.set_send_rate(opt.send_rate);
-
+    
     let ns_scan_result: netscan::result::ScanResult =
         async_io::block_on(async { port_scanner.scan().await });
     ns_scan_result
