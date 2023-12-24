@@ -1,6 +1,6 @@
 [package]
 name = "nscan"
-version = "0.17.0"
+version = "0.18.0"
 authors = ["shellrow <shellrow@intsigma.com>"]
 edition = "2021"
 description = "Cross-platform network scan tool for host and service discovery"
@@ -19,7 +19,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 default-net = { version = "0.21", features = ["serde"] }
 xenet = { version = "0.4", features = ["serde"] }
-netscan = { version = "0.25", features = ["full"] }
+netscan = { version = "0.26", features = ["full"] }
 netprobe = { version = "0.3", features = ["serde", "async"] }
 privilege = "0.3"
 chrono = "0.4"
