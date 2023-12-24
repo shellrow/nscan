@@ -1,7 +1,6 @@
 [crates-badge]: https://img.shields.io/crates/v/nscan.svg
 [crates-url]: https://crates.io/crates/nscan
 [license-badge]: https://img.shields.io/crates/l/nscan.svg
-[netscan-url]: https://github.com/shellrow/netscan
 
 # nscan [![Crates.io][crates-badge]][crates-url] ![License][license-badge]
 Cross-platform network scan tool for host and service discovery.   
@@ -10,8 +9,6 @@ Aim to be simple and fast.
 ## Features
 - Port Scan
 - Host Scan
-- Async Port Scan 
-- Async Host Scan 
 - Service detection
 - OS detection
 
@@ -44,7 +41,6 @@ OPTIONS:
     -i, --interface <interface_name>    Specify the network interface
     -s, --source <ip_addr>              Specify the source IP address
     -P, --protocol <protocol>           Specify the protocol
-    -m, --maxhop <maxhop>               Set max hop(TTL) for ping or traceroute
     -T, --scantype <scantype>           Specify the scan-type
     -t, --timeout <duration>            Set timeout in ms - Example: -t 10000
     -w, --waittime <duration>           Set wait-time in ms (default:100ms) - Example: -w 200
@@ -53,7 +49,6 @@ OPTIONS:
                                         order of targets.
     -c, --count <count>                 Set number of requests or pings to be sent
     -S, --service                       Enable service detection
-    -O, --os                            Enable OS detection
     -A, --async                         Perform asynchronous scan
     -l, --list <file_path>              Use list - Example: -l custom-list.txt
     -W, --wellknown                     Use well-known ports
@@ -73,8 +68,20 @@ OPTIONS:
 ## Privileges
 `nscan` uses a raw socket which require elevated privileges. Execute with administrator privileges.
 
+## Note for Windows Users
+If you are using Windows, please consider the following points before building and running the application:
+
+- Npcap or WinPcap Installation:
+    - Ensure that you have [Npcap](https://npcap.com/#download) or WinPcap installed on your system.
+    - If using Npcap, make sure to install it with the "Install Npcap in WinPcap API-compatible Mode" option.
+- Build Dependencies:
+    - Place the Packet.lib file from the [Npcap SDK](https://npcap.com/#download) or WinPcap Developers pack in a directory named lib at the root of this repository.
+    - You can use any of the locations listed in the %LIB% or $Env:LIB environment variables.
+    - For the 64-bit toolchain, the Packet.lib is located in <SDK>/Lib/x64/Packet.lib.
+    - For the 32-bit toolchain, the Packet.lib is located in <SDK>/Lib/Packet.lib.
+
 ## My related projects
 This tool also serves as a test for my following projects.  
 - [default-net](https://github.com/shellrow/default-net) Cross-platform library for network interface and gateway 
 - [netscan](https://github.com/shellrow/netscan) Cross-platform network scan library 
-- [cross-socket](https://github.com/shellrow/cross-socket) Cross-platform library designed for working with RawSocket
+- [xenet](https://github.com/shellrow/xenet) Cross-platform networking library
