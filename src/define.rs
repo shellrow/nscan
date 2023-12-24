@@ -9,7 +9,7 @@ pub const DEFAULT_PORTS_CONCURRENCY: usize = 100;
 pub const DEFAULT_TIMEOUT: u64 = 30000;
 /// Default wait time in milliseconds
 pub const DEFAULT_WAIT_TIME: u64 = 500;
-/// Default send rate(interval) in milliseconds 
+/// Default send rate(interval) in milliseconds
 pub const DEFAULT_SEND_RATE: u64 = 0;
 
 // Database

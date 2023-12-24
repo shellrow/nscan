@@ -1,16 +1,16 @@
-use ipnet::{Ipv4Net, Ipv6Net};
-use std::{net::{IpAddr, Ipv4Addr}, collections::HashMap, time::Duration};
-use cross_socket::{datalink::interface::Interface, socket::DataLinkSocket, packet::builder::PacketBuildOption};
-use cross_socket::datalink::MacAddr;
+use default_net::mac::MacAddr;
+use netprobe::{neighbor::DeviceResolver, setting::ProbeSetting};
+use std::{collections::HashMap, net::IpAddr};
+use xenet::net::ipnet::{Ipv4Net, Ipv6Net};
 
 pub fn get_network_address(ip_addr: IpAddr) -> Result<String, String> {
     match ip_addr {
         IpAddr::V4(ipv4_addr) => {
-            let net: Ipv4Net = Ipv4Net::new(ipv4_addr, 24).unwrap();
+            let net: Ipv4Net = Ipv4Net::new(ipv4_addr, 24);
             Ok(net.network().to_string())
         }
         IpAddr::V6(ipv6_addr) => {
-            let net: Ipv6Net = Ipv6Net::new(ipv6_addr, 24).unwrap();
+            let net: Ipv6Net = Ipv6Net::new(ipv6_addr, 24);
             Ok(net.network().to_string())
         }
     }
@@ -18,8 +18,8 @@ pub fn get_network_address(ip_addr: IpAddr) -> Result<String, String> {
 
 pub fn is_global_addr(ip_addr: IpAddr) -> bool {
     match ip_addr {
-        IpAddr::V4(ip) => !(ip.is_loopback() || ip.is_private()),
-        IpAddr::V6(ip) => !(ip.is_loopback() || ((ip.segments()[0] & 0xfe00) == 0xfc00)),
+        IpAddr::V4(ipv4) => xenet::net::ipnet::is_global_ipv4(&ipv4),
+        IpAddr::V6(ipv6) => xenet::net::ipnet::is_global_ipv6(&ipv6),
     }
 }
 
@@ -49,61 +49,35 @@ pub fn guess_initial_ttl(ttl: u8) -> u8 {
     }
 }
 
-fn get_mac_through_arp(
-    interface: Interface,
-    target_ip: Ipv4Addr,
-) -> MacAddr {
-    // Create new socket
-    let mut socket: DataLinkSocket = DataLinkSocket::new(interface, false).unwrap();
-    // Packet option for ARP request
-    let mut packet_option = PacketBuildOption::new();
-    packet_option.src_mac = socket.interface.mac_addr.clone().unwrap();
-    packet_option.dst_mac = MacAddr::zero();
-    packet_option.ether_type = cross_socket::packet::ethernet::EtherType::Arp;
-    packet_option.src_ip = IpAddr::V4(socket.interface.ipv4[0].addr);
-    packet_option.dst_ip = IpAddr::V4(target_ip);
-
-    // Send ARP request to default gateway
-    match socket.send(packet_option) {
-        Ok(_) => {}
-        Err(_) => {}
-    }
-    let src_mac = socket.interface.mac_addr.clone().unwrap();
-    let timeout = Duration::from_millis(100);
-    let start = std::time::Instant::now();
-    // Receive packets until timeout
-    loop {
-        if start.elapsed() > timeout {
-            return MacAddr::zero();
-        }
-        match socket.receive() {
-            Ok(packet) => {
-                let ethernet_packet = cross_socket::packet::ethernet::EthernetPacket::from_bytes(&packet);
-                if ethernet_packet.ethertype != cross_socket::packet::ethernet::EtherType::Arp {
-                    continue;
-                }
-                let arp_packet =
-                    cross_socket::packet::arp::ArpPacket::from_bytes(&ethernet_packet.payload);
-                if arp_packet.sender_hw_addr.address() != src_mac.address() && arp_packet.sender_proto_addr == target_ip {
-                    return arp_packet.sender_hw_addr;
-                }
-            }
-            Err(_) => {}
-        }
-    }
-}
-
 pub fn get_mac_addresses(ips: Vec<IpAddr>, src_ip: IpAddr) -> HashMap<IpAddr, String> {
-    let mut map : HashMap<IpAddr, String> = HashMap::new();
+    let mut map: HashMap<IpAddr, String> = HashMap::new();
     if let Some(c_interface) = crate::interface::get_interface_by_ip(src_ip) {
         for ip in ips {
             if ip == src_ip {
-                map.insert(ip, c_interface.clone().mac_addr.unwrap_or(MacAddr::zero()).to_string());
+                map.insert(
+                    ip,
+                    c_interface
+                        .clone()
+                        .mac_addr
+                        .unwrap_or(MacAddr::zero())
+                        .to_string(),
+                );
                 continue;
             }
             if !is_global_addr(ip) && in_same_network(src_ip, ip) {
-                let mac_addr = get_mac_through_arp(c_interface.clone(), ip.to_string().parse::<Ipv4Addr>().unwrap()).to_string();
-                map.insert(ip, mac_addr);
+                let setting: ProbeSetting = match ip {
+                    IpAddr::V4(ipv4) => ProbeSetting::arp(c_interface.clone(), ipv4, 1).unwrap(),
+                    IpAddr::V6(ipv6) => ProbeSetting::ndp(c_interface.clone(), ipv6, 1).unwrap(),
+                };
+                let resolver: DeviceResolver = DeviceResolver::new(setting).unwrap();
+                match resolver.resolve() {
+                    Ok(result) => {
+                        if result.results.len() > 0 {
+                            map.insert(ip, result.results[0].mac_addr.address());
+                        }
+                    }
+                    Err(_) => {}
+                }
             }
         }
     }

@@ -1,5 +1,5 @@
-use std::net::{IpAddr, Ipv4Addr};
 use serde::{Deserialize, Serialize};
+use std::net::{IpAddr, Ipv4Addr};
 
 /// Status of the scanned port
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -52,14 +52,6 @@ impl Host {
         };
         self.ports.push(port);
     }
-    pub fn add_closed_port(&mut self, port_number: u16) {
-        let port: Port = Port {
-            port_number: port_number,
-            port_status: PortStatus::Closed,
-            service_name: String::new(),
-        };
-        self.ports.push(port);
-    }
     pub fn get_open_ports(&self) -> Vec<u16> {
         let mut open_ports: Vec<u16> = Vec::new();
         for port in &self.ports {
@@ -68,15 +60,6 @@ impl Host {
             }
         }
         open_ports
-    }
-    pub fn get_closed_ports(&self) -> Vec<u16> {
-        let mut closed_ports: Vec<u16> = Vec::new();
-        for port in &self.ports {
-            if port.port_status == PortStatus::Closed {
-                closed_ports.push(port.port_number);
-            }
-        }
-        closed_ports
     }
 }
 
@@ -139,6 +122,15 @@ impl NodeInfo {
             services: Vec::new(),
             node_type: NodeType::Destination,
         }
+    }
+    pub fn get_open_ports(&self) -> Vec<u16> {
+        let mut open_ports: Vec<u16> = Vec::new();
+        for service in &self.services {
+            if service.port_status == PortStatus::Open {
+                open_ports.push(service.port_number);
+            }
+        }
+        open_ports
     }
 }
 

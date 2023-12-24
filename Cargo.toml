@@ -1,11 +1,12 @@
 [package]
 name = "nscan"
-version = "0.16.0"
-authors = ["shellrow <shellrow@protonmail.com>"]
+version = "0.17.0"
+authors = ["shellrow <shellrow@intsigma.com>"]
 edition = "2021"
 description = "Cross-platform network scan tool for host and service discovery"
 repository = "https://github.com/shellrow/nscan"
 readme = "README.md"
+documentation = "https://github.com/shellrow/nscan"
 keywords = ["network","security","scan","cli","cross-platform"]
 categories = ["network-programming"]
 license = "MIT"
@@ -16,20 +17,19 @@ name = "nscan"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-default-net = "0.18"
-cross-socket = "0.8"
-netscan = { version = "0.21", features = ["full"] }
+default-net = { version = "0.21", features = ["serde"] }
+xenet = { version = "0.4", features = ["serde"] }
+netscan = { version = "0.25", features = ["full"] }
+netprobe = { version = "0.3", features = ["serde", "async"] }
 privilege = "0.3"
-trust-dns-resolver = "0.22.0"
 chrono = "0.4"
-uuid = {version = "1.3", features = ["v4","fast-rng","macro-diagnostics"] }
+uuid = {version = "1.3", features = ["v4", "fast-rng", "macro-diagnostics"] }
 regex = "1.6"
-futures = {version = "0.3.21", features = ["executor", "thread-pool"]}
-ipnet = "2.5.0"
-tokio = "1.0"
-async-io = "1.13.0"
-clap = { version = "3.1", features = ["cargo"] }
-indicatif = "0.16.2"
-term-table = "1.3.2"
+futures = {version = "0.3", features = ["executor", "thread-pool"]}
+ipnet = "2.5"
+async-io = "1.13"
+clap = { version = "3.2", features = ["cargo"] }
+indicatif = "0.16"
+term-table = "1.3"
 rand = "0.8"
 bincode = "1.3"

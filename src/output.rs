@@ -1,12 +1,12 @@
+use crate::model::PortStatus;
+use crate::option::{CommandType, HostScanOption, IpNextLevelProtocol, PortScanOption};
+use crate::result::{HostScanResult, PortScanResult};
+use default_net::Interface;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
-use std::net::{Ipv4Addr, Ipv6Addr};
 use term_table::row::Row;
 use term_table::table_cell::{Alignment, TableCell};
 use term_table::{Table, TableStyle};
-use crate::model::PortStatus;
-use crate::result::{HostScanResult, PortScanResult};
-use crate::option::{PortScanOption, HostScanOption, CommandType, IpNextLevelProtocol};
 
 pub fn get_spinner() -> ProgressBar {
     let pb = ProgressBar::new_spinner();
@@ -172,11 +172,7 @@ pub fn show_host_options(opt: HostScanOption) {
     println!("────────────────────────────────────────");
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment("Host", 1, Alignment::Left),
-        TableCell::new_with_alignment(
-            format!("{} host(s)", opt.targets.len()),
-            1,
-            Alignment::Left,
-        ),
+        TableCell::new_with_alignment(format!("{} host(s)", opt.targets.len()), 1, Alignment::Left),
     ]));
     if opt.targets.len() > 0 && opt.protocol == IpNextLevelProtocol::TCP {
         if opt.targets[0].ports.len() > 0 {
@@ -297,6 +293,7 @@ pub fn show_hostscan_result(result: HostScanResult) {
         TableCell::new_with_alignment("IP Address", 1, Alignment::Left),
         TableCell::new_with_alignment("Host Name", 1, Alignment::Left),
         TableCell::new_with_alignment("TTL", 1, Alignment::Left),
+        TableCell::new_with_alignment("OS Info", 1, Alignment::Left),
         TableCell::new_with_alignment("MAC Address", 1, Alignment::Left),
         TableCell::new_with_alignment("Vendor Info", 1, Alignment::Left),
     ]));
@@ -305,6 +302,7 @@ pub fn show_hostscan_result(result: HostScanResult) {
             TableCell::new_with_alignment(host.ip_addr, 1, Alignment::Left),
             TableCell::new_with_alignment(host.host_name, 1, Alignment::Left),
             TableCell::new_with_alignment(host.ttl, 1, Alignment::Left),
+            TableCell::new_with_alignment(host.os_name, 1, Alignment::Left),
             TableCell::new_with_alignment(host.mac_addr, 1, Alignment::Left),
             TableCell::new_with_alignment(host.vendor_info, 1, Alignment::Left),
         ]));
@@ -323,7 +321,7 @@ pub fn show_hostscan_result(result: HostScanResult) {
     println!("{}", table.render());
 }
 
-pub fn show_interfaces(interfaces: Vec<crate::interface::NetworkInterface>) {
+pub fn show_interfaces(interfaces: Vec<Interface>) {
     const INDENT: &str = "    ";
     let mut table = Table::new();
     table.max_column_width = 60;
@@ -335,17 +333,27 @@ pub fn show_interfaces(interfaces: Vec<crate::interface::NetworkInterface>) {
     for interface in interfaces {
         println!("{}:", interface.index);
         println!("{}Name: {}", INDENT, interface.name);
-        println!("{}Interface Type: {}", INDENT, interface.if_type);
-        println!("{}MAC Address: {}", INDENT, interface.mac_addr);
+        println!("{}Interface Type: {}", INDENT, interface.if_type.name());
+        if let Some(mac_addr) = interface.mac_addr {
+            println!("{}MAC Address: {}", INDENT, mac_addr.address());
+        }
         println!("{}IPv4 Address: {:?}", INDENT, interface.ipv4);
         println!("{}IPv6 Address: {:?}", INDENT, interface.ipv6);
-        println!("{}IPv4 Gateway: {}", INDENT, if interface.gateway_ipv4 == Ipv4Addr::UNSPECIFIED {String::new()} else {interface.gateway_ipv4.to_string()});
-        println!("{}IPv6 Gateway: {}", INDENT, if interface.gateway_ipv6 == Ipv6Addr::UNSPECIFIED {String::new()} else {interface.gateway_ipv6.to_string()});
+        if let Some(gateway) = interface.gateway {
+            println!("{}Gateway:", INDENT);
+            println!(
+                "{}{}MAC Address: {}",
+                INDENT,
+                INDENT,
+                gateway.mac_addr.address()
+            );
+            println!("{}{}IP Address: {}", INDENT, INDENT, gateway.ip_addr);
+        }
     }
     println!("{}", table.render());
 }
 
-pub fn show_interfaces_json(interfaces: Vec<crate::interface::NetworkInterface>) {
+pub fn show_interfaces_json(interfaces: Vec<Interface>) {
     match serde_json::to_string_pretty(&interfaces) {
         Ok(json) => {
             println!("{}", json);

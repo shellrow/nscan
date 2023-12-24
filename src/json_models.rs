@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-use crate::result::{HostScanResult, PortScanResult};
-use crate::option;
 use crate::db;
+use crate::option;
+use crate::result::{HostScanResult, PortScanResult};
 use crate::sys;
+use serde::{Deserialize, Serialize};
 
 // Shared model
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -97,8 +97,8 @@ impl JsonPortScanResult {
         json_result.ip_addr = node.ip_addr.to_string();
         json_result.hostname = node.host_name;
         json_result.protocol = option::IpNextLevelProtocol::TCP.name();
-        json_result.ports = result
-            .nodes[0].services
+        json_result.ports = result.nodes[0]
+            .services
             .iter()
             .map(|port| {
                 let mut json_port = JsonPortResult::new();
@@ -162,16 +162,15 @@ impl JsonHostScanResult {
         let mut json_result: JsonHostScanResult = JsonHostScanResult::new();
         json_result.probe_id = probe_id;
         json_result.protocol = result.protocol.name();
-        json_result.port = 
-            if result.nodes.len() > 0 {
-                if result.nodes[0].services.len() > 0 {
-                    result.nodes[0].services[0].port_number
-                }else{
-                    0
-                }
-            }else{
+        json_result.port = if result.nodes.len() > 0 {
+            if result.nodes[0].services.len() > 0 {
+                result.nodes[0].services[0].port_number
+            } else {
                 0
-            };
+            }
+        } else {
+            0
+        };
         json_result.hosts = result
             .nodes
             .iter()

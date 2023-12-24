@@ -4,8 +4,8 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 
 use crate::option;
+use crate::result::{HostScanResult, PortScanResult};
 use crate::scan;
-use crate::result::{PortScanResult, HostScanResult};
 use crate::sys;
 
 pub async fn handle_port_scan(opt: option::PortScanOption) {
@@ -116,10 +116,10 @@ pub async fn handle_host_scan(opt: option::HostScanOption) {
 }
 
 pub fn list_interfaces(json_output: bool) {
-    let interfaces = crate::interface::get_interfaces();
+    let interfaces = xenet::net::interface::get_interfaces();
     if json_output {
         output::show_interfaces_json(interfaces);
-    }else {
+    } else {
         output::show_interfaces(interfaces);
     }
 }

@@ -1,30 +1,60 @@
 use super::validator;
-use clap::ArgMatches;
-use ipnet::IpNet;
 use crate::ip;
 use crate::option::HostScanType;
+use clap::ArgMatches;
+use ipnet::IpNet;
+use netprobe::dns;
+use rand::seq::SliceRandom;
 use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
-use rand::seq::SliceRandom;
 
-use crate::dns;
 use crate::interface;
-use crate::option::{PortScanOption, HostScanOption, TargetInfo, PortListOption, PortScanType, IpNextLevelProtocol};
+use crate::option::{
+    HostScanOption, IpNextLevelProtocol, PortListOption, PortScanOption, PortScanType, TargetInfo,
+};
 
-pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
+pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String> {
     if !matches.contains_id("port") {
-        return Err("Invalid command".to_string());  
+        return Err("Invalid command".to_string());
     }
-    let mut opt: PortScanOption = PortScanOption::default();
     let target: &str = matches.value_of("port").unwrap();
-    let socketaddr_vec: Vec<&str> = target.split(":").collect();
+    let target_vec: Vec<&str> = target.split(":").collect();
+    let socketaddr_vec: Vec<&str> = match IpAddr::from_str(target_vec[0]) {
+        Ok(ip_addr) => {
+            match ip_addr {
+                IpAddr::V4(_) => {
+                    target.split(":").collect()
+                }
+                IpAddr::V6(_) => {
+                    vec![target]
+                }
+            }
+        }
+        Err(_) => {
+            match IpAddr::from_str(target) {
+                Ok(ip_addr) => {
+                    match ip_addr {
+                        IpAddr::V4(_) => {
+                            target.split(":").collect()
+                        }
+                        IpAddr::V6(_) => {
+                            vec![target]
+                        }
+                    }
+                }
+                Err(_) => {
+                    target.split(":").collect()
+                }
+            }
+        }
+    };
     let host: String = socketaddr_vec[0].to_string();
     let mut target_info: TargetInfo = TargetInfo::new();
     if validator::is_ipaddr(host.clone()) {
         target_info.ip_addr = host.parse::<IpAddr>().unwrap();
-        target_info.host_name = dns::lookup_ip_addr(host);
+        target_info.host_name = dns::lookup_ip_addr(target_info.ip_addr).unwrap_or(host.clone());
     } else {
         match dns::lookup_host_name(host.clone()) {
             Some(ip) => {
@@ -33,7 +63,9 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
                     target_info.host_name = host;
                 }
             }
-            None => {}
+            None => {
+                return Err("Invalid host name".to_string());
+            }
         }
     }
     if socketaddr_vec.len() > 1 {
@@ -71,6 +103,8 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
             target_info.set_ports_from_option(PortListOption::Default);
         }
     }
+    let dst_ip: IpAddr = target_info.ip_addr;
+    let mut opt: PortScanOption = PortScanOption::default(dst_ip);
     opt.targets.push(target_info);
 
     // Flags
@@ -132,9 +166,6 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
     if matches.contains_id("service") {
         opt.service_detection = true;
     }
-    if matches.contains_id("os") {
-        opt.os_detection = true;
-    }
     if matches.contains_id("async") {
         opt.async_scan = true;
     }
@@ -153,7 +184,7 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
         opt.accept_invalid_certs = true;
     }
     // Randomize targets by default
-    if !matches.contains_id("random") {        
+    if !matches.contains_id("random") {
         let mut rng = rand::thread_rng();
         for target in opt.targets.iter_mut() {
             target.ports.shuffle(&mut rng);
@@ -163,9 +194,9 @@ pub fn parse_port_args(matches: ArgMatches) -> Result<PortScanOption, String>  {
     Ok(opt)
 }
 
-pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
+pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String> {
     if !matches.contains_id("host") {
-        return Err("Invalid command".to_string());  
+        return Err("Invalid command".to_string());
     }
     let mut opt: HostScanOption = HostScanOption::default();
     // Set protocol
@@ -189,7 +220,9 @@ pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
         let v_scantype: String = matches.get_one::<String>("scantype").unwrap().to_string();
         if v_scantype.to_lowercase() == HostScanType::IcmpPingScan.arg_name() {
             opt.scan_type = HostScanType::IcmpPingScan;
-            if opt.protocol != IpNextLevelProtocol::ICMPv4 && opt.protocol != IpNextLevelProtocol::ICMPv6 {
+            if opt.protocol != IpNextLevelProtocol::ICMPv4
+                && opt.protocol != IpNextLevelProtocol::ICMPv6
+            {
                 opt.protocol = IpNextLevelProtocol::ICMPv4;
             }
         } else if v_scantype.to_lowercase() == HostScanType::TcpPingScan.arg_name() {
@@ -267,7 +300,9 @@ pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
         }
     }
     if opt.targets.len() > 0 {
-        if crate::ip::is_global_addr(opt.targets[0].ip_addr) && opt.scan_type == HostScanType::IcmpPingScan {
+        if crate::ip::is_global_addr(opt.targets[0].ip_addr)
+            && opt.scan_type == HostScanType::IcmpPingScan
+        {
             opt.wait_time = Duration::from_millis(1000);
         }
     }
@@ -334,7 +369,7 @@ pub fn parse_host_args(matches: ArgMatches) -> Result<HostScanOption, String>  {
         opt.save_file_path = v_save;
     }
     // Randomize targets by default
-    if !matches.contains_id("random") {        
+    if !matches.contains_id("random") {
         let mut rng = rand::thread_rng();
         opt.targets.shuffle(&mut rng);
     }
