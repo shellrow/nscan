@@ -10,7 +10,7 @@ Aim to be simple and fast.
 - Port Scan
 - Host Scan
 - Service detection
-- OS detection
+- OS familly detection
 
 ## Installation
 ### Releases
@@ -22,45 +22,36 @@ cargo install nscan
 ```
 
 ## Basic Usage
-```
-USAGE:
-    nscan [OPTIONS]
 
-OPTIONS:
-    -p, --port <target>                 Scan ports of the specified host.
-                                        Use default port list if port range omitted.
-                                        Examples:
-                                        --port 192.168.1.8 -S -O
-                                        --port 192.168.1.8:1-1000
-                                        --port 192.168.1.8:22,80,8080
-                                        --port 192.168.1.8 -l custom-list.txt
-    -n, --host <target>                 Scan hosts in specified network or host-list.
-                                        Examples:
-                                        --host 192.168.1.0
-                                        --host 192.168.1.0/24
-                                        --host custom-list.txt
-                                        --host 192.168.1.10,192.168.1.20,192.168.1.30
-    -e, --interfaces                    List network interfaces
-    -i, --interface <interface_name>    Specify the network interface
-    -s, --source <ip_addr>              Specify the source IP address
-    -P, --protocol <protocol>           Specify the protocol
-    -T, --scantype <scantype>           Specify the scan-type
-    -t, --timeout <duration>            Set timeout in ms - Example: -t 10000
-    -w, --waittime <duration>           Set wait-time in ms (default:100ms) - Example: -w 200
-    -r, --rate <duration>               Set send-rate in ms - Example: -r 1
-    -R, --random                        Don't randomize targets. By default, nscan randomizes the
-                                        order of targets.
-    -c, --count <count>                 Set number of requests or pings to be sent
-    -S, --service                       Enable service detection
-    -A, --async                         Perform asynchronous scan
-    -l, --list <file_path>              Use list - Example: -l custom-list.txt
-    -W, --wellknown                     Use well-known ports
-    -j, --json                          Displays results in JSON format.
-    -o, --save <file_path>              Save scan result in json format - Example: -o result.json
-        --acceptinvalidcerts            Accept invalid certs (This introduces significant
-                                        vulnerabilities)
-    -h, --help                          Print help information
-    -V, --version                       Print version information
+## Default port scan
+Simply, specify the target
+```
+nscan --target scanme.nmap.org
+```
+
+## sub-commands and options 
+```
+Usage: nscan [OPTIONS] [COMMAND]
+
+Commands:
+  pscan       Scan port. nscan pscan --help for more information
+  hscan       Scan host in specified network or host-list. nscan hscan --help for more information
+  subdomain   Find subdomains. nscan subdomain --help for more information
+  nei         Resolve IP address to MAC address
+  interfaces  Show network interfaces
+  interface   Show default network interface
+  check       Check dependencies (Windows only)
+  help        Print this message or the help of the given subcommand(s)
+
+Options:
+  -t, --target <target>             Specify the target host. IP address or Hostname
+  -i, --interface <interface_name>  Specify the network interface
+      --noping                      Disable initial ping
+  -F, --full                        Scan all ports (1-65535)
+  -j, --json                        Displays results in JSON format.
+  -o, --save <file_path>            Save scan result in JSON format - Example: -o result.json
+  -h, --help                        Print help
+  -V, --version                     Print version
 ```
 
 ## Supported platforms
@@ -85,6 +76,5 @@ If you are using Windows, please consider the following points before building a
 
 ## My related projects
 This tool also serves as a test for my following projects.  
-- [default-net](https://github.com/shellrow/default-net) Cross-platform library for network interface and gateway 
-- [netscan](https://github.com/shellrow/netscan) Cross-platform network scan library 
-- [xenet](https://github.com/shellrow/xenet) Cross-platform networking library
+- [netdev](https://github.com/shellrow/netdev) Cross-platform library for network interface and gateway 
+- [nex](https://github.com/shellrow/nex) Cross-platform networking library
