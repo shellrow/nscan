@@ -21,9 +21,9 @@ You can download archives of precompiled binaries from the [releases](https://gi
 cargo install nscan
 ```
 
-Or you can use [binstall](https://github.com/cargo-bins/cargo-binstall) for install nerum from github release.
+Or you can use [binstall](https://github.com/cargo-bins/cargo-binstall) for install nscan from github release.
 ```
-cargo binstall nerum
+cargo binstall nscan
 ```
 
 ## Basic Usage
