@@ -4,63 +4,58 @@
 
 # nscan [![Crates.io][crates-badge]][crates-url] ![License][license-badge]
 Cross-platform network scan tool for host and service discovery.   
-Aim to be simple and fast.  
+Aims to be simple, fast, and efficient in performance.
 
 ## Features
-- Port Scan
-- Host Scan
+- Port scan
+- Host scan
 - Service detection
-- OS detection
+- OS family detection
 
 ## Installation
-### Releases
+### From Releases
 You can download archives of precompiled binaries from the [releases](https://github.com/shellrow/nscan/releases) .
 
-### Cargo Install
+### Using Cargo
 ```
 cargo install nscan
 ```
 
-## Basic Usage
+Or you can use [binstall](https://github.com/cargo-bins/cargo-binstall) for install nerum from github release.
 ```
-USAGE:
-    nscan [OPTIONS]
+cargo binstall nerum
+```
 
-OPTIONS:
-    -p, --port <target>                 Scan ports of the specified host.
-                                        Use default port list if port range omitted.
-                                        Examples:
-                                        --port 192.168.1.8 -S -O
-                                        --port 192.168.1.8:1-1000
-                                        --port 192.168.1.8:22,80,8080
-                                        --port 192.168.1.8 -l custom-list.txt
-    -n, --host <target>                 Scan hosts in specified network or host-list.
-                                        Examples:
-                                        --host 192.168.1.0
-                                        --host 192.168.1.0/24
-                                        --host custom-list.txt
-                                        --host 192.168.1.10,192.168.1.20,192.168.1.30
-    -e, --interfaces                    List network interfaces
-    -i, --interface <interface_name>    Specify the network interface
-    -s, --source <ip_addr>              Specify the source IP address
-    -P, --protocol <protocol>           Specify the protocol
-    -T, --scantype <scantype>           Specify the scan-type
-    -t, --timeout <duration>            Set timeout in ms - Example: -t 10000
-    -w, --waittime <duration>           Set wait-time in ms (default:100ms) - Example: -w 200
-    -r, --rate <duration>               Set send-rate in ms - Example: -r 1
-    -R, --random                        Don't randomize targets. By default, nscan randomizes the
-                                        order of targets.
-    -c, --count <count>                 Set number of requests or pings to be sent
-    -S, --service                       Enable service detection
-    -A, --async                         Perform asynchronous scan
-    -l, --list <file_path>              Use list - Example: -l custom-list.txt
-    -W, --wellknown                     Use well-known ports
-    -j, --json                          Displays results in JSON format.
-    -o, --save <file_path>              Save scan result in json format - Example: -o result.json
-        --acceptinvalidcerts            Accept invalid certs (This introduces significant
-                                        vulnerabilities)
-    -h, --help                          Print help information
-    -V, --version                       Print version information
+## Basic Usage
+
+## Default Port Scan
+To scan the default ports on a target, simply specify the target:
+```
+nscan --target scanme.nmap.org
+```
+
+## Sub-commands and Options 
+```
+Usage: nscan.exe [OPTIONS] [COMMAND]
+
+Commands:
+  port        Scan port. nscan port --help for more information
+  host        Scan host in specified network or host-list. nscan host --help for more information
+  subdomain   Find subdomains. nscan subdomain --help for more information
+  interfaces  Show network interfaces
+  interface   Show default network interface
+  check       Check dependencies (Windows only)
+  help        Print this message or the help of the given subcommand(s)
+
+Options:
+  -t, --target <target>             Specify the target host. IP address or Hostname
+  -i, --interface <interface_name>  Specify the network interface
+      --noping                      Disable initial ping
+  -F, --full                        Scan all ports (1-65535)
+  -j, --json                        Displays results in JSON format.
+  -o, --save <file_path>            Save scan result in JSON format - Example: -o result.json
+  -h, --help                        Print help
+  -V, --version                     Print version
 ```
 
 ## Supported platforms
@@ -69,22 +64,20 @@ OPTIONS:
 - Windows
 
 ## Privileges
-`nscan` uses a raw socket which require elevated privileges. Execute with administrator privileges.
+`nscan` uses raw sockets, which require elevated privileges. Execute with administrator rights.
 
-## Note for Windows Users
-If you are using Windows, please consider the following points before building and running the application:
+## Notes for Windows Users
+When using nscan on Windows, please consider the following:
 
-- Npcap or WinPcap Installation:
-    - Ensure that you have [Npcap](https://npcap.com/#download) or WinPcap installed on your system.
-    - If using Npcap, make sure to install it with the "Install Npcap in WinPcap API-compatible Mode" option.
+- Npcap/WinPcap Installation:
+    - Ensure that [Npcap](https://npcap.com/#download) or WinPcap is installed on your system.
+    - If using Npcap, install it with the "Install Npcap in WinPcap API-compatible Mode" option.
 - Build Dependencies:
     - Place the Packet.lib file from the [Npcap SDK](https://npcap.com/#download) or WinPcap Developers pack in a directory named lib at the root of this repository.
-    - You can use any of the locations listed in the %LIB% or $Env:LIB environment variables.
-    - For the 64-bit toolchain, the Packet.lib is located in <SDK>/Lib/x64/Packet.lib.
-    - For the 32-bit toolchain, the Packet.lib is located in <SDK>/Lib/Packet.lib.
+    - The file can be found in the %LIB% or $Env:LIB environment variables.
+    - Locate Packet.lib in <SDK>/Lib/x64/Packet.lib for the 64-bit toolchain or <SDK>/Lib/Packet.lib for the 32-bit toolchain.
 
 ## My related projects
 This tool also serves as a test for my following projects.  
-- [default-net](https://github.com/shellrow/default-net) Cross-platform library for network interface and gateway 
-- [netscan](https://github.com/shellrow/netscan) Cross-platform network scan library 
-- [xenet](https://github.com/shellrow/xenet) Cross-platform networking library
+- [netdev](https://github.com/shellrow/netdev) Cross-platform library for network interface and gateway 
+- [nex](https://github.com/shellrow/nex) Cross-platform networking library

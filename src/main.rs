@@ -1,302 +1,293 @@
-#[macro_use]
-extern crate clap;
+pub mod config;
+pub mod packet;
+pub mod host;
+pub mod probe;
+pub mod db;
+pub mod fp;
+pub mod interface;
+pub mod neighbor;
+pub mod pcap;
+pub mod ping;
+pub mod protocol;
+pub mod scan;
+pub mod sys;
+pub mod ip;
+pub mod dns;
+pub mod fs;
+pub mod json;
+pub mod dep;
+pub mod app;
+pub mod output;
+pub mod handler;
 
-mod db;
-mod define;
-mod handler;
-mod interface;
-mod ip;
-mod json_models;
-mod model;
-mod option;
-mod output;
-mod parser;
-mod process;
-mod result;
-mod scan;
-mod sys;
-mod util;
-mod validator;
-
-use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Command};
+use clap::{Arg, Command, ArgMatches};
+use clap::{crate_name, crate_version, crate_description, value_parser};
 use std::env;
-
-// APP information
-pub const CRATE_UPDATE_DATE: &str = "2023-12-24";
-pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
+use std::path::PathBuf;
+use app::{AppCommands, CRATE_REPOSITORY};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        show_app_desc();
+        app::show_app_desc();
         std::process::exit(0);
     }
-    let matches = get_app_settings();
-
-    if matches.contains_id("interfaces") {
-        show_app_desc();
-        handler::list_interfaces(matches.contains_id("json"));
-        std::process::exit(0);
-    }
-
-    show_banner_with_starttime();
-
-    let pb = output::get_spinner();
-    pb.set_message("Initializing ...");
-
-    // Default is port scan
-    let command_type: option::CommandType = if matches.contains_id("host") {
-        option::CommandType::HostScan
-    } else {
-        option::CommandType::PortScan
-    };
-
-    pb.finish_and_clear();
-
-    match command_type {
-        option::CommandType::PortScan => {
-            let opt = parser::parse_port_args(matches).unwrap();
-            output::show_port_options(opt.clone());
-            match opt.scan_type {
-                option::PortScanType::TcpSynScan => {
-                    if opt.async_scan {
-                        if sys::get_os_type() == "windows" {
-                            exit_with_error_message("Async TCP SYN Scan is not supported on Windows");
-                        }
-                        if process::privileged() {
-                            async_io::block_on(async {
-                                handler::handle_port_scan(opt).await;
-                            })
-                        }else{
-                            exit_with_error_message("Requires administrator privilege");
-                        }
-                    } else {
-                        if process::privileged() || (sys::get_os_type() == "windows" || sys::get_os_type() == "macos") {
-                            async_io::block_on(async {
-                                handler::handle_port_scan(opt).await;
-                            })
-                        }else {
-                            exit_with_error_message("Requires administrator privilege");
-                        }
-                    }
-                }
-                option::PortScanType::TcpConnectScan => {
-                    // nscan's connect scan captures response packets in parallel with connection attempts for speed.
-                    // This requires administrator privileges on Linux.
-                    if sys::get_os_type() == "linux" && !process::privileged() {
-                        exit_with_error_message("Requires administrator privilege");
-                    }
-                    async_io::block_on(async {
-                        handler::handle_port_scan(opt).await;
-                    })
-                }
-            }
+    let arg_matches: ArgMatches = parse_args();
+    let subcommand_name = arg_matches.subcommand_name().unwrap_or("");
+    let app_command = AppCommands::from_str(subcommand_name);
+    app::show_banner_with_starttime();
+    check_deps();
+    match app_command {
+        Some(AppCommands::PortScan) => {
+            handler::port::handle_portscan(&arg_matches);
         }
-        option::CommandType::HostScan => {
-            let opt = parser::parse_host_args(matches).unwrap();
-            output::show_host_options(opt.clone());
-            match opt.scan_type {
-                option::HostScanType::TcpPingScan => {
-                    if opt.async_scan && sys::get_os_type() == "windows" {
-                        exit_with_error_message(
-                            "Async TCP(SYN) Ping Scan is not supported on Windows",
-                        );
+        Some(AppCommands::HostScan) => {
+            handler::host::handle_hostscan(&arg_matches);
+        }
+        Some(AppCommands::Subdomain) => {
+            handler::dns::handle_subdomain_scan(&arg_matches);
+        }
+        Some(AppCommands::Interfaces) => {
+            handler::interface::show_interfaces(&arg_matches);
+        }
+        Some(AppCommands::Interface) => {
+            handler::interface::show_default_interface(&arg_matches);
+        }
+        Some(AppCommands::CheckDependencies) => {
+            handler::check::check_dependencies(&arg_matches);
+        }
+        None => {
+            match arg_matches.get_one::<String>("target") {
+                Some(target_host) => {
+                    if crate::host::is_valid_target(target_host) {
+                        handler::default_probe(target_host, &arg_matches);
+                    } else {
+                        app::show_app_desc();
                     }
-                }
-                _ => {}
+                },
+                None => {
+                    app::show_app_desc();
+                },
             }
-            if sys::get_os_type() == "windows" {
-                if opt.async_scan && !process::privileged() {
-                    exit_with_error_message("Requires administrator privilege");
-                }
-            } else {
-                if !process::privileged() {
-                    exit_with_error_message("Requires administrator privilege");
-                }
-            }
-            async_io::block_on(async {
-                handler::handle_host_scan(opt).await;
-            })
         }
     }
 }
 
-fn get_app_settings() -> ArgMatches {
+fn parse_args() -> ArgMatches {
     let app_description: &str = crate_description!();
-    let app_about: String = format!("{} \n{}", app_description, CRATE_REPOSITORY);
-    let app: App = Command::new(crate_name!())
+    let app: Command = Command::new(crate_name!())
         .version(crate_version!())
-        .about(app_about.as_str())
-        .arg(Arg::new("port")
-            .help("Scan ports of the specified host. \nUse default port list if port range omitted. \nExamples: \n--port 192.168.1.8 -S -O \n--port 192.168.1.8:1-1000 \n--port 192.168.1.8:22,80,8080 \n--port 192.168.1.8 -l custom-list.txt")
-            .short('p')
-            .long("port")
-            .takes_value(true)
+        .about(format!("{} \n{}", app_description, CRATE_REPOSITORY))
+        .allow_external_subcommands(true)
+        .arg(Arg::new("target")
+            .help("Specify the target host. IP address or Hostname")
+            .short('t')
+            .long("target")
             .value_name("target")
-            .validator(validator::validate_port_opt)
-        )
-        .arg(Arg::new("host")
-            .help("Scan hosts in specified network or host-list. \nExamples: \n--host 192.168.1.0 \n--host 192.168.1.0/24 \n--host custom-list.txt \n--host 192.168.1.10,192.168.1.20,192.168.1.30")
-            .short('n')
-            .long("host")
-            .takes_value(true)
-            .value_name("target")
-            .validator(validator::validate_hostscan_opt)
-        )
-        .arg(Arg::new("interfaces")
-            .help("List network interfaces")
-            .short('e')
-            .long("interfaces")
-            .takes_value(false)
+            .display_order(1)
+            .value_parser(value_parser!(String))
         )
         .arg(Arg::new("interface")
             .help("Specify the network interface")
             .short('i')
             .long("interface")
-            .takes_value(true)
             .value_name("interface_name")
-            .validator(validator::validate_interface)
+            .display_order(2)
+            .value_parser(value_parser!(String))
         )
-        .arg(Arg::new("source")
-            .help("Specify the source IP address")
-            .short('s')
-            .long("source")
-            .takes_value(true)
-            .value_name("ip_addr")
-            .validator(validator::validate_ip_address)
+        .arg(Arg::new("noping")
+            .help("Disable initial ping")
+            .long("noping")
+            .num_args(0)
         )
-        .arg(Arg::new("protocol")
-            .help("Specify the protocol")
-            .short('P')
-            .long("protocol")
-            .takes_value(true)
-            .value_name("protocol")
-            .validator(validator::validate_protocol)
-        )
-        .arg(Arg::new("scantype")
-            .help("Specify the scan-type")
-            .short('T')
-            .long("scantype")
-            .takes_value(true)
-            .value_name("scantype")
-            .validator(validator::validate_portscantype)
-        )
-        .arg(Arg::new("timeout")
-            .help("Set timeout in ms - Example: -t 10000")
-            .short('t')
-            .long("timeout")
-            .takes_value(true)
-            .value_name("duration")
-            .validator(validator::validate_timeout)
-        )
-        .arg(Arg::new("waittime")
-            .help("Set wait-time in ms (default:100ms) - Example: -w 200")
-            .short('w')
-            .long("waittime")
-            .takes_value(true)
-            .value_name("duration")
-            .validator(validator::validate_waittime)
-        )
-        .arg(Arg::new("rate")
-            .help("Set send-rate in ms - Example: -r 1")
-            .short('r')
-            .long("rate")
-            .takes_value(true)
-            .value_name("duration")
-            .validator(validator::validate_waittime)
-        )
-        .arg(Arg::new("random")
-            .help("Don't randomize targets. By default, nscan randomizes the order of targets.")
-            .short('R')
-            .long("random")
-        )
-        .arg(Arg::new("count")
-            .help("Set number of requests or pings to be sent")
-            .short('c')
-            .long("count")
-            .takes_value(true)
-            .value_name("count")
-            .validator(validator::validate_count)
-        )
-        .arg(Arg::new("service")
-            .help("Enable service detection")
-            .short('S')
-            .long("service")
-            .takes_value(false)
-        )
-        .arg(Arg::new("async")
-            .help("Perform asynchronous scan")
-            .short('A')
-            .long("async")
-            .takes_value(false)
-        )
-        .arg(Arg::new("list")
-            .help("Use list - Example: -l custom-list.txt")
-            .short('l')
-            .long("list")
-            .takes_value(true)
-            .value_name("file_path")
-            .validator(validator::validate_filepath)
-        )
-        .arg(Arg::new("wellknown")
-            .help("Use well-known ports")
-            .short('W')
-            .long("wellknown")
+        .arg(Arg::new("full")
+            .help("Scan all ports (1-65535)")
+            .short('F')
+            .long("full")
+            .num_args(0)
         )
         .arg(Arg::new("json")
             .help("Displays results in JSON format.")
             .short('j')
             .long("json")
-            .takes_value(false)
+            .num_args(0)
         )
         .arg(Arg::new("save")
-            .help("Save scan result in json format - Example: -o result.json")
+            .help("Save scan result in JSON format - Example: -o result.json")
             .short('o')
             .long("save")
-            .takes_value(true)
             .value_name("file_path")
+            .value_parser(value_parser!(PathBuf))
         )
-        .arg(Arg::new("acceptinvalidcerts")
-            .help("Accept invalid certs (This introduces significant vulnerabilities)")
-            .long("acceptinvalidcerts")
-            .takes_value(false)
+        .subcommand(Command::new("port")
+            .about("Scan port. nscan port --help for more information")
+            .arg(Arg::new("target")
+                .help("Specify the target. IP address or Hostname")
+                .value_name("target")
+                .value_parser(value_parser!(String))
+                .required(true)
+            )
+            .arg(Arg::new("ports")
+                .help("Specify the ports. Example: 80,443,8080")
+                .short('p')
+                .long("ports")
+                .value_name("ports")
+                .value_delimiter(',')
+                .value_parser(value_parser!(u16))
+            )
+            .arg(Arg::new("range")
+                .help("Specify the port range. Example: 1-100")
+                .short('r')
+                .long("range")
+                .value_name("range")
+                .value_delimiter('-')
+                .value_parser(value_parser!(u16))
+            )
+            .arg(Arg::new("scantype")
+                .help("Specify the scan-type")
+                .short('T')
+                .long("scantype")
+                .value_name("scantype")
+                .value_parser(value_parser!(String))
+            )
+            .arg(Arg::new("service")
+                .help("Enable service detection")
+                .short('S')
+                .long("service")
+                .num_args(0)
+            )
+            .arg(Arg::new("random")
+                .help("Don't randomize targets. By default, nscan randomizes the order of targets.")
+                .short('R')
+                .long("random")
+                .num_args(0)
+            )
+            .arg(Arg::new("wellknown")
+                .help("Use well-known ports")
+                .short('W')
+                .long("wellknown")
+                .num_args(0)
+            )
+            .arg(Arg::new("full")
+                .help("Scan all ports (1-65535)")
+                .short('F')
+                .long("full")
+                .num_args(0)
+            )
+            .arg(Arg::new("noping")
+                .help("Disable initial ping")
+                .long("noping")
+                .num_args(0)
+            )
+            .arg(Arg::new("timeout")
+                .help("Set timeout in ms - Example: --timeout 10000")
+                .long("timeout")
+                .value_name("timeout")
+                .value_parser(value_parser!(u64))
+            )
+            .arg(Arg::new("waittime")
+                .help("Set wait-time in ms (default:100ms) - Example: -w 200")
+                .short('w')
+                .long("waittime")
+                .value_name("waittime")
+                .value_parser(value_parser!(u64))
+            )
+            .arg(Arg::new("rate")
+                .help("Set send-rate in ms - Example: --rate 1")
+                .long("rate")
+                .value_name("duration")
+                .value_parser(value_parser!(u64))
+            )
         )
-        .group(ArgGroup::new("mode").args(&["port", "host"]))
-        .setting(AppSettings::DeriveDisplayOrder)
+        .subcommand(Command::new("host")
+            .about("Scan host in specified network or host-list. nscan host --help for more information")
+            .arg(Arg::new("target")
+                .help("Specify the target network")
+                .value_name("target")
+                .required(true)
+            )
+            .arg(Arg::new("protocol")
+                .help("Specify the protocol")
+                .short('P')
+                .long("protocol")
+                .value_name("protocol_name")
+                .value_parser(value_parser!(String))
+            )
+            .arg(Arg::new("port")
+                .help("Specify the port. Example: --port 80")
+                .short('p')
+                .long("port")
+                .value_name("port")
+                .value_parser(value_parser!(u16))
+            )
+            .arg(Arg::new("random")
+                .help("Don't randomize targets. By default, nscan randomizes the order of targets.")
+                .short('R')
+                .long("random")
+                .num_args(0)
+            )
+            .arg(Arg::new("timeout")
+                .help("Set timeout in ms - Example: --timeout 10000")
+                .long("timeout")
+                .value_name("timeout")
+                .value_parser(value_parser!(u64))
+            )
+            .arg(Arg::new("waittime")
+                .help("Set wait-time in ms (default:100ms) - Example: -w 200")
+                .short('w')
+                .long("waittime")
+                .value_name("waittime")
+                .value_parser(value_parser!(u64))
+            )
+            .arg(Arg::new("rate")
+                .help("Set send-rate in ms - Example: --rate 1")
+                .long("rate")
+                .value_name("duration")
+                .value_parser(value_parser!(u64))
+            )
+        )
+        .subcommand(Command::new("subdomain")
+            .about("Find subdomains. nscan subdomain --help for more information")
+            .arg(Arg::new("target")
+                .help("Specify the target apex-domain")
+                .value_name("target")
+                .required(true)
+            )
+            .arg(Arg::new("wordlist")
+                .help("Specify the wordlist file path")
+                .short('w')
+                .long("wordlist")
+                .value_name("file_path")
+                .value_parser(value_parser!(PathBuf))
+            )
+            .arg(Arg::new("timeout")
+                .help("Set timeout in ms - Example: --timeout 10000")
+                .long("timeout")
+                .value_name("timeout")
+                .value_parser(value_parser!(u64))
+            )
+        )
+        .subcommand(Command::new("interfaces")
+            .about("Show network interfaces")
+        )
+        .subcommand(Command::new("interface")
+            .about("Show default network interface")
+        )
+        .subcommand(Command::new("check")
+            .about("Check dependencies (Windows only)")
+        )
         ;
     app.get_matches()
 }
 
-fn show_app_desc() {
-    println!(
-        "{} {} ({}) {}",
-        crate_name!(),
-        crate_version!(),
-        CRATE_UPDATE_DATE,
-        sys::get_os_type()
-    );
-    println!("{}", crate_description!());
-    println!("{}", CRATE_REPOSITORY);
-    println!();
-    println!("'{} --help' for more information.", crate_name!());
-    println!();
-}
-
-fn show_banner_with_starttime() {
-    println!(
-        "{} {} {}",
-        crate_name!(),
-        crate_version!(),
-        sys::get_os_type()
-    );
-    println!("{}", CRATE_REPOSITORY);
-    println!();
-    println!("Scan started at {}", sys::get_sysdate());
-    println!();
-}
-
-fn exit_with_error_message(message: &str) {
-    println!();
-    println!("Error: {}", message);
-    std::process::exit(0);
+fn check_deps() {
+    match crate::dep::check_dependencies() {
+        Ok(_) => {},
+        Err(e) => {
+            println!("Dependency error:");
+            println!("{}", e);
+            println!("Exiting...");
+            std::process::exit(1);
+        }
+    }
 }

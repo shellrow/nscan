@@ -6,7 +6,7 @@
 # ./scripts/bundle.sh
 
 bin_name="nscan"
-version="0.18.0"
+version="0.19.0"
 os_arch="x86_64-apple-darwin"
 dist_dir="./dist"
 
