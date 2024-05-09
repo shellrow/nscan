@@ -18,8 +18,8 @@ pub enum AppCommands {
 impl AppCommands {
     pub fn from_str(s: &str) -> Option<AppCommands> {
         match s {
-            "pscan" => Some(AppCommands::PortScan),
-            "hscan" => Some(AppCommands::HostScan),
+            "port" => Some(AppCommands::PortScan),
+            "host" => Some(AppCommands::HostScan),
             "subdomain" => Some(AppCommands::Subdomain),
             "interfaces" => Some(AppCommands::Interfaces),
             "interface" => Some(AppCommands::Interface),
@@ -47,14 +47,14 @@ pub fn show_app_desc() {
 
 pub fn show_banner_with_starttime() {
     println!(
-        "{} {} {}",
+        "{} v{} {}",
         crate_name!(),
         crate_version!(),
         sys::os::get_os_type()
     );
-    println!("{}", CRATE_REPOSITORY);
     println!();
     println!("Starting at {}", sys::time::get_sysdate());
+    println!();
 }
 
 pub fn exit_with_error_message(message: &str) {

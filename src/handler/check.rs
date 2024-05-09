@@ -1,6 +1,6 @@
 use clap::ArgMatches;
-use crate::sys::dep;
+use crate::dep;
 
 pub fn check_dependencies(_arg: &ArgMatches) {
-    dep::resolve_dependencies();
+    let _ = dep::check_dependencies();
 }

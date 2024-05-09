@@ -15,6 +15,7 @@ pub mod ip;
 pub mod dns;
 pub mod fs;
 pub mod json;
+pub mod dep;
 pub mod app;
 pub mod output;
 pub mod handler;
@@ -53,7 +54,7 @@ fn main() {
             handler::interface::show_default_interface(&arg_matches);
         }
         Some(AppCommands::CheckDependencies) => {
-            handler::update::check_dependencies(&arg_matches);
+            handler::check::check_dependencies(&arg_matches);
         }
         None => {
             match arg_matches.get_one::<String>("target") {
@@ -118,8 +119,8 @@ fn parse_args() -> ArgMatches {
             .value_name("file_path")
             .value_parser(value_parser!(PathBuf))
         )
-        .subcommand(Command::new("pscan")
-            .about("Scan port. nscan pscan --help for more information")
+        .subcommand(Command::new("port")
+            .about("Scan port. nscan port --help for more information")
             .arg(Arg::new("target")
                 .help("Specify the target. IP address or Hostname")
                 .value_name("target")
@@ -198,8 +199,8 @@ fn parse_args() -> ArgMatches {
                 .value_parser(value_parser!(u64))
             )
         )
-        .subcommand(Command::new("hscan")
-            .about("Scan host in specified network or host-list. nscan hscan --help for more information")
+        .subcommand(Command::new("host")
+            .about("Scan host in specified network or host-list. nscan host --help for more information")
             .arg(Arg::new("target")
                 .help("Specify the target network")
                 .value_name("target")
@@ -266,40 +267,6 @@ fn parse_args() -> ArgMatches {
                 .value_parser(value_parser!(u64))
             )
         )
-        .subcommand(Command::new("nei")
-            .about("Resolve IP address to MAC address")
-            .arg(Arg::new("target")
-                .help("Specify the target IP address")
-                .value_name("target")
-                .required(true)
-            )
-            .arg(Arg::new("count")
-                .help("Set number of requests or pings to be sent")
-                .short('c')
-                .long("count")
-                .value_name("count")
-                .value_parser(value_parser!(u32))
-            )
-            .arg(Arg::new("timeout")
-                .help("Set timeout in ms - Example: --timeout 10000")
-                .long("timeout")
-                .value_name("timeout")
-                .value_parser(value_parser!(u64))
-            )
-            .arg(Arg::new("waittime")
-                .help("Set wait-time in ms (default:100ms) - Example: -w 200")
-                .short('w')
-                .long("waittime")
-                .value_name("waittime")
-                .value_parser(value_parser!(u64))
-            )
-            .arg(Arg::new("rate")
-                .help("Set send-rate in ms - Example: --rate 1")
-                .long("rate")
-                .value_name("duration")
-                .value_parser(value_parser!(u64))
-            )
-        )
         .subcommand(Command::new("interfaces")
             .about("Show network interfaces")
         )
@@ -314,11 +281,11 @@ fn parse_args() -> ArgMatches {
 }
 
 fn check_deps() {
-    if cfg!(target_os = "windows"){
-        if !crate::sys::dep::check_dependencies() {
-            println!("Npcap is not installed.");
-            println!("On Windows, Npcap is required for some features.");
-            println!("You can check installation by 'nscan check' command. Or Please install Npcap from https://npcap.com/#download");
+    match crate::dep::check_dependencies() {
+        Ok(_) => {},
+        Err(e) => {
+            println!("Dependency error:");
+            println!("{}", e);
             println!("Exiting...");
             std::process::exit(1);
         }

@@ -21,7 +21,7 @@ use crate::output;
 
 pub fn handle_portscan(args: &ArgMatches) {
     output::log_with_time("Initiating port scan...", "INFO");
-    let port_args = match args.subcommand_matches("pscan") {
+    let port_args = match args.subcommand_matches("port") {
         Some(matches) => matches,
         None => return,
     };

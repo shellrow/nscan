@@ -21,7 +21,7 @@ use crate::output;
 
 pub fn handle_hostscan(args: &ArgMatches) {
     output::log_with_time("Initiating host scan...", "INFO");
-    let host_args = match args.subcommand_matches("hscan") {
+    let host_args = match args.subcommand_matches("host") {
         Some(matches) => matches,
         None => return,
     };

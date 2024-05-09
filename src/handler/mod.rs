@@ -3,7 +3,7 @@ pub mod host;
 pub mod interface;
 pub mod ping;
 pub mod port;
-pub mod update;
+pub mod check;
 
 use clap::ArgMatches;
 use indicatif::ProgressBar;
