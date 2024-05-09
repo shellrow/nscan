@@ -36,7 +36,7 @@ nscan --target scanme.nmap.org
 
 ## Sub-commands and Options 
 ```
-Usage: nscan.exe [OPTIONS] [COMMAND]
+Usage: nscan [OPTIONS] [COMMAND]
 
 Commands:
   port        Scan port. nscan port --help for more information
