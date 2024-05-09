@@ -4,40 +4,44 @@
 
 # nscan [![Crates.io][crates-badge]][crates-url] ![License][license-badge]
 Cross-platform network scan tool for host and service discovery.   
-Aim to be simple and fast.  
+Aims to be simple, fast, and efficient in performance.
 
 ## Features
-- Port Scan
-- Host Scan
+- Port scan
+- Host scan
 - Service detection
-- OS familly detection
+- OS family detection
 
 ## Installation
-### Releases
+### From Releases
 You can download archives of precompiled binaries from the [releases](https://github.com/shellrow/nscan/releases) .
 
-### Cargo Install
+### Using Cargo
 ```
 cargo install nscan
 ```
 
+Or you can use [binstall](https://github.com/cargo-bins/cargo-binstall) for install nerum from github release.
+```
+cargo binstall nerum
+```
+
 ## Basic Usage
 
-## Default port scan
-Simply, specify the target
+## Default Port Scan
+To scan the default ports on a target, simply specify the target:
 ```
 nscan --target scanme.nmap.org
 ```
 
-## sub-commands and options 
+## Sub-commands and Options 
 ```
-Usage: nscan [OPTIONS] [COMMAND]
+Usage: nscan.exe [OPTIONS] [COMMAND]
 
 Commands:
-  pscan       Scan port. nscan pscan --help for more information
-  hscan       Scan host in specified network or host-list. nscan hscan --help for more information
+  port        Scan port. nscan port --help for more information
+  host        Scan host in specified network or host-list. nscan host --help for more information
   subdomain   Find subdomains. nscan subdomain --help for more information
-  nei         Resolve IP address to MAC address
   interfaces  Show network interfaces
   interface   Show default network interface
   check       Check dependencies (Windows only)
@@ -60,19 +64,18 @@ Options:
 - Windows
 
 ## Privileges
-`nscan` uses a raw socket which require elevated privileges. Execute with administrator privileges.
+`nscan` uses raw sockets, which require elevated privileges. Execute with administrator rights.
 
-## Note for Windows Users
-If you are using Windows, please consider the following points before building and running the application:
+## Notes for Windows Users
+When using nscan on Windows, please consider the following:
 
-- Npcap or WinPcap Installation:
-    - Ensure that you have [Npcap](https://npcap.com/#download) or WinPcap installed on your system.
-    - If using Npcap, make sure to install it with the "Install Npcap in WinPcap API-compatible Mode" option.
+- Npcap/WinPcap Installation:
+    - Ensure that [Npcap](https://npcap.com/#download) or WinPcap is installed on your system.
+    - If using Npcap, install it with the "Install Npcap in WinPcap API-compatible Mode" option.
 - Build Dependencies:
     - Place the Packet.lib file from the [Npcap SDK](https://npcap.com/#download) or WinPcap Developers pack in a directory named lib at the root of this repository.
-    - You can use any of the locations listed in the %LIB% or $Env:LIB environment variables.
-    - For the 64-bit toolchain, the Packet.lib is located in <SDK>/Lib/x64/Packet.lib.
-    - For the 32-bit toolchain, the Packet.lib is located in <SDK>/Lib/Packet.lib.
+    - The file can be found in the %LIB% or $Env:LIB environment variables.
+    - Locate Packet.lib in <SDK>/Lib/x64/Packet.lib for the 64-bit toolchain or <SDK>/Lib/Packet.lib for the 32-bit toolchain.
 
 ## My related projects
 This tool also serves as a test for my following projects.  
