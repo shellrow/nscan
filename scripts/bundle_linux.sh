@@ -6,7 +6,7 @@
 # ./scripts/bundle.sh
 
 bin_name="nscan"
-version="0.19.0"
+version="0.20.0"
 os_arch="x86_64-unknown-linux-gnu"
 dist_dir="./dist"
 

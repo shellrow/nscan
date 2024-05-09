@@ -3,7 +3,7 @@ use crate::sys;
 
 // APP information
 pub const CRATE_BIN_NAME: &str = "nscan";
-pub const CRATE_UPDATE_DATE: &str = "2024-05-08";
+pub const CRATE_UPDATE_DATE: &str = "2024-05-09";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 pub enum AppCommands {
@@ -31,9 +31,8 @@ impl AppCommands {
 
 pub fn show_app_desc() {
     println!(
-        "{}({}) {} ({}) {}",
+        "{} v{} ({}) {}",
         crate_name!(),
-        CRATE_BIN_NAME,
         crate_version!(),
         CRATE_UPDATE_DATE,
         sys::os::get_os_type()

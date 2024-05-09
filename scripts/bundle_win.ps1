@@ -4,7 +4,7 @@
 # .\scripts\bundle.ps1
 
 $binName = "nscan.exe"
-$version = "0.19.0"
+$version = "0.20.0"
 $osArch = "x86_64-pc-windows-msvc"
 $distDir = ".\dist"
 
