@@ -1,6 +1,6 @@
 [package]
 name = "nscan"
-version = "0.20.0"
+version = "1.0.0"
 authors = ["shellrow <shellrow@fortnium.com>"]
 edition = "2021"
 description = "Cross-platform network scan tool for host and service discovery"
