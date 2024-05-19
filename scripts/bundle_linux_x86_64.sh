@@ -2,11 +2,11 @@
 
 # build and bundle the nscan binary and license files into a zip file
 # usage: 
-# chmod +x ./scripts/bundle.sh　(Only needed if not already set)
-# ./scripts/bundle.sh
+# chmod +x ./scripts/bundle_linux_x86_64.sh　(Only needed if not already set)
+# ./scripts/bundle_linux_x86_64.sh
 
 bin_name="nscan"
-version="0.20.0"
+version="1.0.0"
 os_arch="x86_64-unknown-linux-gnu"
 dist_dir="./dist"
 

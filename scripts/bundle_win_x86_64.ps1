@@ -1,10 +1,10 @@
 # build and bundle the nscan binary and license files into a zip file
 # usage: 
 # Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process (Only needed if not already set)
-# .\scripts\bundle.ps1
+# .\scripts\bundle_win_x86_64.ps1
 
 $binName = "nscan.exe"
-$version = "0.20.0"
+$version = "1.0.0"
 $osArch = "x86_64-pc-windows-msvc"
 $distDir = ".\dist"
 
