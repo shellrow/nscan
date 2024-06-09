@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use netdev::Interface;
-use nex::datalink::FrameSender;
+use nex::datalink::RawSender;
 use nex::packet::ip::IpNextLevelProtocol;
 use crate::config::PCAP_WAIT_TIME_MILLIS;
 use crate::packet::frame::PacketFrame;
@@ -17,7 +17,7 @@ use super::result::{ScanResult, ScanStatus, parse_hostscan_result, parse_portsca
 use super::setting::{HostScanType, PortScanType};
 use super::packet::{build_hostscan_packet, build_portscan_packet};
 
-pub (crate) fn send_hostscan_packets(tx: &mut Box<dyn FrameSender>, interface: &Interface, targets: Vec<Host>, ptx: &Arc<Mutex<Sender<Host>>>, scan_type: HostScanType) {
+pub (crate) fn send_hostscan_packets(tx: &mut Box<dyn RawSender>, interface: &Interface, targets: Vec<Host>, ptx: &Arc<Mutex<Sender<Host>>>, scan_type: HostScanType) {
     // Acquire message sender lock
     let ptx_lock = match ptx.lock() {
         Ok(ptx) => ptx,
@@ -47,7 +47,7 @@ pub (crate) fn send_hostscan_packets(tx: &mut Box<dyn FrameSender>, interface: &
     drop(ptx_lock);
 }
 
-pub (crate) fn send_portscan_packets(tx: &mut Box<dyn FrameSender>, interface: &Interface, targets: Vec<Host>, ptx: &Arc<Mutex<Sender<SocketAddr>>>, scan_type: PortScanType) {
+pub (crate) fn send_portscan_packets(tx: &mut Box<dyn RawSender>, interface: &Interface, targets: Vec<Host>, ptx: &Arc<Mutex<Sender<SocketAddr>>>, scan_type: PortScanType) {
     // Acquire message sender lock
     let ptx_lock = match ptx.lock() {
         Ok(ptx) => ptx,

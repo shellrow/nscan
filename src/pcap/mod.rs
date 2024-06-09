@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
 use std::time::Instant;
 use std::time::Duration;
-use nex::datalink::FrameReceiver;
+use nex::datalink::RawReceiver;
 use serde::{Deserialize, Serialize};
 use nex::packet::{ip::IpNextLevelProtocol, ethernet::EtherType};
 use nex::net::interface::Interface;
@@ -154,7 +154,7 @@ impl PacketCaptureOptions {
 
 /// Start packet capture
 pub fn start_capture(
-    rx: &mut Box<dyn FrameReceiver>,
+    rx: &mut Box<dyn RawReceiver>,
     capture_options: PacketCaptureOptions,
     stop: &Arc<Mutex<bool>>,
 ) -> Vec<PacketFrame> {

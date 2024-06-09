@@ -7,7 +7,7 @@ use async_io::{Async, Timer};
 use futures_lite::{AsyncWriteExt, AsyncReadExt};
 use futures_lite::future::FutureExt;
 use futures::stream::{self, StreamExt};
-use nex::socket::tls::socket::rustls;
+use nex_socket::tls::rustls;
 use nex::socket::tls::TlsClient;
 use super::payload::{PayloadInfo, PayloadType};
 use super::result::{ServiceProbeError, ServiceProbeResult};
