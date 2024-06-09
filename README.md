@@ -13,16 +13,35 @@ Aims to be simple, fast, and efficient in performance.
 - OS family detection
 
 ## Installation
+### Install prebuilt binaries via shell script
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/shellrow/nscan/releases/latest/download/nscan-installer.sh | sh
+```
+
+### Install prebuilt binaries via powershell script
+
+```sh
+irm https://github.com/shellrow/nscan/releases/latest/download/nscan-installer.ps1 | iex
+```
+
+### Install prebuilt binaries via Homebrew
+
+```sh
+brew install shellrow/tap-nscan/nscan
+```
+
 ### From Releases
 You can download archives of precompiled binaries from the [releases](https://github.com/shellrow/nscan/releases) .
 
 ### Using Cargo
-```
+
+```sh
 cargo install nscan
 ```
 
 Or you can use [binstall](https://github.com/cargo-bins/cargo-binstall) for install nscan from github release.
-```
+```sh
 cargo binstall nscan
 ```
 
@@ -76,8 +95,3 @@ When using nscan on Windows, please consider the following:
     - Place the Packet.lib file from the [Npcap SDK](https://npcap.com/#download) or WinPcap Developers pack in a directory named lib at the root of this repository.
     - The file can be found in the %LIB% or $Env:LIB environment variables.
     - Locate Packet.lib in <SDK>/Lib/x64/Packet.lib for the 64-bit toolchain or <SDK>/Lib/Packet.lib for the 32-bit toolchain.
-
-## My related projects
-This tool also serves as a test for my following projects.  
-- [netdev](https://github.com/shellrow/netdev) Cross-platform library for network interface and gateway 
-- [nex](https://github.com/shellrow/nex) Cross-platform networking library
