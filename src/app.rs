@@ -3,7 +3,7 @@ use crate::sys;
 
 // APP information
 pub const CRATE_BIN_NAME: &str = "nscan";
-pub const CRATE_UPDATE_DATE: &str = "2024-05-19";
+pub const CRATE_UPDATE_DATE: &str = "2024-06-09";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 pub enum AppCommands {
