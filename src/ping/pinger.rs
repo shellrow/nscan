@@ -9,7 +9,7 @@ use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use netdev::Interface;
-use nex::datalink::{FrameReceiver, FrameSender};
+use nex::datalink::{RawReceiver, RawSender};
 use nex::net::mac::MacAddr;
 use nex::packet::frame::{Frame, ParseOption};
 use nex::packet::icmp::IcmpType;
@@ -106,8 +106,8 @@ fn run_ping(
 }
 
 pub fn icmp_ping(
-    tx: &mut Box<dyn FrameSender>,
-    rx: &mut Box<dyn FrameReceiver>,
+    tx: &mut Box<dyn RawSender>,
+    rx: &mut Box<dyn RawReceiver>,
     setting: &PingSetting,
     msg_tx: &Arc<Mutex<Sender<ProbeResult>>>,
 ) -> PingResult {
@@ -301,8 +301,8 @@ pub fn icmp_ping(
 }
 
 pub fn tcp_ping(
-    tx: &mut Box<dyn FrameSender>,
-    rx: &mut Box<dyn FrameReceiver>,
+    tx: &mut Box<dyn RawSender>,
+    rx: &mut Box<dyn RawReceiver>,
     setting: &PingSetting,
     msg_tx: &Arc<Mutex<Sender<ProbeResult>>>,
 ) -> PingResult {
@@ -515,8 +515,8 @@ pub fn tcp_ping(
 }
 
 pub fn udp_ping(
-    tx: &mut Box<dyn FrameSender>,
-    rx: &mut Box<dyn FrameReceiver>,
+    tx: &mut Box<dyn RawSender>,
+    rx: &mut Box<dyn RawReceiver>,
     setting: &PingSetting,
     msg_tx: &Arc<Mutex<Sender<ProbeResult>>>,
 ) -> PingResult {

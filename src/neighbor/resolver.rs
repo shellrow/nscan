@@ -3,7 +3,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use netdev::interface::Interface;
-use nex::datalink::{FrameReceiver, FrameSender};
+use nex::datalink::{RawReceiver, RawSender};
 use nex::packet::arp::ArpOperation;
 use nex::packet::frame::{Frame, ParseOption};
 use nex::packet::icmpv6::Icmpv6Type;
@@ -100,8 +100,8 @@ fn run_resolver(
 }
 
 pub(crate) fn run_arp(
-    tx: &mut Box<dyn FrameSender>,
-    rx: &mut Box<dyn FrameReceiver>,
+    tx: &mut Box<dyn RawSender>,
+    rx: &mut Box<dyn RawReceiver>,
     setting: &AddressResolveSetting,
     msg_tx: &Arc<Mutex<Sender<ProbeResult>>>,
 ) -> DeviceResolveResult {
@@ -223,8 +223,8 @@ pub(crate) fn run_arp(
 }
 
 pub(crate) fn run_ndp(
-    tx: &mut Box<dyn FrameSender>,
-    rx: &mut Box<dyn FrameReceiver>,
+    tx: &mut Box<dyn RawSender>,
+    rx: &mut Box<dyn RawReceiver>,
     setting: &AddressResolveSetting,
     msg_tx: &Arc<Mutex<Sender<ProbeResult>>>,
 ) -> DeviceResolveResult {
