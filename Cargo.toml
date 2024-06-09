@@ -5,6 +5,7 @@ authors = ["shellrow <shellrow@fortnium.com>"]
 edition = "2021"
 description = "Cross-platform network scan tool for host and service discovery"
 repository = "https://github.com/shellrow/nscan"
+homepage = "https://github.com/shellrow/nscan"
 readme = "README.md"
 documentation = "https://github.com/shellrow/nscan"
 keywords = ["network","security","scan","cli","cross-platform"]
@@ -39,3 +40,27 @@ ipnet = "2.7"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.50"
+
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+# Config for 'cargo dist'
+[workspace.metadata.dist]
+# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.15.1"
+# CI backends to support
+ci = "github"
+# The installers to generate for each app
+installers = ["shell", "powershell", "homebrew"]
+# A GitHub repo to push Homebrew formulas to
+tap = "shellrow/homebrew-tap-nscan"
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+# Publish jobs to run in CI
+publish-jobs = ["homebrew"]
+# Publish jobs to run in CI
+pr-run-mode = "plan"
+# Whether to install an updater program
+install-updater = false
