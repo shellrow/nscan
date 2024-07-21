@@ -1,7 +1,4 @@
-use crate::{
-    config::DEFAULT_LOCAL_UDP_PORT,
-    ping::setting::PingSetting,
-};
+use crate::{config::DEFAULT_LOCAL_UDP_PORT, ping::setting::PingSetting};
 use netdev::mac::MacAddr;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
