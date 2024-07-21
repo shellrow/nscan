@@ -143,7 +143,8 @@ impl DomainScanner {
     /// Results are stored in DomainScanner::scan_result
     pub async fn run_scan(&mut self) {
         if self.passive && cfg!(not(feature = "passive")) {
-            self.scan_result.scan_status = ScanStatus::Error(String::from("Passive scan not supported"));
+            self.scan_result.scan_status =
+                ScanStatus::Error(String::from("Passive scan not supported"));
             return;
         }
         let start_time = Instant::now();
@@ -318,8 +319,8 @@ async fn scan_subdomain_passive(
             if r.status().is_success() {
                 match r.text().await {
                     Ok(res_text) => {
-                        let certs_json: serde_json::Value =
-                            serde_json::from_str(res_text.as_str()).unwrap_or(serde_json::json!({}));
+                        let certs_json: serde_json::Value = serde_json::from_str(res_text.as_str())
+                            .unwrap_or(serde_json::json!({}));
                         if certs_json.is_array() {
                             let cert_array = certs_json.as_array().unwrap();
                             for cert in cert_array {

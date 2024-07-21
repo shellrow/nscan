@@ -1,30 +1,32 @@
+// Core
 pub mod config;
-pub mod packet;
-pub mod host;
-pub mod probe;
 pub mod db;
+pub mod dep;
+pub mod dns;
 pub mod fp;
+pub mod fs;
+pub mod host;
 pub mod interface;
-pub mod neighbor;
+pub mod ip;
+pub mod json;
+pub mod packet;
 pub mod pcap;
 pub mod ping;
+pub mod probe;
 pub mod protocol;
 pub mod scan;
 pub mod sys;
-pub mod ip;
-pub mod dns;
-pub mod fs;
-pub mod json;
-pub mod dep;
+pub mod util;
+// CLI
 pub mod app;
-pub mod output;
 pub mod handler;
+pub mod output;
 
-use clap::{Arg, Command, ArgMatches};
-use clap::{crate_name, crate_version, crate_description, value_parser};
+use app::{AppCommands, CRATE_REPOSITORY};
+use clap::{crate_description, crate_name, crate_version, value_parser};
+use clap::{Arg, ArgMatches, Command};
 use std::env;
 use std::path::PathBuf;
-use app::{AppCommands, CRATE_REPOSITORY};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -33,6 +35,13 @@ fn main() {
         std::process::exit(0);
     }
     let arg_matches: ArgMatches = parse_args();
+    match app::set_quiet_mode(arg_matches.get_flag("quiet")) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Failed to set quiet mode.{}", e);
+            std::process::exit(1);
+        }
+    }
     let subcommand_name = arg_matches.subcommand_name().unwrap_or("");
     let app_command = AppCommands::from_str(subcommand_name);
     app::show_banner_with_starttime();
@@ -56,20 +65,18 @@ fn main() {
         Some(AppCommands::CheckDependencies) => {
             handler::check::check_dependencies(&arg_matches);
         }
-        None => {
-            match arg_matches.get_one::<String>("target") {
-                Some(target_host) => {
-                    if crate::host::is_valid_target(target_host) {
-                        handler::default_probe(target_host, &arg_matches);
-                    } else {
-                        app::show_app_desc();
-                    }
-                },
-                None => {
-                    app::show_app_desc();
-                },
+        None => match arg_matches.get_one::<String>("target") {
+            Some(target_host) => {
+                if crate::host::is_valid_target(target_host) {
+                    handler::default_probe(target_host, &arg_matches);
+                } else {
+                    app::show_error_with_help(&format!("Invalid target: {}", target_host));
+                }
             }
-        }
+            None => {
+                app::show_error_with_help("No target specified");
+            }
+        },
     }
 }
 
@@ -118,6 +125,12 @@ fn parse_args() -> ArgMatches {
             .long("save")
             .value_name("file_path")
             .value_parser(value_parser!(PathBuf))
+        )
+        .arg(Arg::new("quiet")
+            .help("Quiet mode. Suppress output. Only show final results.")
+            .short('q')
+            .long("quiet")
+            .num_args(0)
         )
         .subcommand(Command::new("port")
             .about("Scan port. nscan port --help for more information")
@@ -282,7 +295,7 @@ fn parse_args() -> ArgMatches {
 
 fn check_deps() {
     match crate::dep::check_dependencies() {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             println!("Dependency error:");
             println!("{}", e);

@@ -1,7 +1,7 @@
 use crate::probe::{ProbeResult, ProbeStatus};
 use crate::protocol::Protocol;
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PingStat {

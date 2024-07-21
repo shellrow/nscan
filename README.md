@@ -6,11 +6,15 @@
 Cross-platform network scan tool for host and service discovery.   
 Aims to be simple, fast, and efficient in performance.
 
+## Notice
+`nscan` will now be succeeded by [nrev](https://github.com/shellrow/nrev), our network mapping tool. Updates to `nscan` will be limited going forward, as we aim to keep `nscan` focused on scanning-specific tasks. We encourage all users to migrate to `nrev` for the latest features and improvements.
+
 ## Features
 - Port scan
 - Host scan
 - Service detection
 - OS family detection
+- Subdomain scan
 
 ## Installation
 ### Install prebuilt binaries via shell script
@@ -73,6 +77,7 @@ Options:
   -F, --full                        Scan all ports (1-65535)
   -j, --json                        Displays results in JSON format.
   -o, --save <file_path>            Save scan result in JSON format - Example: -o result.json
+  -q, --quiet                       Quiet mode. Suppress output. Only show final results.
   -h, --help                        Print help
   -V, --version                     Print version
 ```

@@ -1,9 +1,9 @@
-use std::net::IpAddr;
-use serde::{Deserialize, Serialize};
 use crate::protocol::Protocol;
+use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum  FingerprintType {
+pub enum FingerprintType {
     IcmpEcho,
     IcmpTimestamp,
     IcmpAddressMask,

@@ -16,7 +16,6 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::thread;
 
-
 #[cfg(not(target_os = "windows"))]
 const DEFAULT_TIMEOUT: Duration = Duration::from_millis(200);
 #[cfg(not(target_os = "windows"))]
@@ -26,7 +25,7 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_millis(20);
 #[cfg(target_os = "windows")]
 const DEFAULT_TIMEOUT_GLOBAL: Duration = Duration::from_millis(1000);
 
-pub fn lookup_host_name(host_name: String) -> Option<IpAddr> {
+pub fn lookup_host_name(host_name: &str) -> Option<IpAddr> {
     let ip_vec: Vec<IpAddr> = resolve_domain(host_name);
     let mut ipv6_vec: Vec<IpAddr> = vec![];
     for ip in ip_vec {
@@ -85,7 +84,7 @@ pub async fn lookup_ip_addr_async(ip_addr: String) -> String {
 }
 
 #[cfg(any(unix, target_os = "windows"))]
-fn resolve_domain(host_name: String) -> Vec<IpAddr> {
+fn resolve_domain(host_name: &str) -> Vec<IpAddr> {
     let mut ips: Vec<IpAddr> = vec![];
     let resolver = Resolver::from_system_conf().unwrap();
     match resolver.lookup_ip(host_name) {
@@ -100,7 +99,7 @@ fn resolve_domain(host_name: String) -> Vec<IpAddr> {
 }
 
 #[cfg(not(any(unix, target_os = "windows")))]
-fn resolve_domain(host_name: String) -> Vec<IpAddr> {
+fn resolve_domain(host_name: &str) -> Vec<IpAddr> {
     let mut ips: Vec<IpAddr> = vec![];
     let resolver = Resolver::new(ResolverConfig::default(), ResolverOpts::default()).unwrap();
     match resolver.lookup_ip(host_name) {
@@ -293,7 +292,7 @@ pub fn lookup_ips(ips: Vec<IpAddr>) -> HashMap<IpAddr, String> {
     handle.join().unwrap()
 }
 
-pub fn lookup_host(host: String) -> Vec<IpAddr> {
+pub fn lookup_host(host: &str) -> Vec<IpAddr> {
     resolve_domain(host)
 }
 

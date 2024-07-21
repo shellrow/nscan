@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use crate::packet::setting::PacketBuildSetting;
 use nex::net::mac::MacAddr;
 use nex::packet::ethernet::EtherType;
 use nex::packet::ethernet::MAC_ADDR_LEN;
@@ -8,7 +8,7 @@ use nex::util::packet_builder::builder::PacketBuilder;
 use nex::util::packet_builder::ethernet::EthernetPacketBuilder;
 use nex::util::packet_builder::ipv6::Ipv6PacketBuilder;
 use nex::util::packet_builder::ndp::NdpPacketBuilder;
-use crate::packet::setting::PacketBuildSetting;
+use std::net::IpAddr;
 
 /// Build NDP packet
 pub fn build_ndp_packet(setting: PacketBuildSetting) -> Vec<u8> {

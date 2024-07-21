@@ -1,6 +1,9 @@
-use std::{collections::{HashMap, HashSet}, net::{IpAddr, Ipv4Addr, Ipv6Addr}};
-use netdev::mac::MacAddr;
 use netdev::interface::Interface;
+use netdev::mac::MacAddr;
+use std::{
+    collections::{HashMap, HashSet},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+};
 
 pub fn get_interface_by_ip(ip_addr: IpAddr) -> Option<Interface> {
     for iface in netdev::interface::get_interfaces() {

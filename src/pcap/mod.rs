@@ -1,18 +1,18 @@
 pub mod setting;
 use std::net::IpAddr;
 //use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
-use std::collections::HashSet;
-use std::time::Instant;
-use std::time::Duration;
+use crate::interface;
+use crate::packet::frame::PacketFrame;
 use nex::datalink::RawReceiver;
-use serde::{Deserialize, Serialize};
-use nex::packet::{ip::IpNextLevelProtocol, ethernet::EtherType};
 use nex::net::interface::Interface;
 use nex::packet::frame::Frame;
 use nex::packet::frame::ParseOption;
-use crate::interface;
-use crate::packet::frame::PacketFrame;
+use nex::packet::{ethernet::EtherType, ip::IpNextLevelProtocol};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use std::time::Instant;
 
 /// Packet capture message
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -164,7 +164,10 @@ pub fn start_capture(
         match rx.next() {
             Ok(packet) => {
                 let mut parse_option: ParseOption = ParseOption::default();
-                if capture_options.tunnel || (cfg!(any(target_os = "macos", target_os = "ios")) && capture_options.loopback) {
+                if capture_options.tunnel
+                    || (cfg!(any(target_os = "macos", target_os = "ios"))
+                        && capture_options.loopback)
+                {
                     let payload_offset;
                     if capture_options.loopback {
                         payload_offset = 14;

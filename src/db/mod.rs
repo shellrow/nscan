@@ -1,10 +1,5 @@
 pub mod model;
-pub mod default;
-pub mod well_known;
-pub mod http;
-pub mod https;
 pub mod tcp_service;
-pub mod sub_domain;
 use crate::packet::frame::PacketFrame;
 use nex::packet::ethernet::EthernetHeader;
 
@@ -33,26 +28,33 @@ pub fn get_vm_oui_map() -> HashMap<String, String> {
 
 pub fn get_tcp_map() -> HashMap<u16, String> {
     let mut tcp_map: HashMap<u16, String> = HashMap::new();
-    tcp_service::PORT_SERVICE_MAP.entries().for_each(|entry| {
-        tcp_map.insert(*entry.0, entry.1.to_string());
-    });
-    tcp_map 
+    let ds_tcp_service: Vec<model::TcpService> =
+        bincode::deserialize(config::TCP_SERVICE_BIN).unwrap_or(vec![]);
+    for port in ds_tcp_service {
+        tcp_map.insert(port.port, port.service_name);
+    }
+    tcp_map
 }
 
 pub fn get_default_ports() -> Vec<u16> {
-    default::DEFAULT_PORTS.to_vec()
+    let default_ports: Vec<u16> = bincode::deserialize(config::DEFAULT_PORTS_BIN).unwrap_or(vec![]);
+    default_ports
 }
 
 pub fn get_wellknown_ports() -> Vec<u16> {
-    well_known::WELLKNOWN_PORTS.to_vec()
+    let wellknown_ports: Vec<u16> =
+        bincode::deserialize(config::WELLKNOWN_PORTS_BIN).unwrap_or(vec![]);
+    wellknown_ports
 }
 
 pub fn get_http_ports() -> Vec<u16> {
-    http::HTTP_PORTS.to_vec()
+    let http_ports: Vec<u16> = bincode::deserialize(config::HTTP_PORTS_BIN).unwrap_or(vec![]);
+    http_ports
 }
 
 pub fn get_https_ports() -> Vec<u16> {
-    https::HTTPS_PORTS.to_vec()
+    let https_ports: Vec<u16> = bincode::deserialize(config::HTTPS_PORTS_BIN).unwrap_or(vec![]);
+    https_ports
 }
 
 pub fn get_os_ttl_map() -> HashMap<u8, String> {
@@ -70,11 +72,13 @@ pub fn get_os_ttl_list() -> Vec<model::OsTtl> {
 }
 
 pub fn get_subdomain() -> Vec<String> {
-    sub_domain::SUBDOMAINS.iter().map(|s| s.to_string()).collect()
+    let subdomain: Vec<String> = bincode::deserialize(config::SUBDOMAIN_BIN).unwrap_or(vec![]);
+    subdomain
 }
 
 pub fn get_os_family_fingerprints() -> Vec<model::OsFamilyFingerprint> {
-    let ds_os_fingerprints: Vec<model::OsFamilyFingerprint> = bincode::deserialize(config::OS_FAMILY_FINGERPRINT_BIN).unwrap_or(vec![]);
+    let ds_os_fingerprints: Vec<model::OsFamilyFingerprint> =
+        bincode::deserialize(config::OS_FAMILY_FINGERPRINT_BIN).unwrap_or(vec![]);
     ds_os_fingerprints
 }
 
@@ -84,7 +88,9 @@ pub fn get_os_family_list() -> Vec<String> {
 }
 
 pub fn is_vm_fingerprint(fingerprint: &model::OsFingerprint) -> bool {
-    if fingerprint.os_family == "Player".to_string() && fingerprint.device_type == "specialized".to_string() {
+    if fingerprint.os_family == "Player".to_string()
+        && fingerprint.device_type == "specialized".to_string()
+    {
         return true;
     }
     false
@@ -238,7 +244,11 @@ pub fn verify_os_family_fingerprint(fingerprint: &PacketFrame) -> model::OsFamil
     };
 }
 
-pub fn get_os_family(fingerprint: &PacketFrame, os_family_list: &Vec<String>, os_family_fingerprints: &Vec<model::OsFamilyFingerprint>) -> model::OsFamilyFingerprint {
+pub fn get_os_family(
+    fingerprint: &PacketFrame,
+    os_family_list: &Vec<String>,
+    os_family_fingerprints: &Vec<model::OsFamilyFingerprint>,
+) -> model::OsFamilyFingerprint {
     let in_vm: bool = if let Some(ether_header) = &fingerprint.ethernet_header {
         in_vm_network(ether_header.clone())
     } else {
@@ -382,7 +392,7 @@ pub fn get_fingerprint_map(fingerprints: &Vec<PacketFrame>) -> HashMap<IpAddr, S
         let os_fingerprint = get_os_family(&f, &os_family_list, &os_family_fingerprints);
         if let Some(ipv4_header) = &f.ipv4_header {
             fingerprint_map.insert(IpAddr::V4(ipv4_header.source), os_fingerprint.os_family);
-        }else{
+        } else {
             if let Some(ipv6_header) = &f.ipv6_header {
                 fingerprint_map.insert(IpAddr::V6(ipv6_header.source), os_fingerprint.os_family);
             }
