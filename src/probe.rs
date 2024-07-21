@@ -1,9 +1,9 @@
+use crate::host::{NodeType, PortStatus};
 use crate::protocol::Protocol;
-use crate::host::{PortStatus, NodeType};
-use std::net::IpAddr;
-use std::time::Duration;
 use nex::net::mac::MacAddr;
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
+use std::time::Duration;
 
 /// Status of probe
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

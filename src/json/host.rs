@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{host::Host, scan::result::{ScanResult, ScanStatus}};
+use crate::{
+    host::Host,
+    scan::result::{ScanResult, ScanStatus},
+};
 
 /// Result of hostscan
 #[derive(Clone, Debug, Serialize, Deserialize)]

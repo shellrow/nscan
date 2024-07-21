@@ -1,10 +1,10 @@
-use std::net::IpAddr;
+use crate::packet::setting::PacketBuildSetting;
 use nex::net::mac::MacAddr;
 use nex::packet::ethernet::EtherType;
 use nex::util::packet_builder::arp::ArpPacketBuilder;
 use nex::util::packet_builder::builder::PacketBuilder;
 use nex::util::packet_builder::ethernet::EthernetPacketBuilder;
-use crate::packet::setting::PacketBuildSetting;
+use std::net::IpAddr;
 
 /// Build ARP packet
 pub fn build_arp_packet(setting: PacketBuildSetting) -> Vec<u8> {

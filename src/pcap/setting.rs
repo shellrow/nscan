@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use std::net::IpAddr;
-use std::collections::HashSet;
-use std::time::Duration;
-use nex::packet::{ip::IpNextLevelProtocol, ethernet::EtherType};
 use nex::net::interface::Interface;
+use nex::packet::{ethernet::EtherType, ip::IpNextLevelProtocol};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use std::net::IpAddr;
+use std::time::Duration;
 
 use crate::interface;
 

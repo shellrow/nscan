@@ -1,13 +1,9 @@
 use super::result::{PingResult, PingStat};
-use crate::probe::{ProbeResult, ProbeStatus, ProbeStatusKind};
-use crate::packet::setting::PacketBuildSetting;
-use crate::protocol::Protocol;
-use crate::host::{PortStatus, NodeType};
 use super::setting::PingSetting;
-use std::sync::mpsc::{channel, Receiver, Sender};
-use std::net::IpAddr;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use crate::host::{NodeType, PortStatus};
+use crate::packet::setting::PacketBuildSetting;
+use crate::probe::{ProbeResult, ProbeStatus, ProbeStatusKind};
+use crate::protocol::Protocol;
 use netdev::Interface;
 use nex::datalink::{RawReceiver, RawSender};
 use nex::net::mac::MacAddr;
@@ -15,6 +11,10 @@ use nex::packet::frame::{Frame, ParseOption};
 use nex::packet::icmp::IcmpType;
 use nex::packet::icmpv6::Icmpv6Type;
 use nex::packet::tcp::TcpFlags;
+use std::net::IpAddr;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 /// Pinger structure.
 ///
@@ -129,7 +129,7 @@ pub fn icmp_ping(
         let send_time = Instant::now();
         match tx.send(&icmp_packet) {
             Some(_) => {}
-            None => {},
+            None => {}
         }
         loop {
             match rx.next() {
@@ -147,7 +147,9 @@ pub fn icmp_ping(
                     if let Some(ip_layer) = &frame.ip {
                         // IPv4
                         if let Some(ipv4_header) = &ip_layer.ipv4 {
-                            if IpAddr::V4(ipv4_header.source) != setting.dst_ip || IpAddr::V4(ipv4_header.destination) != packet_setting.src_ip {
+                            if IpAddr::V4(ipv4_header.source) != setting.dst_ip
+                                || IpAddr::V4(ipv4_header.destination) != packet_setting.src_ip
+                            {
                                 continue;
                             }
                             // IPv4 ICMP
@@ -184,7 +186,9 @@ pub fn icmp_ping(
                         }
                         // IPv6
                         if let Some(ipv6_header) = &ip_layer.ipv6 {
-                            if IpAddr::V6(ipv6_header.source) != setting.dst_ip || IpAddr::V6(ipv6_header.destination) != packet_setting.src_ip {
+                            if IpAddr::V6(ipv6_header.source) != setting.dst_ip
+                                || IpAddr::V6(ipv6_header.destination) != packet_setting.src_ip
+                            {
                                 continue;
                             }
                             // ICMPv6
@@ -273,7 +277,7 @@ pub fn icmp_ping(
         .count();
     if received_count == 0 {
         result.probe_status = ProbeStatus::with_error_message("No response".to_string());
-    }else {
+    } else {
         let ping_stat: PingStat = PingStat {
             responses: responses.clone(),
             probe_time: probe_time,
@@ -324,7 +328,7 @@ pub fn tcp_ping(
         let send_time = Instant::now();
         match tx.send(&tcp_packet) {
             Some(_) => {}
-            None => {},
+            None => {}
         }
         loop {
             match rx.next() {
@@ -342,12 +346,16 @@ pub fn tcp_ping(
                     // So deep nested... but this is simplest way to check TCP packet safely.
                     if let Some(ip_layer) = &frame.ip {
                         if let Some(ipv4_header) = &ip_layer.ipv4 {
-                            if IpAddr::V4(ipv4_header.source) != setting.dst_ip || IpAddr::V4(ipv4_header.destination) != packet_setting.src_ip {
+                            if IpAddr::V4(ipv4_header.source) != setting.dst_ip
+                                || IpAddr::V4(ipv4_header.destination) != packet_setting.src_ip
+                            {
                                 continue;
                             }
                         }
                         if let Some(ipv6_header) = &ip_layer.ipv6 {
-                            if IpAddr::V6(ipv6_header.source) != setting.dst_ip || IpAddr::V6(ipv6_header.destination) != packet_setting.src_ip {
+                            if IpAddr::V6(ipv6_header.source) != setting.dst_ip
+                                || IpAddr::V6(ipv6_header.destination) != packet_setting.src_ip
+                            {
                                 continue;
                             }
                         }
@@ -487,7 +495,7 @@ pub fn tcp_ping(
         .count();
     if received_count == 0 {
         result.probe_status = ProbeStatus::with_error_message("No response".to_string());
-    }else {
+    } else {
         let ping_stat: PingStat = PingStat {
             responses: responses.clone(),
             probe_time: probe_time,
@@ -538,7 +546,7 @@ pub fn udp_ping(
         let send_time = Instant::now();
         match tx.send(&udp_packet) {
             Some(_) => {}
-            None => {},
+            None => {}
         }
         loop {
             match rx.next() {
@@ -556,7 +564,9 @@ pub fn udp_ping(
                     if let Some(ip_layer) = &frame.ip {
                         // IPv4
                         if let Some(ipv4_header) = &ip_layer.ipv4 {
-                            if IpAddr::V4(ipv4_header.source) != setting.dst_ip || IpAddr::V4(ipv4_header.destination) != packet_setting.src_ip {
+                            if IpAddr::V4(ipv4_header.source) != setting.dst_ip
+                                || IpAddr::V4(ipv4_header.destination) != packet_setting.src_ip
+                            {
                                 continue;
                             }
                             // ICMP
@@ -682,7 +692,7 @@ pub fn udp_ping(
         .count();
     if received_count == 0 {
         result.probe_status = ProbeStatus::with_error_message("No response".to_string());
-    }else {
+    } else {
         let ping_stat: PingStat = PingStat {
             responses: responses.clone(),
             probe_time: probe_time,

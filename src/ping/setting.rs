@@ -4,8 +4,8 @@ use std::{net::IpAddr, time::Duration};
 use netdev::Interface;
 use serde::{Deserialize, Serialize};
 
+use crate::config::{DEFAULT_HOP_LIMIT, DEFAULT_PING_COUNT};
 use crate::protocol::Protocol;
-use crate::config::{DEFAULT_PING_COUNT, DEFAULT_HOP_LIMIT};
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct PingSetting {
@@ -44,7 +44,7 @@ impl Default for PingSetting {
 
 impl PingSetting {
     pub fn icmp_ping(
-        interface: Interface,
+        interface: &Interface,
         dst_ip_addr: IpAddr,
         count: u32,
     ) -> Result<PingSetting, String> {
@@ -68,7 +68,7 @@ impl PingSetting {
         Ok(setting)
     }
     pub fn tcp_ping(
-        interface: Interface,
+        interface: &Interface,
         dst_ip_addr: IpAddr,
         dst_port: u16,
         count: u32,
@@ -93,7 +93,7 @@ impl PingSetting {
         Ok(setting)
     }
     pub fn udp_ping(
-        interface: Interface,
+        interface: &Interface,
         dst_ip_addr: IpAddr,
         count: u32,
     ) -> Result<PingSetting, String> {

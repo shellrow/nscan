@@ -1,6 +1,6 @@
-use std::net::IpAddr;
 use netdev::mac::MacAddr;
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 
 use crate::dns;
 
@@ -70,7 +70,7 @@ pub struct Host {
     /// Vendor name
     pub vendor_name: String,
     /// OS Family
-    pub os_family: String, 
+    pub os_family: String,
     /// TTL
     pub ttl: u8,
 }
@@ -153,7 +153,7 @@ pub fn is_valid_ip_addr(target: &str) -> bool {
 
 // Check if the target is a valid hostname
 pub fn is_valid_hostname(target: &str) -> bool {
-    dns::lookup_host_name(target.to_string()).is_some()
+    dns::lookup_host_name(target).is_some()
 }
 
 // Check if the target is valid
