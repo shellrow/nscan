@@ -29,12 +29,6 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/shellrow/nscan/releases
 irm https://github.com/shellrow/nscan/releases/latest/download/nscan-installer.ps1 | iex
 ```
 
-### Install prebuilt binaries via Homebrew
-
-```sh
-brew install shellrow/tap-nscan/nscan
-```
-
 ### From Releases
 You can download archives of precompiled binaries from the [releases](https://github.com/shellrow/nscan/releases) .
 
