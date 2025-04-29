@@ -1,13 +1,13 @@
 use super::domain::Domain;
 use super::result::DomainScanResult;
+use crate::scan::result::ScanStatus;
 use futures::{stream, StreamExt};
+use hickory_resolver::AsyncResolver;
 use std::net::IpAddr;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
-use hickory_resolver::AsyncResolver;
-use crate::scan::result::ScanStatus;
 
 /// Structure for domain scan  
 ///
