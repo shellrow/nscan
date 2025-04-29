@@ -1,7 +1,6 @@
 pub mod domain;
 pub mod result;
 pub mod scanner;
-pub mod setting;
 use std::net::IpAddr;
 use std::time::Duration;
 
