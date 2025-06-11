@@ -49,6 +49,7 @@ pub fn handle_hostscan(args: &ArgMatches) {
         Some(send_rate) => Duration::from_millis(*send_rate),
         None => Duration::from_millis(0),
     };
+    let mut dns_map: HashMap<IpAddr, String> = HashMap::new();
     let target_ips: Vec<IpAddr> = match Ipv4Net::from_str(&target) {
         Ok(ipv4net) => {
             // convert hosts to Vec<IpAddr>
@@ -73,7 +74,23 @@ pub fn handle_hostscan(args: &ArgMatches) {
                                 }
                                 match IpAddr::from_str(host) {
                                     Ok(ip) => ips.push(ip),
-                                    Err(_) => continue,
+                                    Err(_) => {
+                                        // Resolve hostname to IP address
+                                        match crate::dns::lookup_host_name(&host) {
+                                            Some(ip) => {
+                                                ips.push(ip);
+                                                if !dns_map.contains_key(&ip) {
+                                                    dns_map.insert(ip, host.to_string());
+                                                }
+                                            },
+                                            None => {
+                                                output::log_with_time(
+                                                    &format!("Failed to resolve hostname: {}", host),
+                                                    "ERROR",
+                                                );
+                                            }
+                                        }
+                                    },
                                 }
                             }
                             ips
@@ -105,6 +122,7 @@ pub fn handle_hostscan(args: &ArgMatches) {
         .set_if_index(interface.index)
         .set_scan_type(scan_type)
         .set_targets(targets)
+        .set_dns_map(dns_map)
         .set_timeout(timeout)
         .set_wait_time(wait_time)
         .set_send_rate(send_rate);
