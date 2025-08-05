@@ -38,7 +38,6 @@ pub enum AppCommands {
     Subdomain,
     Interfaces,
     Interface,
-    CheckDependencies,
 }
 
 impl AppCommands {
@@ -49,7 +48,6 @@ impl AppCommands {
             "subdomain" => Some(AppCommands::Subdomain),
             "interfaces" => Some(AppCommands::Interfaces),
             "interface" => Some(AppCommands::Interface),
-            "check" => Some(AppCommands::CheckDependencies),
             _ => None,
         }
     }

@@ -1,40 +1,51 @@
 pub mod model;
-pub mod tcp_service;
+pub mod oui;
 use crate::packet::frame::PacketFrame;
-use nex::packet::ethernet::EthernetHeader;
+use ndb_oui::OuiDb;
+use ndb_tcp_service::TcpServiceDb;
 
 use crate::config;
 use crate::ip;
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::sync::{OnceLock, RwLock};
+use anyhow::Result;
 
-pub fn get_oui_detail_map() -> HashMap<String, String> {
-    let mut oui_map: HashMap<String, String> = HashMap::new();
-    let ds_oui: Vec<model::Oui> = bincode::deserialize(config::OUI_BIN).unwrap_or(vec![]);
-    for oui in ds_oui {
-        oui_map.insert(oui.mac_prefix, oui.vendor_name_detail);
-    }
-    oui_map
+pub static OUI_DB: OnceLock<RwLock<OuiDb>> = OnceLock::new();
+pub static TCP_SERVICE_DB: OnceLock<RwLock<TcpServiceDb>> = OnceLock::new();
+
+/// Initialize all databases
+pub fn init_databases() -> Result<()> {
+    init_oui_db()?;
+    init_tcp_service_db()?;
+    Ok(())
 }
 
-pub fn get_vm_oui_map() -> HashMap<String, String> {
-    let mut oui_map: HashMap<String, String> = HashMap::new();
-    let ds_oui: Vec<model::Oui> = bincode::deserialize(config::OUI_VM_BIN).unwrap_or(vec![]);
-    for oui in ds_oui {
-        oui_map.insert(oui.mac_prefix, oui.vendor_name_detail);
-    }
-    oui_map
+pub fn init_oui_db() -> Result<()> {
+    // Initialize OUI database
+    let oui_db = OuiDb::bundled();
+    OUI_DB
+        .set(RwLock::new(oui_db))
+        .map_err(|_| anyhow::anyhow!("Failed to set OUI_DB in OnceLock"))?;
+    Ok(())
 }
 
-pub fn get_tcp_map() -> HashMap<u16, String> {
-    let mut tcp_map: HashMap<u16, String> = HashMap::new();
-    let ds_tcp_service: Vec<model::TcpService> =
-        bincode::deserialize(config::TCP_SERVICE_BIN).unwrap_or(vec![]);
-    for port in ds_tcp_service {
-        tcp_map.insert(port.port, port.service_name);
-    }
-    tcp_map
+pub fn init_tcp_service_db() -> Result<()> {
+    // Initialize TCP Service database
+    let tcp_service_db = TcpServiceDb::bundled();
+    TCP_SERVICE_DB
+        .set(RwLock::new(tcp_service_db))
+        .map_err(|_| anyhow::anyhow!("Failed to set TCP_SERVICE_DB in OnceLock"))?;
+    Ok(())
 }
+
+/* pub fn get_oui_db() -> OuiDb {
+    OuiDb::bundled()
+}
+
+pub fn get_tcp_service_db() -> TcpServiceDb {
+    TcpServiceDb::bundled()
+} */
 
 pub fn get_default_ports() -> Vec<u16> {
     let default_ports: Vec<u16> = bincode::deserialize(config::DEFAULT_PORTS_BIN).unwrap_or(vec![]);
@@ -96,25 +107,9 @@ pub fn is_vm_fingerprint(fingerprint: &model::OsFingerprint) -> bool {
     false
 }
 
-pub fn in_vm_network(ether_header: EthernetHeader) -> bool {
-    let vm_oui_map: HashMap<String, String> = get_vm_oui_map();
-    let mac = ether_header.source.address();
-    if mac.len() > 16 {
-        let prefix8 = mac[0..8].to_uppercase();
-        vm_oui_map.contains_key(&prefix8)
-    } else {
-        vm_oui_map.contains_key(&mac)
-    }
-}
-
-pub fn verify_os_family_fingerprint(fingerprint: &PacketFrame) -> model::OsFamilyFingerprint {
+pub fn verify_os_family_fingerprint(fingerprint: &PacketFrame, in_vm: bool) -> model::OsFamilyFingerprint {
     let os_family_list: Vec<String> = get_os_family_list();
     let os_family_fingerprints: Vec<model::OsFamilyFingerprint> = get_os_family_fingerprints();
-    let in_vm: bool = if let Some(ether_header) = &fingerprint.ethernet_header {
-        in_vm_network(ether_header.clone())
-    } else {
-        false
-    };
 
     // 0. Check TTL
     let os_ttl_list: Vec<model::OsTtl> = get_os_ttl_list();
@@ -132,7 +127,7 @@ pub fn verify_os_family_fingerprint(fingerprint: &PacketFrame) -> model::OsFamil
     if let Some(ref tcp_header) = fingerprint.tcp_header {
         tcp_window_size = tcp_header.window;
         for option in &tcp_header.options {
-            tcp_options.push(option.kind.name());
+            tcp_options.push(option.kind().name().to_string());
         }
     }
     let tco_option_pattern = tcp_options.join("-");
@@ -248,13 +243,8 @@ pub fn get_os_family(
     fingerprint: &PacketFrame,
     os_family_list: &Vec<String>,
     os_family_fingerprints: &Vec<model::OsFamilyFingerprint>,
+    in_vm: bool
 ) -> model::OsFamilyFingerprint {
-    let in_vm: bool = if let Some(ether_header) = &fingerprint.ethernet_header {
-        in_vm_network(ether_header.clone())
-    } else {
-        false
-    };
-
     // 0. Check TTL
     let os_ttl_list: Vec<model::OsTtl> = get_os_ttl_list();
     let initial_ttl = if let Some(ipv4_header) = &fingerprint.ipv4_header {
@@ -271,7 +261,7 @@ pub fn get_os_family(
     if let Some(ref tcp_header) = fingerprint.tcp_header {
         tcp_window_size = tcp_header.window;
         for option in &tcp_header.options {
-            tcp_options.push(option.kind.name());
+            tcp_options.push(option.kind().name().to_string());
         }
     }
     let tco_option_pattern = tcp_options.join("-");
@@ -384,12 +374,12 @@ pub fn get_os_family(
 }
 
 // return HashMap<IpAddr, String(OS Family)>
-pub fn get_fingerprint_map(fingerprints: &Vec<PacketFrame>) -> HashMap<IpAddr, String> {
+pub fn get_fingerprint_map(fingerprints: &Vec<PacketFrame>, in_vm: bool) -> HashMap<IpAddr, String> {
     let mut fingerprint_map: HashMap<IpAddr, String> = HashMap::new();
     let os_family_list: Vec<String> = get_os_family_list();
     let os_family_fingerprints: Vec<model::OsFamilyFingerprint> = get_os_family_fingerprints();
     for f in fingerprints {
-        let os_fingerprint = get_os_family(&f, &os_family_list, &os_family_fingerprints);
+        let os_fingerprint = get_os_family(&f, &os_family_list, &os_family_fingerprints, in_vm);
         if let Some(ipv4_header) = &f.ipv4_header {
             fingerprint_map.insert(IpAddr::V4(ipv4_header.source), os_fingerprint.os_family);
         } else {

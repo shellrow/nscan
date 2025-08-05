@@ -1,6 +1,9 @@
 use futures::stream::{self, StreamExt};
 use netdev::Interface;
-use nex::socket::{AsyncSocket, IpVersion, SocketOption, SocketType};
+use nex::socket::icmp::{AsyncIcmpSocket, IcmpConfig, IcmpKind};
+use nex::socket::tcp::{AsyncTcpSocket, TcpConfig};
+use nex::socket::udp::{AsyncUdpSocket, UdpConfig};
+use tokio::io::AsyncWriteExt;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
@@ -15,7 +18,7 @@ use super::setting::{HostScanSetting, PortScanSetting};
 use crate::config::PCAP_WAIT_TIME_MILLIS;
 use crate::packet::frame::PacketFrame;
 use crate::pcap::PacketCaptureOptions;
-use nex::packet::ip::IpNextLevelProtocol;
+use nex::packet::ip::IpNextProtocol;
 use std::collections::HashSet;
 use std::thread;
 
@@ -24,7 +27,7 @@ use super::setting::{HostScanType, PortScanType};
 
 pub(crate) async fn send_portscan_packets(
     interface: &Interface,
-    socket: &AsyncSocket,
+    socket: &AsyncTcpSocket,
     scan_setting: &PortScanSetting,
     ptx: &Arc<Mutex<Sender<SocketAddr>>>,
 ) {
@@ -39,7 +42,7 @@ pub(crate) async fn send_portscan_packets(
                     async move {
                         let packet_bytes: Vec<u8> =
                             build_portscan_ip_next_packet(&interface, target.ip_addr, port);
-                        match socket.send_to(&packet_bytes, dst_socket_addr).await {
+                        match socket.send_to(&packet_bytes, dst_socket_addr) {
                             Ok(_) => {}
                             Err(_) => {}
                         }
@@ -68,60 +71,52 @@ pub(crate) async fn send_hostscan_packets(
     let fut_host = stream::iter(scan_setting.targets.clone()).for_each_concurrent(
         scan_setting.concurrency,
         |dst| async move {
-            let socket: AsyncSocket = match scan_setting.scan_type {
-                HostScanType::IcmpPingScan => match dst.ip_addr {
-                    IpAddr::V4(_) => {
-                        let socket_option = SocketOption {
-                            ip_version: IpVersion::V4,
-                            socket_type: SocketType::Raw,
-                            protocol: Some(IpNextLevelProtocol::Icmp),
-                            non_blocking: true,
-                        };
-                        AsyncSocket::new(socket_option).unwrap()
-                    }
-                    IpAddr::V6(_) => {
-                        let socket_option = SocketOption {
-                            ip_version: IpVersion::V6,
-                            socket_type: SocketType::Raw,
-                            protocol: Some(IpNextLevelProtocol::Icmpv6),
-                            non_blocking: true,
-                        };
-                        AsyncSocket::new(socket_option).unwrap()
-                    }
-                },
-                HostScanType::TcpPingScan => {
-                    let socket_option = SocketOption {
-                        ip_version: if dst.ip_addr.is_ipv4() {
-                            IpVersion::V4
-                        } else {
-                            IpVersion::V6
-                        },
-                        socket_type: SocketType::Raw,
-                        protocol: Some(IpNextLevelProtocol::Tcp),
-                        non_blocking: true,
-                    };
-                    AsyncSocket::new(socket_option).unwrap()
-                }
-                HostScanType::UdpPingScan => {
-                    let socket_option = SocketOption {
-                        ip_version: if dst.ip_addr.is_ipv4() {
-                            IpVersion::V4
-                        } else {
-                            IpVersion::V6
-                        },
-                        socket_type: SocketType::Raw,
-                        protocol: Some(IpNextLevelProtocol::Udp),
-                        non_blocking: true,
-                    };
-                    AsyncSocket::new(socket_option).unwrap()
-                }
-            };
-            let dst_socket_addr: SocketAddr = SocketAddr::new(dst.ip_addr, 0);
             let packet_bytes =
                 build_hostscan_ip_next_packet(&interface, &dst, &scan_setting.scan_type);
-            match socket.send_to(&packet_bytes, dst_socket_addr).await {
-                Ok(_) => {}
-                Err(_) => {}
+            let target = SocketAddr::new(dst.ip_addr, 0);
+            match scan_setting.scan_type {
+                HostScanType::IcmpPingScan => {
+                    let config = match dst.ip_addr {
+                        IpAddr::V4(_) => {
+                            IcmpConfig::new(IcmpKind::V4)
+                        }
+                        IpAddr::V6(_) => {
+                            IcmpConfig::new(IcmpKind::V6)
+                        }
+                    };
+                    let socket = Arc::new(AsyncIcmpSocket::new(&config).await.unwrap());
+                    let _ = socket.send_to(&packet_bytes, target).await;
+                },
+                HostScanType::TcpPingScan => {
+                    let config = match dst.ip_addr {
+                        IpAddr::V4(_) => {
+                            TcpConfig::raw_v4()
+                        }
+                        IpAddr::V6(_) => {
+                            TcpConfig::raw_v6()
+                        }
+                    };
+                    let socket = AsyncTcpSocket::from_config(&config).unwrap();
+                    let _ = socket.send_to(&packet_bytes, target);
+                }
+                HostScanType::UdpPingScan => {
+                    let config = match dst.ip_addr {
+                        IpAddr::V4(_) => {
+                            let mut conf = UdpConfig::new();
+                            conf.socket_family = nex::socket::SocketFamily::IPV4;
+                            conf.socket_type = nex::socket::udp::UdpSocketType::Raw;
+                            conf
+                        }
+                        IpAddr::V6(_) => {
+                            let mut conf = UdpConfig::new();
+                            conf.socket_family = nex::socket::SocketFamily::IPV6;
+                            conf.socket_type = nex::socket::udp::UdpSocketType::Raw;
+                            conf
+                        }
+                    };
+                    let socket = AsyncUdpSocket::from_config(&config).unwrap();
+                    let _ = socket.send_to(&packet_bytes, target);
+                }
             }
             match ptx.lock() {
                 Ok(lr) => match lr.send(dst) {
@@ -147,15 +142,21 @@ pub async fn try_connect_ports(
         let channel_tx = channel_tx.clone();
         async move {
             let socket_addr: SocketAddr = SocketAddr::new(target.ip_addr, port);
-            match AsyncSocket::new_with_async_connect_timeout(&socket_addr, timeout).await {
-                Ok(async_socket) => {
+            let cfg = if socket_addr.is_ipv4() {
+                TcpConfig::v4_stream()
+            } else {
+                TcpConfig::v6_stream()
+            };
+            let socket = AsyncTcpSocket::from_config(&cfg).unwrap();
+            match socket.connect_timeout(socket_addr, timeout).await {
+                Ok(mut stream) => {
                     let _ = channel_tx.send(port);
-                    match async_socket.shutdown(std::net::Shutdown::Both).await {
+                    match stream.shutdown().await {
                         Ok(_) => {}
                         Err(_) => {}
                     }
-                }
-                Err(_) => {}
+                },
+                Err(_) => {},
             }
             match ptx.lock() {
                 Ok(lr) => match lr.send(socket_addr) {
@@ -279,15 +280,15 @@ pub(crate) async fn scan_hosts(
         HostScanType::IcmpPingScan => {
             capture_options
                 .ip_protocols
-                .insert(IpNextLevelProtocol::Icmp);
+                .insert(IpNextProtocol::Icmp);
             capture_options
                 .ip_protocols
-                .insert(IpNextLevelProtocol::Icmpv6);
+                .insert(IpNextProtocol::Icmpv6);
         }
         HostScanType::TcpPingScan => {
             capture_options
                 .ip_protocols
-                .insert(IpNextLevelProtocol::Tcp);
+                .insert(IpNextProtocol::Tcp);
             for target in scan_setting.targets.clone() {
                 for port in target.get_ports() {
                     capture_options.src_ports.insert(port);
@@ -297,13 +298,13 @@ pub(crate) async fn scan_hosts(
         HostScanType::UdpPingScan => {
             capture_options
                 .ip_protocols
-                .insert(IpNextLevelProtocol::Udp);
+                .insert(IpNextProtocol::Udp);
             capture_options
                 .ip_protocols
-                .insert(IpNextLevelProtocol::Icmp);
+                .insert(IpNextProtocol::Icmp);
             capture_options
                 .ip_protocols
-                .insert(IpNextLevelProtocol::Icmpv6);
+                .insert(IpNextProtocol::Icmpv6);
         }
     }
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
@@ -387,21 +388,21 @@ pub(crate) async fn scan_ports(
         Ok(_) => return ScanResult::error("Unhandled channel type".to_string()),
         Err(e) => return ScanResult::error(format!("Failed to create channel: {}", e)),
     };
-    let socket_option = SocketOption {
-        ip_version: if scan_setting.targets.len() > 0 {
-            if scan_setting.targets[0].ip_addr.is_ipv4() {
-                IpVersion::V4
-            } else {
-                IpVersion::V6
-            }
-        } else {
-            IpVersion::V4
-        },
-        socket_type: SocketType::Raw,
-        protocol: Some(IpNextLevelProtocol::Tcp),
-        non_blocking: true,
+
+    if scan_setting.targets.len() == 0 {
+        return ScanResult::error("No targets specified".to_string());
+    }
+
+    let config = match scan_setting.targets[0].ip_addr {
+        IpAddr::V4(_) => {
+            TcpConfig::raw_v4()
+        }
+        IpAddr::V6(_) => {
+            TcpConfig::raw_v6()
+        }
     };
-    let socket: AsyncSocket = AsyncSocket::new(socket_option).unwrap();
+    let socket = AsyncTcpSocket::from_config(&config).unwrap();
+
     let mut capture_options: PacketCaptureOptions = PacketCaptureOptions {
         interface_index: interface.index,
         interface_name: interface.name.clone(),
@@ -426,12 +427,12 @@ pub(crate) async fn scan_ports(
         PortScanType::TcpSynScan => {
             capture_options
                 .ip_protocols
-                .insert(IpNextLevelProtocol::Tcp);
+                .insert(IpNextProtocol::Tcp);
         }
         PortScanType::TcpConnectScan => {
             capture_options
                 .ip_protocols
-                .insert(IpNextLevelProtocol::Tcp);
+                .insert(IpNextProtocol::Tcp);
         }
     }
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));

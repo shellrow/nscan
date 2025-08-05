@@ -7,7 +7,7 @@ use nex::datalink::RawReceiver;
 use nex::net::interface::Interface;
 use nex::packet::frame::Frame;
 use nex::packet::frame::ParseOption;
-use nex::packet::{ethernet::EtherType, ip::IpNextLevelProtocol};
+use nex::packet::{ethernet::EtherType, ip::IpNextProtocol};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -55,7 +55,7 @@ pub struct PacketCaptureOptions {
     /// Ether types to filter. If empty, all ether types will be captured
     pub ether_types: HashSet<EtherType>,
     /// IP protocols to filter. If empty, all IP protocols will be captured
-    pub ip_protocols: HashSet<IpNextLevelProtocol>,
+    pub ip_protocols: HashSet<IpNextProtocol>,
     /// Capture duration limit
     pub capture_timeout: Duration,
     /// Read Timeout for read next packet (Linux, BPF only)
@@ -177,14 +177,16 @@ pub fn start_capture(
                     parse_option.from_ip_packet = true;
                     parse_option.offset = payload_offset;
                 }
-                let frame: Frame = Frame::from_bytes(&packet, parse_option);
+                let frame: Frame = match Frame::from_buf(&packet, parse_option) {
+                    Some(frame) => frame,
+                    None => {
+                        eprintln!("Error parsing packet");
+                        continue;
+                    }
+                };
                 if filter_packet(&frame, &capture_options) {
                     let packet_frame = PacketFrame::from_nex_frame(&frame);
                     frames.push(packet_frame);
-                    /* match msg_tx.send(packet_frame) {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    } */
                 }
             }
             Err(_) => {}
@@ -203,76 +205,6 @@ pub fn start_capture(
     }
     frames
 }
-
-/* /// Start packet capture
-pub fn start_capture(
-    capture_options: PacketCaptureOptions,
-    stop: &Arc<Mutex<bool>>,
-    interface: Interface,
-) -> Vec<PacketFrame> {
-    let mut frames = Vec::new();
-    let config = nex::datalink::Config {
-        write_buffer_size: 4096,
-        read_buffer_size: 4096,
-        read_timeout: Some(capture_options.read_timeout),
-        write_timeout: None,
-        channel_type: nex::datalink::ChannelType::Layer2,
-        bpf_fd_attempts: 1000,
-        linux_fanout: None,
-        promiscuous: capture_options.promiscuous,
-    };
-    let (mut _tx, mut rx) = match nex::datalink::channel(&interface, config) {
-        Ok(nex::datalink::Channel::Ethernet(tx, rx)) => (tx, rx),
-        Ok(_) => {
-            //thread_log!(warn, "Unknown channel type");
-            return frames;
-        },
-        Err(_e) => {
-            //thread_log!(error, "Error happened {}", e);
-            return frames;
-        },
-    };
-    let start_time = Instant::now();
-    loop {
-        match rx.next() {
-            Ok(packet) => {
-                let mut parse_option: ParseOption = ParseOption::default();
-                if interface.is_tun() || (cfg!(any(target_os = "macos", target_os = "ios")) && interface.is_loopback()) {
-                    let payload_offset;
-                    if interface.is_loopback() {
-                        payload_offset = 14;
-                    } else {
-                        payload_offset = 0;
-                    }
-                    parse_option.from_ip_packet = true;
-                    parse_option.offset = payload_offset;
-                }
-                let frame: Frame = Frame::from_bytes(&packet, parse_option);
-                if filter_packet(&frame, &capture_options) {
-                    let packet_frame = PacketFrame::from_nex_frame(&frame);
-                    frames.push(packet_frame);
-                    /* match msg_tx.send(packet_frame) {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    } */
-                }
-            }
-            Err(_) => {}
-        }
-        match stop.lock() {
-            Ok(stop) => {
-                if *stop {
-                    break;
-                }
-            }
-            Err(_) => {}
-        }
-        if Instant::now().duration_since(start_time) > capture_options.capture_timeout {
-            break;
-        }
-    }
-    frames
-} */
 
 fn filter_packet(frame: &Frame, capture_options: &PacketCaptureOptions) -> bool {
     if let Some(datalink) = &frame.datalink {
@@ -365,7 +297,7 @@ fn filter_ether_type(ether_type: EtherType, capture_options: &PacketCaptureOptio
 }
 
 fn filter_ip_protocol(
-    protocol: IpNextLevelProtocol,
+    protocol: IpNextProtocol,
     capture_options: &PacketCaptureOptions,
 ) -> bool {
     if capture_options.ip_protocols.len() == 0 || capture_options.ip_protocols.contains(&protocol) {

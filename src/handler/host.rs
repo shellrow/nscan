@@ -161,7 +161,7 @@ pub fn handle_hostscan(args: &ArgMatches) {
     hostscan_result.sort_ports();
     hostscan_result.sort_hosts();
     let os_family_map: HashMap<IpAddr, String> =
-        crate::db::get_fingerprint_map(&hostscan_result.fingerprints);
+        crate::db::get_fingerprint_map(&hostscan_result.fingerprints, crate::db::oui::is_virtual_mac(&interface.mac_addr.unwrap()));
     for host in &mut hostscan_result.hosts {
         host.os_family = os_family_map
             .get(&host.ip_addr)
@@ -252,8 +252,8 @@ fn show_hostscan_result(hostscan_result: &HostScanResult) {
     if !crate::app::is_quiet_mode() {
         println!();
     }
-    let oui_map: HashMap<String, String> = crate::db::get_oui_detail_map();
-    let mut tree = Tree::new(node_label("HostScan Result", None, None));
+    let oui_db = crate::db::OUI_DB.get().unwrap().read().unwrap();
+    let mut tree: Tree<String> = Tree::new(node_label("HostScan Result", None, None));
     let mut hosts_tree = Tree::new(node_label("Hosts", None, None));
     for host in &hostscan_result.hosts {
         let mut host_tree = Tree::new(node_label(&host.ip_addr.to_string(), None, None));
@@ -261,14 +261,9 @@ fn show_hostscan_result(hostscan_result: &HostScanResult) {
         host_tree.push(node_label("TTL", Some(&host.ttl.to_string()), None));
         host_tree.push(node_label("OS Family", Some(&host.os_family), None));
         if !crate::ip::is_global_addr(&host.ip_addr) {
-            let vendor_name = if host.mac_addr.address().len() > 16 {
-                let prefix8 = host.mac_addr.address()[0..8].to_uppercase();
-                oui_map.get(&prefix8).unwrap_or(&String::new()).to_string()
-            } else {
-                oui_map
-                    .get(&host.mac_addr.address())
-                    .unwrap_or(&String::new())
-                    .to_string()
+            let vendor_name = match oui_db.lookup(&host.mac_addr.address()) {
+                Some(vendor) => vendor.vendor.to_string(),
+                None => String::new(),
             };
             host_tree.push(node_label(
                 "MAC Address",

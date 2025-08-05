@@ -1,7 +1,6 @@
 // Core
 pub mod config;
 pub mod db;
-pub mod dep;
 pub mod dns;
 pub mod fp;
 pub mod fs;
@@ -45,8 +44,11 @@ fn main() {
     }
     let subcommand_name = arg_matches.subcommand_name().unwrap_or("");
     let app_command = AppCommands::from_str(subcommand_name);
+
+    let _ = crate::db::init_databases();
+
     app::show_banner_with_starttime();
-    check_deps();
+    
     match app_command {
         Some(AppCommands::PortScan) => {
             handler::port::handle_portscan(&arg_matches);
@@ -62,9 +64,6 @@ fn main() {
         }
         Some(AppCommands::Interface) => {
             handler::interface::show_default_interface(&arg_matches);
-        }
-        Some(AppCommands::CheckDependencies) => {
-            handler::check::check_dependencies(&arg_matches);
         }
         None => match arg_matches.get_one::<String>("target") {
             Some(target_host) => {
@@ -292,16 +291,4 @@ fn parse_args() -> ArgMatches {
         )
         ;
     app.get_matches()
-}
-
-fn check_deps() {
-    match crate::dep::check_dependencies() {
-        Ok(_) => {}
-        Err(e) => {
-            println!("Dependency error:");
-            println!("{}", e);
-            println!("Exiting...");
-            std::process::exit(1);
-        }
-    }
 }
