@@ -37,8 +37,8 @@ inquire = "0.6"
 ipnet = "2.7"
 num_cpus = "1.16"
 termtree = "0.5"
-ndb-oui = { version = "0.2", features = ["bundled"] }
-ndb-tcp-service = { version = "0.2", features = ["bundled"] }
+ndb-oui = { version = "0.3", features = ["bundled"] }
+ndb-tcp-service = { version = "0.3", features = ["bundled"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
