@@ -1,0 +1,37 @@
+[
+    {
+        "os_family": "Windows",
+        "os_description": "Microsoft Windows family",
+        "initial_ttl": 128
+    },
+    {
+        "os_family": "Linux",
+        "os_description": "Linux, Unix-like family",
+        "initial_ttl": 64
+    },
+    {
+        "os_family": "Bsd",
+        "os_description": "BSD family (FreeBSD, OpenBSD, NetBSD, etc.)",
+        "initial_ttl": 64
+    },
+    {
+        "os_family": "Darwin",
+        "os_description": "Apple Darwin / macOS / iOS",
+        "initial_ttl": 64
+    },
+    {
+        "os_family": "Solaris",
+        "os_description": "Sun Solaris / Unix-like",
+        "initial_ttl": 255
+    },
+    {
+        "os_family": "NetworkOs",
+        "os_description": "Network appliances and embedded network OS",
+        "initial_ttl": 255
+    },
+    {
+        "os_family": "Embedded",
+        "os_description": "Embedded devices and IoT firmware",
+        "initial_ttl": 255
+    }
+]

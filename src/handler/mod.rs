@@ -4,7 +4,7 @@ pub mod interface;
 pub mod ping;
 pub mod port;
 
-use crate::db::model::OsFamilyFingerprint;
+use crate::fp::MatchResult;
 use crate::host::Host;
 use crate::json::port::PortScanResult;
 use crate::scan::result::ScanResult;
@@ -161,9 +161,8 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
         if let Some(fingerprint) = portscan_result
             .get_syn_ack_fingerprint(result.host.ip_addr, result.host.get_open_port_numbers()[0])
         {
-            let os_fingerprint: OsFamilyFingerprint =
-                crate::db::verify_os_family_fingerprint(&fingerprint, crate::db::oui::is_virtual_mac(&interface.mac_addr.unwrap()));
-            result.host.os_family = os_fingerprint.os_family;
+            let os_fingerprint: MatchResult = crate::fp::get_fingerprint(&fingerprint);
+            result.host.os_family = format!("{} ({})", os_fingerprint.family, os_fingerprint.evidence);
         }
     }
     // Set vendor name

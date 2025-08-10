@@ -161,7 +161,7 @@ pub fn handle_hostscan(args: &ArgMatches) {
     hostscan_result.sort_ports();
     hostscan_result.sort_hosts();
     let os_family_map: HashMap<IpAddr, String> =
-        crate::db::get_fingerprint_map(&hostscan_result.fingerprints, crate::db::oui::is_virtual_mac(&interface.mac_addr.unwrap()));
+        crate::fp::get_fingerprint_map(&hostscan_result.fingerprints);
     for host in &mut hostscan_result.hosts {
         host.os_family = os_family_map
             .get(&host.ip_addr)
