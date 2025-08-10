@@ -40,9 +40,6 @@ termtree = "0.5"
 ndb-oui = { version = "0.3", features = ["bundled"] }
 ndb-tcp-service = { version = "0.3", features = ["bundled"] }
 
-[target.'cfg(windows)'.dependencies]
-winreg = "0.55"
-
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"
