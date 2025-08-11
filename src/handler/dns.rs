@@ -73,7 +73,7 @@ pub fn handle_subdomain_scan(args: &ArgMatches) {
     if crate::app::is_quiet_mode() {
         bar.set_draw_target(ProgressDrawTarget::hidden());
     }
-    bar.enable_steady_tick(120);
+    bar.enable_steady_tick(Duration::from_millis(120));
     bar.set_style(output::get_progress_style());
     bar.set_position(0);
     bar.set_message("SubdomainScan");
