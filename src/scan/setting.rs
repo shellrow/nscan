@@ -57,7 +57,8 @@ pub struct PortScanSetting {
     pub protocol: Protocol,
     pub scan_type: PortScanType,
     pub concurrency: usize,
-    pub timeout: Duration,
+    pub task_timeout: Duration,
+    pub connect_timeout: Duration,
     pub wait_time: Duration,
     pub send_rate: Duration,
     pub randomize: bool,
@@ -74,7 +75,8 @@ impl Default for PortScanSetting {
             protocol: Protocol::TCP,
             scan_type: PortScanType::TcpSynScan,
             concurrency: DEFAULT_PORTS_CONCURRENCY,
-            timeout: Duration::from_secs(30),
+            task_timeout: Duration::from_secs(30),
+            connect_timeout: Duration::from_millis(100),
             wait_time: Duration::from_secs(200),
             send_rate: Duration::from_millis(0),
             randomize: true,
@@ -111,8 +113,12 @@ impl PortScanSetting {
         self.concurrency = concurrency;
         self
     }
-    pub fn set_timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
+    pub fn set_task_timeout(mut self, timeout: Duration) -> Self {
+        self.task_timeout = timeout;
+        self
+    }
+    pub fn set_connect_timeout(mut self, timeout: Duration) -> Self {
+        self.connect_timeout = timeout;
         self
     }
     pub fn set_wait_time(mut self, wait_time: Duration) -> Self {

@@ -82,7 +82,7 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
         .set_if_index(interface.index)
         .set_scan_type(PortScanType::TcpSynScan)
         .add_target(target_host.clone())
-        .set_timeout(Duration::from_millis(10000))
+        .set_task_timeout(Duration::from_millis(10000))
         .set_wait_time(default_waittime)
         .set_send_rate(Duration::from_millis(0));
     // Print options

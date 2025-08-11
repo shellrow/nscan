@@ -101,8 +101,8 @@ pub fn handle_portscan(args: &ArgMatches) {
         }
     }
     let scan_type: PortScanType = match port_args.get_one::<String>("scantype") {
-        Some(scan_type) => match scan_type.as_str() {
-            "CONNECT" => PortScanType::TcpConnectScan,
+        Some(scan_type) => match scan_type.to_lowercase().as_str() {
+            "connect" => PortScanType::TcpConnectScan,
             _ => PortScanType::TcpSynScan,
         },
         None => PortScanType::TcpSynScan,
@@ -126,7 +126,7 @@ pub fn handle_portscan(args: &ArgMatches) {
         .set_if_index(interface.index)
         .set_scan_type(scan_type)
         .add_target(target_host.clone())
-        .set_timeout(timeout)
+        .set_task_timeout(timeout)
         .set_wait_time(wait_time)
         .set_send_rate(send_rate);
     // Print options
@@ -147,6 +147,17 @@ pub fn handle_portscan(args: &ArgMatches) {
     bar.set_style(output::get_progress_style());
     bar.set_position(0);
     bar.set_message("PortScan");
+
+    match crate::nei::resolve_next_hop(target_ip_addr, &interface) {
+        Ok(_next_hop) => {
+            
+        }
+        Err(e) => {
+            output::log_with_time(&format!("Failed to resolve next hop: {}", e), "ERROR");
+            return;
+        }
+    }
+
     let port_scanner = PortScanner::new(scan_setting);
     let rx = port_scanner.get_progress_receiver();
     // Run port scan
@@ -279,8 +290,8 @@ pub fn print_option(setting: &PortScanSetting, interface: &Interface) {
     ));
     setting_tree.push(node_label("InterfaceName", Some(&interface.name), None));
     setting_tree.push(node_label(
-        "Timeout",
-        Some(format!("{:?}", setting.timeout).as_str()),
+        "TaskTimeout",
+        Some(format!("{:?}", setting.task_timeout).as_str()),
         None,
     ));
     setting_tree.push(node_label(

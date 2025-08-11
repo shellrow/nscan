@@ -1,4 +1,3 @@
-use crate::config::PCAP_WAIT_TIME_MILLIS;
 use crate::host::Host;
 use crate::packet::frame::PacketFrame;
 use crate::pcap::PacketCaptureOptions;
@@ -11,7 +10,6 @@ use std::net::SocketAddr;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 use super::packet::{build_hostscan_packet, build_portscan_packet};
 use super::result::{parse_hostscan_result, parse_portscan_result, ScanResult, ScanStatus};
@@ -179,12 +177,20 @@ pub(crate) fn scan_hosts(
     }
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     let stop_handle = Arc::clone(&stop);
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
     let packets: Arc<Mutex<Vec<PacketFrame>>> = Arc::new(Mutex::new(vec![]));
     let receive_packets: Arc<Mutex<Vec<PacketFrame>>> = Arc::clone(&packets);
     // Spawn pcap thread
     let pcap_handler = thread::spawn(move || {
         let packets: Vec<PacketFrame> =
             crate::pcap::start_capture(&mut rx, capture_options, &stop_handle);
+        // Notify that pcap is ready
+        match ready_tx.send(()) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Failed to send ready signal: {:?}", e);
+            }
+        }
         match receive_packets.lock() {
             Ok(mut receive_packets) => {
                 for p in packets {
@@ -196,8 +202,8 @@ pub(crate) fn scan_hosts(
             }
         }
     });
-    // Wait for listener to start (need fix for better way)
-    thread::sleep(Duration::from_millis(PCAP_WAIT_TIME_MILLIS));
+    // Wait for listener to start
+    let _ = ready_rx;
     let start_time = std::time::Instant::now();
     // Send probe packets
     send_hostscan_packets(
@@ -270,7 +276,7 @@ pub(crate) fn scan_ports(
         dst_ports: HashSet::new(),
         ether_types: HashSet::new(),
         ip_protocols: HashSet::new(),
-        capture_timeout: scan_setting.timeout,
+        capture_timeout: scan_setting.task_timeout,
         read_timeout: scan_setting.wait_time,
         promiscuous: false,
         receive_undefined: false,
@@ -295,12 +301,20 @@ pub(crate) fn scan_ports(
     }
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     let stop_handle = Arc::clone(&stop);
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
     let packets: Arc<Mutex<Vec<PacketFrame>>> = Arc::new(Mutex::new(vec![]));
     let receive_packets: Arc<Mutex<Vec<PacketFrame>>> = Arc::clone(&packets);
     // Spawn pcap thread
     let pcap_handler = thread::spawn(move || {
         let packets: Vec<PacketFrame> =
             crate::pcap::start_capture(&mut rx, capture_options, &stop_handle);
+        // Notify that pcap is ready
+        match ready_tx.send(()) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Failed to send ready signal: {:?}", e);
+            }
+        }
         match receive_packets.lock() {
             Ok(mut receive_packets) => {
                 for p in packets {
@@ -312,8 +326,8 @@ pub(crate) fn scan_ports(
             }
         }
     });
-    // Wait for listener to start (need fix for better way)
-    thread::sleep(Duration::from_millis(PCAP_WAIT_TIME_MILLIS));
+    // Wait for listener to start
+    let _ = ready_rx;
     let start_time = std::time::Instant::now();
     // Send probe packets
     send_portscan_packets(

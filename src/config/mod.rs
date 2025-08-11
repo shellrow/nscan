@@ -5,7 +5,6 @@ pub const DEFAULT_HOP_LIMIT: u8 = 64;
 pub const DEFAULT_PING_COUNT: u32 = 4;
 pub const DEFAULT_HOSTS_CONCURRENCY: usize = 50;
 pub const DEFAULT_PORTS_CONCURRENCY: usize = 100;
-pub const PCAP_WAIT_TIME_MILLIS: u64 = 10;
 
 // Database
 pub const DEFAULT_PORTS_JSON: &str = include_str!("../../resources/default-ports.json");
