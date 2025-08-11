@@ -47,7 +47,7 @@ pub fn handle_hostscan(args: &ArgMatches) {
     };
     let send_rate = match host_args.get_one::<u64>("rate") {
         Some(send_rate) => Duration::from_millis(*send_rate),
-        None => Duration::from_millis(0),
+        None => Duration::from_millis(1),
     };
     let mut dns_map: HashMap<IpAddr, String> = HashMap::new();
     let target_ips: Vec<IpAddr> = match Ipv4Net::from_str(&target) {
