@@ -17,6 +17,8 @@ pub mod scan;
 pub mod sys;
 pub mod tls;
 pub mod util;
+pub mod nei;
+
 // CLI
 pub mod app;
 pub mod handler;
