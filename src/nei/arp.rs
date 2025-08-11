@@ -11,7 +11,6 @@ pub fn send_arp(ipv4_addr: Ipv4Addr, iface: &Interface) -> Result<NetworkDevice>
     let src_ip = iface.ipv4.iter()
         .map(|n| n.addr())
         .find(|ip| {
-            // ipnet.contains(dst) が使えるならそれでもOK
             let mask = iface.ipv4.iter().find(|n| n.contains(&ipv4_addr)).map(|n| n.netmask()).unwrap_or(Ipv4Addr::new(255,255,255,0));
             (u32::from(*ip) & u32::from(mask)) == (u32::from(ipv4_addr) & u32::from(mask))
         })

@@ -8,7 +8,7 @@ use crate::{nei::NetworkDevice, packet::setting::PacketBuildSetting};
 pub fn send_ndp(ipv6_addr: Ipv6Addr, iface: &Interface) -> Result<NetworkDevice> {
     let src_ip = iface.ipv6.iter()
         .map(|n| n.addr())
-        .find(|ip| ip.segments()[0] == 0xfe80) // fe80::/10 簡易
+        .find(|ip| ip.segments()[0] == 0xfe80)
         .unwrap_or_else(|| iface.ipv6[0].addr());
     let src_mac = iface.mac_addr.expect("No MAC address on interface");
     let next_hop = crate::ip::next_hop_ip(iface, IpAddr::V6(ipv6_addr))
