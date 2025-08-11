@@ -20,9 +20,8 @@ use super::setting::{HostScanType, PortScanType};
 pub(crate) fn send_hostscan_packets(
     tx: &mut Box<dyn RawSender>,
     interface: &Interface,
-    targets: Vec<Host>,
+    scan_setting: &HostScanSetting,
     ptx: &Arc<Mutex<Sender<Host>>>,
-    scan_type: HostScanType,
 ) {
     // Acquire message sender lock
     let ptx_lock = match ptx.lock() {
@@ -32,16 +31,19 @@ pub(crate) fn send_hostscan_packets(
             return;
         }
     };
-    for target in targets {
-        let packet = build_hostscan_packet(&interface, &target, &scan_type, false);
+    for target in &scan_setting.targets {
+        let packet = build_hostscan_packet(&interface, &target, &scan_setting.scan_type, false);
         match tx.send(&packet) {
             Some(_) => {
                 // Notify packet sent
-                match ptx_lock.send(target) {
+                match ptx_lock.send(target.clone()) {
                     Ok(_) => {}
                     Err(e) => {
                         eprintln!("Failed to send message: {}", e);
                     }
+                }
+                if !scan_setting.send_rate.is_zero() {
+                    thread::sleep(scan_setting.send_rate);
                 }
             }
             None => {
@@ -56,9 +58,8 @@ pub(crate) fn send_hostscan_packets(
 pub(crate) fn send_portscan_packets(
     tx: &mut Box<dyn RawSender>,
     interface: &Interface,
-    targets: Vec<Host>,
+    scan_setting: &PortScanSetting,
     ptx: &Arc<Mutex<Sender<SocketAddr>>>,
-    scan_type: PortScanType,
 ) {
     // Acquire message sender lock
     let ptx_lock = match ptx.lock() {
@@ -68,10 +69,10 @@ pub(crate) fn send_portscan_packets(
             return;
         }
     };
-    for target in targets {
-        match scan_type {
+    for target in &scan_setting.targets {
+        match scan_setting.scan_type {
             PortScanType::TcpSynScan => {
-                for port in target.ports {
+                for port in &target.ports {
                     let packet =
                         build_portscan_packet(&interface, target.ip_addr, port.number, false);
                     match tx.send(&packet) {
@@ -82,6 +83,9 @@ pub(crate) fn send_portscan_packets(
                                 Err(e) => {
                                     eprintln!("Failed to send message: {}", e);
                                 }
+                            }
+                            if !scan_setting.send_rate.is_zero() {
+                                thread::sleep(scan_setting.send_rate);
                             }
                         }
                         None => {
@@ -199,9 +203,8 @@ pub(crate) fn scan_hosts(
     send_hostscan_packets(
         &mut tx,
         &interface,
-        scan_setting.targets.clone(),
+        &scan_setting,
         ptx,
-        scan_setting.scan_type.clone(),
     );
     thread::sleep(scan_setting.wait_time);
     // Stop pcap
@@ -316,9 +319,8 @@ pub(crate) fn scan_ports(
     send_portscan_packets(
         &mut tx,
         &interface,
-        scan_setting.targets.clone(),
+        &scan_setting,
         ptx,
-        scan_setting.scan_type.clone(),
     );
     thread::sleep(scan_setting.wait_time);
     // Stop pcap
