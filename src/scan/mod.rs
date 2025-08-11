@@ -6,3 +6,4 @@ pub mod result;
 pub mod scanner;
 pub mod service;
 pub mod setting;
+pub mod os;
