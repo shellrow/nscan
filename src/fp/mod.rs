@@ -257,7 +257,10 @@ pub fn classify(
                 return MatchResult {
                     family: family.as_str().to_string(),
                     confidence,
-                    evidence: format!("option_order+window_size match '{}','{}'", sig.order_key, sig.win_bucket),
+                    evidence: format!(
+                        "option_order+window_size match '{}','{}'",
+                        sig.order_key, sig.win_bucket
+                    ),
                 };
             }
         }
