@@ -125,6 +125,7 @@ pub fn handle_portscan(args: &ArgMatches) {
         .add_target(target_host.clone())
         .set_task_timeout(timeout)
         .set_wait_time(wait_time)
+        .set_connect_timeout(wait_time)
         .set_send_rate(send_rate);
     // Print options
     print_option(&scan_setting, &interface);
@@ -324,16 +325,24 @@ pub fn print_option(setting: &PortScanSetting, interface: &Interface) {
         Some(format!("{:?}", setting.task_timeout).as_str()),
         None,
     ));
-    setting_tree.push(node_label(
-        "WaitTime",
-        Some(format!("{:?}", setting.wait_time).as_str()),
-        None,
-    ));
-    setting_tree.push(node_label(
-        "SendRate",
-        Some(format!("{:?}", setting.send_rate).as_str()),
-        None,
-    ));
+    if setting.scan_type == PortScanType::TcpSynScan {
+        setting_tree.push(node_label(
+            "WaitTime",
+            Some(format!("{:?}", setting.wait_time).as_str()),
+            None,
+        ));
+        setting_tree.push(node_label(
+            "SendRate",
+            Some(format!("{:?}", setting.send_rate).as_str()),
+            None,
+        ));
+    }else{
+        setting_tree.push(node_label(
+            "ConnectTimeout",
+            Some(format!("{:?}", setting.connect_timeout).as_str()),
+            None,
+        ));
+    }
     tree.push(setting_tree);
 
     let mut target_tree = Tree::new(node_label("Target", None, None));
