@@ -4,12 +4,11 @@ pub mod interface;
 pub mod ping;
 pub mod port;
 
-use crate::fp::MatchResult;
 use crate::host::Host;
 use crate::json::port::PortScanResult;
 use crate::scan::result::ScanResult;
-use crate::scan::scanner::{PortScanner, ServiceDetector};
-use crate::scan::setting::{PortScanSetting, PortScanType, ServiceProbeSetting};
+use crate::scan::scanner::{OsDetector, PortScanner, ServiceDetector};
+use crate::scan::setting::{OsProbeSetting, PortScanSetting, PortScanType, ServiceProbeSetting};
 use clap::ArgMatches;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use netdev::mac::MacAddr;
@@ -24,24 +23,24 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
     output::log_with_time("Initiating port scan...", "INFO");
     let target_host_name: String;
     let target_ip_addr: IpAddr;
-    if crate::host::is_valid_ip_addr(target_host) {
+    let target_ports: Vec<u16>;
+    if crate::host::is_valid_ip_addr(&target_host) {
         target_ip_addr = target_host.parse().unwrap();
-        target_host_name =
-            crate::dns::lookup_ip_addr(&target_ip_addr).unwrap_or(target_host.to_string());
+        target_host_name = crate::dns::lookup_ip_addr(&target_ip_addr).unwrap_or(target_host.to_string());
     } else {
         target_host_name = target_host.to_string();
-        target_ip_addr = match crate::dns::lookup_host_name(target_host) {
+        target_ip_addr = match crate::dns::lookup_host_name(&target_host) {
             Some(ip) => ip,
             None => return,
         };
     }
-    let target_ports: Vec<u16> = if args.get_flag("full") {
+    if args.get_flag("full") {
         // Use full ports (1-65535)
-        (1..=65535).collect()
+        target_ports = (1..=65535).collect();
     } else {
         // Use default 1000 ports
-        crate::db::get_default_ports()
-    };
+        target_ports = crate::db::get_default_ports();
+    }
     let interface: netdev::Interface = if let Some(if_name) = args.get_one::<String>("interface") {
         match crate::interface::get_interface_by_name(if_name.to_string()) {
             Some(iface) => iface,
@@ -80,14 +79,13 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
     let mut result: PortScanResult = PortScanResult::new(target_ip_addr, target_host_name);
     let mut scan_setting = PortScanSetting::default()
         .set_if_index(interface.index)
-        .set_scan_type(PortScanType::TcpSynScan)
+        .set_scan_type(PortScanType::TcpConnectScan)
         .add_target(target_host.clone())
         .set_task_timeout(Duration::from_millis(10000))
         .set_wait_time(default_waittime)
-        .set_send_rate(Duration::from_millis(0));
+        .set_connect_timeout(default_waittime);
     // Print options
     port::print_option(&scan_setting, &interface);
-    // Randomize ports and hosts
     scan_setting.randomize_ports();
     scan_setting.randomize_hosts();
     if !crate::app::is_quiet_mode() {
@@ -102,6 +100,7 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
     bar.set_style(output::get_progress_style());
     bar.set_position(0);
     bar.set_message("PortScan");
+
     let port_scanner = PortScanner::new(scan_setting);
     let rx = port_scanner.get_progress_receiver();
     // Run port scan
@@ -127,7 +126,7 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
     // Run service detection
     let probe_setting: ServiceProbeSetting = ServiceProbeSetting::default(
         target_host.ip_addr,
-        target_host.hostname,
+        target_host.hostname.clone(),
         portscan_result.hosts[0].get_open_port_numbers(),
     );
     let service_detector = ServiceDetector::new(probe_setting);
@@ -157,13 +156,37 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
         }
     }
     // OS detection
-    if result.host.get_open_port_numbers().len() > 0 {
-        if let Some(fingerprint) = portscan_result
-            .get_syn_ack_fingerprint(result.host.ip_addr, result.host.get_open_port_numbers()[0])
-        {
-            let os_fingerprint: MatchResult = crate::fp::get_fingerprint(&fingerprint);
-            result.host.os_family =
-                format!("{} ({})", os_fingerprint.family, os_fingerprint.evidence);
+    let probe_setting = OsProbeSetting::new()
+        .with_if_index(interface.index)
+        .with_ip_addr(target_host.ip_addr)
+        .with_hostname(target_host.hostname)
+        .with_ports(result.host.get_open_port_numbers())
+        .freeze();
+    let detector = OsDetector::new(probe_setting);
+    let os_rx = detector.get_progress_receiver();
+    let os_bar = ProgressBar::new(result.host.get_open_port_numbers().len() as u64);
+    if crate::app::is_quiet_mode() {
+        os_bar.set_draw_target(ProgressDrawTarget::hidden());
+    }
+    os_bar.enable_steady_tick(Duration::from_millis(120));
+    os_bar.set_style(output::get_progress_style());
+    os_bar.set_position(0);
+    os_bar.set_message("OSDetection");
+    let os_start_time = std::time::Instant::now();
+    let os_handle = thread::spawn(move || detector.run());
+    // Print progress
+    while let Ok(_socket_addr) = os_rx.lock().unwrap().recv() {
+        os_bar.inc(1);
+    }
+    let os_elapsed_time = os_start_time.elapsed();
+    os_bar.finish_with_message(format!("OSDetection ({:?})", os_elapsed_time));
+    let os_result = os_handle.join().unwrap();
+    match os_result {
+        Ok(os_match) => {
+            result.host.os_family = format!("{} ({})", os_match.family, os_match.evidence);
+        }
+        Err(e) => {
+            output::log_with_time(&format!("OS detection failed: {}", e), "ERROR");
         }
     }
     // Set vendor name

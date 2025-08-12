@@ -299,9 +299,6 @@ fn parse_args() -> ArgMatches {
         .subcommand(Command::new("interface")
             .about("Show default network interface")
         )
-        .subcommand(Command::new("check")
-            .about("Check dependencies (Windows only)")
-        )
         ;
     app.get_matches()
 }
