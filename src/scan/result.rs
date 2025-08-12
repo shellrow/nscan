@@ -256,7 +256,7 @@ pub(crate) fn parse_hostscan_result(
                 },
                 vendor_name: String::new(),
                 os_family: String::new(),
-                ttl: ipv4_packet.ttl,
+                ttl: Some(ipv4_packet.ttl),
             }
         } else if let Some(ipv6_packet) = &p.ipv6_header {
             Host {
@@ -274,7 +274,7 @@ pub(crate) fn parse_hostscan_result(
                 },
                 vendor_name: String::new(),
                 os_family: String::new(),
-                ttl: ipv6_packet.hop_limit,
+                ttl: Some(ipv6_packet.hop_limit),
             }
         } else {
             continue;
@@ -386,7 +386,7 @@ pub(crate) fn parse_portscan_result(
                 mac_addr: mac_addr,
                 vendor_name: String::new(),
                 os_family: String::new(),
-                ttl: ttl,
+                ttl: Some(ttl),
             };
             result.hosts.push(host_info);
         }

@@ -270,7 +270,7 @@ fn show_hostscan_result(hostscan_result: &HostScanResult) {
     for host in &hostscan_result.hosts {
         let mut host_tree = Tree::new(node_label(&host.ip_addr.to_string(), None, None));
         host_tree.push(node_label("Host Name", Some(&host.hostname), None));
-        host_tree.push(node_label("TTL", Some(&host.ttl.to_string()), None));
+        host_tree.push(node_label("TTL", host.ttl.map(|ttl| ttl.to_string()).as_deref(), None));
         if !host.os_family.is_empty() {
             host_tree.push(node_label("OS Family", Some(&host.os_family), None));
         }

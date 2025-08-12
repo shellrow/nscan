@@ -139,10 +139,15 @@ pub(crate) async fn send_hostscan_packets(
 
 /// Experimental: non-root async host scan
 pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostScanSetting, ptx: &Arc<Mutex<Sender<Host>>>) -> ScanResult {
-    let config = IcmpConfig::new(IcmpKind::V4);
-    let socket = Arc::new(AsyncIcmpSocket::new(&config).await.unwrap());
+    let v4_config = IcmpConfig::new(IcmpKind::V4);
+    let v4_socket = Arc::new(AsyncIcmpSocket::new(&v4_config).await.unwrap());
+
+    let v6_config = IcmpConfig::new(IcmpKind::V6);
+    let v6_socket = Arc::new(AsyncIcmpSocket::new(&v6_config).await.unwrap());
+
     // Receiver task
-    let socket_clone = socket.clone();
+    let v4_socket_rx = v4_socket.clone();
+    let v6_socket_rx = v6_socket.clone();
 
     let src_ipv4 = crate::interface::get_interface_ipv4(interface).unwrap_or(Ipv4Addr::UNSPECIFIED);
     let src_global_ipv6 = crate::interface::get_interface_global_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
@@ -151,36 +156,37 @@ pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostSc
     let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel::<()>();
     let replies: Arc<Mutex<Vec<Host>>> = Arc::new(Mutex::new(Vec::new()));
     let replies_rx = Arc::clone(&replies);
-    let target_map = scan_setting.get_target_map();
+    let dns_map = scan_setting.dns_map.clone();
 
     let recv_task = tokio::spawn(async move {
-        let mut buf = [0u8; 512];
+        let mut v4_buf = [0u8; 512];
+        let mut v6_buf = [0u8; 512];
         loop {
             tokio::select! {
                 _ = &mut stop_rx => break,
-                res = socket_clone.recv_from(&mut buf) => {
+                res = v4_socket_rx.recv_from(&mut v4_buf) => {
                     if let Ok((n, from)) = res {
                         match from {
                             SocketAddr::V4(_from) => {
-                                if let Some(ipv4_packet) = Ipv4Packet::from_buf(&buf[..n]) {
+                                if let Some(ipv4_packet) = Ipv4Packet::from_buf(&v4_buf[..n]) {
                                     if ipv4_packet.header.next_level_protocol
                                         == nex::packet::ip::IpNextProtocol::Icmp
                                     {
                                         if let Some(icmp_packet) = IcmpPacket::from_bytes(ipv4_packet.payload()) {
                                             match nex::packet::icmp::echo_reply::EchoReplyPacket::try_from(icmp_packet) {
                                                 Ok(_reply) => {
-                                                    let setting_host = match target_map.get(&IpAddr::V4(ipv4_packet.header.source)) {
-                                                        Some(host) => host.clone(),
-                                                        None => Host::new(IpAddr::V4(ipv4_packet.header.source), String::new()),
+                                                    let name = match dns_map.get(&IpAddr::V4(ipv4_packet.header.source)) {
+                                                        Some(name) => name.clone(),
+                                                        None => String::new(),
                                                     };
                                                     let host = Host {
                                                         ip_addr: IpAddr::V4(ipv4_packet.header.source),
-                                                        hostname: setting_host.hostname.clone(),
-                                                        ports: setting_host.ports.clone(),
-                                                        mac_addr: setting_host.mac_addr.clone(),
+                                                        hostname: name,
+                                                        ports: Vec::new(),
+                                                        mac_addr: netdev::MacAddr::zero(),
                                                         vendor_name: String::new(),
                                                         os_family: String::new(),
-                                                        ttl: ipv4_packet.header.ttl,
+                                                        ttl: Some(ipv4_packet.header.ttl),
                                                     };
                                                     replies_rx.lock().unwrap().push(host);
                                                 }
@@ -191,32 +197,39 @@ pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostSc
                                 }
                             }
                             SocketAddr::V6(_from) => {
-                                if let Some(ipv6_packet) = nex::packet::ipv6::Ipv6Packet::from_buf(&buf[..n]) {
-                                    if ipv6_packet.header.next_header
-                                        == nex::packet::ip::IpNextProtocol::Icmpv6
-                                    {
-                                        if let Some(icmpv6_packet) = nex::packet::icmpv6::Icmpv6Packet::from_bytes(ipv6_packet.payload()) {
-                                            match nex::packet::icmpv6::echo_reply::EchoReplyPacket::try_from(icmpv6_packet) {
-                                                Ok(_reply) => {
-                                                    let setting_host = match target_map.get(&IpAddr::V6(ipv6_packet.header.source)) {
-                                                        Some(host) => host.clone(),
-                                                        None => Host::new(IpAddr::V6(ipv6_packet.header.source), String::new()),
-                                                    };
-                                                    let host = Host {
-                                                        ip_addr: IpAddr::V6(ipv6_packet.header.source),
-                                                        hostname: setting_host.hostname.clone(),
-                                                        ports: setting_host.ports.clone(),
-                                                        mac_addr: setting_host.mac_addr.clone(),
-                                                        vendor_name: String::new(),
-                                                        os_family: String::new(),
-                                                        ttl: ipv6_packet.header.hop_limit,
-                                                    };
-                                                    replies_rx.lock().unwrap().push(host);
-                                                }
-                                                Err(_) => {
-                                                    println!("\tReceived non-echo-reply ICMPv6 packet");
-                                                }
-                                            }
+                                
+                            }
+                        }
+                    }
+                }
+                res = v6_socket_rx.recv_from(&mut v6_buf) => {
+                    if let Ok((n, from)) = res {
+                        match from {
+                            SocketAddr::V4(_from) => {
+
+                            }
+                            SocketAddr::V6(from) => {
+                                // The IPv6 header is automatically cropped off when recvfrom() is used.
+                                if let Some(_icmpv6_packet) = nex::packet::icmpv6::Icmpv6Packet::from_buf(&v6_buf[..n]) {
+                                    match nex::packet::icmpv6::echo_reply::EchoReplyPacket::from_buf(&v6_buf[..n]) {
+                                        Some(_reply) => {
+                                            let name = match dns_map.get(&IpAddr::V6(*from.ip())) {
+                                                Some(name) => name.clone(),
+                                                None => String::new(),
+                                            };
+                                            let host = Host {
+                                                ip_addr: IpAddr::V6(*from.ip()),
+                                                hostname: name,
+                                                ports: Vec::new(),
+                                                mac_addr: netdev::MacAddr::zero(),
+                                                vendor_name: String::new(),
+                                                os_family: String::new(),
+                                                ttl: None,
+                                            };
+                                            replies_rx.lock().unwrap().push(host);
+                                        }
+                                        None => {
+                                            println!("Failed to parse ICMPv6 Echo Reply");
                                         }
                                     }
                                 }
@@ -233,7 +246,11 @@ pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostSc
     for target in &scan_setting.targets {
         let id: u16 = thread_rng().gen();
         let seq: u16 = 1;
-        let socket = socket.clone();
+        let socket: Arc<AsyncIcmpSocket> = if target.ip_addr.is_ipv4() {
+            v4_socket.clone()
+        }else{
+            v6_socket.clone()
+        };
         let target = target.clone();
         let ptx_clone = ptx.clone();
         handles.push(tokio::spawn(async move {
