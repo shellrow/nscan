@@ -49,6 +49,14 @@ pub fn handle_hostscan(args: &ArgMatches) {
         Some(send_rate) => Duration::from_millis(*send_rate),
         None => Duration::from_millis(1),
     };
+    let detect_only = host_args.get_flag("detect-only");
+    // Currently, only ICMP ping scan supports detect-only mode
+    let async_scan = if host_args.get_flag("async") || detect_only {
+        true
+    } else {
+        false
+    };
+
     let mut dns_map: HashMap<IpAddr, String> = HashMap::new();
     let target_ips: Vec<IpAddr> = match Ipv4Net::from_str(&target) {
         Ok(ipv4net) => {
@@ -125,7 +133,9 @@ pub fn handle_hostscan(args: &ArgMatches) {
         .set_dns_map(dns_map)
         .set_timeout(timeout)
         .set_wait_time(wait_time)
-        .set_send_rate(send_rate);
+        .set_send_rate(send_rate)
+        .set_async_scan(async_scan)
+        .set_detect_only(detect_only);
     // Print options
     print_option(&target, &scan_setting, &interface);
     if !host_args.get_flag("random") {
@@ -223,11 +233,13 @@ fn print_option(target: &str, setting: &HostScanSetting, interface: &Interface) 
         Some(&format!("{:?}", setting.wait_time)),
         None,
     ));
-    setting_tree.push(node_label(
-        "SendRate",
-        Some(&format!("{:?}", setting.send_rate)),
-        None,
-    ));
+    if !setting.async_scan {
+        setting_tree.push(node_label(
+            "SendRate",
+            Some(&format!("{:?}", setting.send_rate)),
+            None,
+        ));
+    }
     tree.push(setting_tree);
     let mut target_tree = Tree::new(node_label("Target", None, None));
     match Ipv4Net::from_str(&target) {
@@ -259,8 +271,11 @@ fn show_hostscan_result(hostscan_result: &HostScanResult) {
         let mut host_tree = Tree::new(node_label(&host.ip_addr.to_string(), None, None));
         host_tree.push(node_label("Host Name", Some(&host.hostname), None));
         host_tree.push(node_label("TTL", Some(&host.ttl.to_string()), None));
-        host_tree.push(node_label("OS Family", Some(&host.os_family), None));
-        if !crate::ip::is_global_addr(&host.ip_addr) {
+        if !host.os_family.is_empty() {
+            host_tree.push(node_label("OS Family", Some(&host.os_family), None));
+        }
+        
+        if !crate::ip::is_global_addr(&host.ip_addr) && host.mac_addr != netdev::MacAddr::zero() {
             let vendor_name = match oui_db.lookup(&host.mac_addr.address()) {
                 Some(vendor) => vendor.vendor.to_string(),
                 None => String::new(),

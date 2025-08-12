@@ -24,7 +24,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 rustls-native-certs = "0.7"
 rustls-pemfile = "2.1"
 rustls-pki-types = "1.8"
-tokio = { version = "1" }
+tokio = { version = "1", features = ["macros"]}
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring"]} 
 hickory-resolver = { version = "0.24" }
 chrono = { version = "0.4", features = ["serde"] }

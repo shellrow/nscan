@@ -1,10 +1,17 @@
 use futures::stream::{self, StreamExt};
 use netdev::Interface;
+use nex::packet::builder::icmp::IcmpPacketBuilder;
+use nex::packet::builder::icmpv6::Icmpv6PacketBuilder;
+use nex::packet::icmp::{IcmpPacket, IcmpType};
+use nex::packet::icmpv6::Icmpv6Type;
+use nex::packet::ipv4::Ipv4Packet;
+use nex::packet::packet::Packet;
 use nex::socket::icmp::{AsyncIcmpSocket, IcmpConfig, IcmpKind};
 use nex::socket::tcp::{AsyncTcpSocket, TcpConfig};
 use nex::socket::udp::{AsyncUdpSocket, UdpConfig};
 use tokio::io::AsyncWriteExt;
-use std::net::{IpAddr, SocketAddr};
+use rand::{thread_rng, Rng};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -130,6 +137,172 @@ pub(crate) async fn send_hostscan_packets(
     fut_host.await;
 }
 
+/// Experimental: non-root async host scan
+pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostScanSetting, ptx: &Arc<Mutex<Sender<Host>>>) -> ScanResult {
+    let config = IcmpConfig::new(IcmpKind::V4);
+    let socket = Arc::new(AsyncIcmpSocket::new(&config).await.unwrap());
+    // Receiver task
+    let socket_clone = socket.clone();
+
+    let src_ipv4 = crate::interface::get_interface_ipv4(interface).unwrap_or(Ipv4Addr::UNSPECIFIED);
+    let src_global_ipv6 = crate::interface::get_interface_global_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
+    let src_local_ipv6 = crate::interface::get_interface_local_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
+
+    let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel::<()>();
+    let replies: Arc<Mutex<Vec<Host>>> = Arc::new(Mutex::new(Vec::new()));
+    let replies_rx = Arc::clone(&replies);
+    let target_map = scan_setting.get_target_map();
+
+    let recv_task = tokio::spawn(async move {
+        let mut buf = [0u8; 512];
+        loop {
+            tokio::select! {
+                _ = &mut stop_rx => break,
+                res = socket_clone.recv_from(&mut buf) => {
+                    if let Ok((n, from)) = res {
+                        match from {
+                            SocketAddr::V4(_from) => {
+                                if let Some(ipv4_packet) = Ipv4Packet::from_buf(&buf[..n]) {
+                                    if ipv4_packet.header.next_level_protocol
+                                        == nex::packet::ip::IpNextProtocol::Icmp
+                                    {
+                                        if let Some(icmp_packet) = IcmpPacket::from_bytes(ipv4_packet.payload()) {
+                                            match nex::packet::icmp::echo_reply::EchoReplyPacket::try_from(icmp_packet) {
+                                                Ok(_reply) => {
+                                                    let setting_host = match target_map.get(&IpAddr::V4(ipv4_packet.header.source)) {
+                                                        Some(host) => host.clone(),
+                                                        None => Host::new(IpAddr::V4(ipv4_packet.header.source), String::new()),
+                                                    };
+                                                    let host = Host {
+                                                        ip_addr: IpAddr::V4(ipv4_packet.header.source),
+                                                        hostname: setting_host.hostname.clone(),
+                                                        ports: setting_host.ports.clone(),
+                                                        mac_addr: setting_host.mac_addr.clone(),
+                                                        vendor_name: String::new(),
+                                                        os_family: String::new(),
+                                                        ttl: ipv4_packet.header.ttl,
+                                                    };
+                                                    replies_rx.lock().unwrap().push(host);
+                                                }
+                                                Err(_) => {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            SocketAddr::V6(_from) => {
+                                if let Some(ipv6_packet) = nex::packet::ipv6::Ipv6Packet::from_buf(&buf[..n]) {
+                                    if ipv6_packet.header.next_header
+                                        == nex::packet::ip::IpNextProtocol::Icmpv6
+                                    {
+                                        if let Some(icmpv6_packet) = nex::packet::icmpv6::Icmpv6Packet::from_bytes(ipv6_packet.payload()) {
+                                            match nex::packet::icmpv6::echo_reply::EchoReplyPacket::try_from(icmpv6_packet) {
+                                                Ok(_reply) => {
+                                                    let setting_host = match target_map.get(&IpAddr::V6(ipv6_packet.header.source)) {
+                                                        Some(host) => host.clone(),
+                                                        None => Host::new(IpAddr::V6(ipv6_packet.header.source), String::new()),
+                                                    };
+                                                    let host = Host {
+                                                        ip_addr: IpAddr::V6(ipv6_packet.header.source),
+                                                        hostname: setting_host.hostname.clone(),
+                                                        ports: setting_host.ports.clone(),
+                                                        mac_addr: setting_host.mac_addr.clone(),
+                                                        vendor_name: String::new(),
+                                                        os_family: String::new(),
+                                                        ttl: ipv6_packet.header.hop_limit,
+                                                    };
+                                                    replies_rx.lock().unwrap().push(host);
+                                                }
+                                                Err(_) => {
+                                                    println!("\tReceived non-echo-reply ICMPv6 packet");
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    let mut handles = Vec::new();
+    let start_time = std::time::Instant::now();
+    for target in &scan_setting.targets {
+        let id: u16 = thread_rng().gen();
+        let seq: u16 = 1;
+        let socket = socket.clone();
+        let target = target.clone();
+        let ptx_clone = ptx.clone();
+        handles.push(tokio::spawn(async move {
+            let pkt = match target.ip_addr {
+                IpAddr::V4(addr) => {
+                    let pkt = IcmpPacketBuilder::new(src_ipv4, addr)
+                        .icmp_type(IcmpType::EchoRequest)
+                        .icmp_code(nex::packet::icmp::echo_request::IcmpCodes::NoCode)
+                        .echo_fields(id, seq)
+                        //.payload(Bytes::from_static(b"ping"))
+                        .to_bytes();
+                    pkt
+                }
+                IpAddr::V6(addr) => {
+                    let src_ipv6 = if nex::net::ip::is_global_ipv6(&addr) {
+                        src_global_ipv6
+                    } else {
+                        src_local_ipv6
+                    };
+                    let pkt = Icmpv6PacketBuilder::new(src_ipv6, addr)
+                        .icmpv6_type(Icmpv6Type::EchoRequest)
+                        .icmpv6_code(nex::packet::icmpv6::echo_request::Icmpv6Codes::NoCode)
+                        .echo_fields(id, seq)
+                        //.payload(Bytes::from_static(b"ping"))
+                        .to_bytes();
+                    pkt
+                }
+            };
+            let dst = SocketAddr::new(target.ip_addr, 0);
+            let _ = socket.send_to(&pkt, dst).await;
+            match ptx_clone.lock() {
+                Ok(lr) => match lr.send(target.clone()) {
+                    Ok(_) => {}
+                    Err(_) => {}
+                },
+                Err(_) => {}
+            }
+        }));
+    }
+
+    for h in handles {
+        let _ = h.await;
+    }
+
+    tokio::time::sleep(scan_setting.wait_time).await;
+    // Stop the receiver task
+    let _ = stop_tx.send(());
+    let _ = recv_task.await;
+
+    let mut result = ScanResult::new();
+    match Arc::into_inner(replies) {
+        Some(mutex) => {
+            let mut vec = match std::sync::Mutex::into_inner(mutex) {
+                Ok(v) => v,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            vec.sort_unstable_by_key(|h| h.ip_addr);
+            vec.dedup_by_key(|h| h.ip_addr);
+            result.hosts = vec;
+        }
+        None => {
+            result.hosts = Vec::new();
+        }
+    }
+    result.scan_time = start_time.elapsed();
+    result.scan_status = crate::scan::result::ScanStatus::Done;
+    result
+}
+
 pub async fn try_connect_ports(
     target: Host,
     concurrency: usize,
@@ -240,6 +413,9 @@ pub(crate) async fn scan_hosts(
         Some(interface) => interface,
         None => return ScanResult::new(),
     };
+    if scan_setting.detect_only {
+        return run_icmp_sock_hostscan(&interface, &scan_setting, ptx).await;
+    }
     // Create sender
     let config = nex::datalink::Config {
         write_buffer_size: 4096,

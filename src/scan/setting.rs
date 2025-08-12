@@ -204,6 +204,7 @@ pub struct HostScanSetting {
     pub minimize_packet: bool,
     pub dns_map: HashMap<IpAddr, String>,
     pub async_scan: bool,
+    pub detect_only: bool,
 }
 
 impl Default for HostScanSetting {
@@ -221,6 +222,7 @@ impl Default for HostScanSetting {
             minimize_packet: false,
             dns_map: HashMap::new(),
             async_scan: false,
+            detect_only: false,
         }
     }
 }
@@ -279,6 +281,10 @@ impl HostScanSetting {
         self.async_scan = async_scan;
         self
     }
+    pub fn set_detect_only(mut self, detect_only: bool) -> Self {
+        self.detect_only = detect_only;
+        self
+    }
     pub fn randomize_hosts(&mut self) {
         let mut rng = rand::thread_rng();
         self.targets.shuffle(&mut rng);
@@ -287,6 +293,13 @@ impl HostScanSetting {
         for target in &mut self.targets {
             target.ports.shuffle(&mut rand::thread_rng());
         }
+    }
+    pub fn get_target_map(&self) -> HashMap<IpAddr, Host> {
+        let mut target_map: HashMap<IpAddr, Host> = HashMap::new();
+        for target in &self.targets {
+            target_map.insert(target.ip_addr, target.clone());
+        }
+        target_map
     }
 }
 
