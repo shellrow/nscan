@@ -4546,7 +4546,7 @@
                 "has_ts": true,
                 "has_sack": true,
                 "has_ws": true,
-                "win_bucket": "other"
+                "win_bucket": "65535"
             },
             "family_votes": {
                 "Windows": 20,
