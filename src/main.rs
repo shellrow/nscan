@@ -8,6 +8,7 @@ pub mod host;
 pub mod interface;
 pub mod ip;
 pub mod json;
+pub mod nei;
 pub mod packet;
 pub mod pcap;
 pub mod ping;
@@ -17,7 +18,6 @@ pub mod scan;
 pub mod sys;
 pub mod tls;
 pub mod util;
-pub mod nei;
 
 // CLI
 pub mod app;
@@ -50,7 +50,7 @@ fn main() {
     let _ = crate::db::init_databases();
 
     app::show_banner_with_starttime();
-    
+
     match app_command {
         Some(AppCommands::PortScan) => {
             handler::port::handle_portscan(&arg_matches);

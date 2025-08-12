@@ -1,12 +1,17 @@
-use std::net::{IpAddr, Ipv6Addr};
-use netdev::{Interface, MacAddr};
 use anyhow::Result;
-use nex::packet::{frame::{Frame, ParseOption}, icmpv6::Icmpv6Type};
+use netdev::{Interface, MacAddr};
+use nex::packet::{
+    frame::{Frame, ParseOption},
+    icmpv6::Icmpv6Type,
+};
+use std::net::{IpAddr, Ipv6Addr};
 
 use crate::{nei::NetworkDevice, packet::setting::PacketBuildSetting};
 
 pub fn send_ndp(ipv6_addr: Ipv6Addr, iface: &Interface) -> Result<NetworkDevice> {
-    let src_ip = iface.ipv6.iter()
+    let src_ip = iface
+        .ipv6
+        .iter()
         .map(|n| n.addr())
         .find(|ip| ip.segments()[0] == 0xfe80)
         .unwrap_or_else(|| iface.ipv6[0].addr());
@@ -33,7 +38,7 @@ pub fn send_ndp(ipv6_addr: Ipv6Addr, iface: &Interface) -> Result<NetworkDevice>
     };
 
     match tx.send(&packet) {
-        Some(_) => {},
+        Some(_) => {}
         None => return Err(anyhow::anyhow!("Failed to send NDP Request")),
     };
 
@@ -54,14 +59,19 @@ pub fn send_ndp(ipv6_addr: Ipv6Addr, iface: &Interface) -> Result<NetworkDevice>
                                     if let Some(dlink) = &frame.datalink {
                                         if let Some(eth) = &dlink.ethernet {
                                             // eth.source is the MAC address of the device that replied
-                                            if ipv6_hdr.destination == src_ip && ipv6_hdr.source == ipv6_addr {
+                                            if ipv6_hdr.destination == src_ip
+                                                && ipv6_hdr.source == ipv6_addr
+                                            {
                                                 return Ok(NetworkDevice {
                                                     mac_addr: eth.source,
                                                     ipv4: Vec::new(),
                                                     ipv6: vec![ipv6_hdr.source],
                                                 });
                                             } else {
-                                                eprintln!("Received NDP reply from unexpected source: {}", ipv6_hdr.source);
+                                                eprintln!(
+                                                    "Received NDP reply from unexpected source: {}",
+                                                    ipv6_hdr.source
+                                                );
                                                 continue;
                                             }
                                         }

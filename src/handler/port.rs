@@ -148,7 +148,7 @@ pub fn handle_portscan(args: &ArgMatches) {
 
     /* match crate::nei::resolve_next_hop(target_ip_addr, &interface) {
         Ok(_next_hop) => {
-            
+
         }
         Err(e) => {
             output::log_with_time(&format!("Failed to resolve next hop: {}", e), "ERROR");
@@ -216,10 +216,12 @@ pub fn handle_portscan(args: &ArgMatches) {
             .get_syn_ack_fingerprint(result.host.ip_addr, result.host.get_open_port_numbers()[0])
         {
             let os_fingerprint: MatchResult = crate::fp::get_fingerprint(&fingerprint);
-            result.host.os_family = format!("{} ({})", os_fingerprint.family, os_fingerprint.evidence);
+            result.host.os_family =
+                format!("{} ({})", os_fingerprint.family, os_fingerprint.evidence);
         }
     } else {
-        let probe_setting = OsProbeSetting::new().with_if_index(interface.index)
+        let probe_setting = OsProbeSetting::new()
+            .with_if_index(interface.index)
             .with_ip_addr(target_host.ip_addr)
             .with_hostname(target_host.hostname)
             .with_ports(result.host.get_open_port_numbers())
@@ -250,7 +252,7 @@ pub fn handle_portscan(args: &ArgMatches) {
             Err(e) => {
                 output::log_with_time(&format!("OS detection failed: {}", e), "ERROR");
             }
-        }  
+        }
     }
     // Set vendor name
     if !crate::ip::is_global_addr(&result.host.ip_addr) {
@@ -336,7 +338,7 @@ pub fn print_option(setting: &PortScanSetting, interface: &Interface) {
             Some(format!("{:?}", setting.send_rate).as_str()),
             None,
         ));
-    }else{
+    } else {
         setting_tree.push(node_label(
             "ConnectTimeout",
             Some(format!("{:?}", setting.connect_timeout).as_str()),

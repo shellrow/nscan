@@ -90,15 +90,18 @@ pub fn handle_hostscan(args: &ArgMatches) {
                                                 if !dns_map.contains_key(&ip) {
                                                     dns_map.insert(ip, host.to_string());
                                                 }
-                                            },
+                                            }
                                             None => {
                                                 output::log_with_time(
-                                                    &format!("Failed to resolve hostname: {}", host),
+                                                    &format!(
+                                                        "Failed to resolve hostname: {}",
+                                                        host
+                                                    ),
                                                     "ERROR",
                                                 );
                                             }
                                         }
-                                    },
+                                    }
                                 }
                             }
                             ips
@@ -270,11 +273,15 @@ fn show_hostscan_result(hostscan_result: &HostScanResult) {
     for host in &hostscan_result.hosts {
         let mut host_tree = Tree::new(node_label(&host.ip_addr.to_string(), None, None));
         host_tree.push(node_label("Host Name", Some(&host.hostname), None));
-        host_tree.push(node_label("TTL", host.ttl.map(|ttl| ttl.to_string()).as_deref(), None));
+        host_tree.push(node_label(
+            "TTL",
+            host.ttl.map(|ttl| ttl.to_string()).as_deref(),
+            None,
+        ));
         if !host.os_family.is_empty() {
             host_tree.push(node_label("OS Family", Some(&host.os_family), None));
         }
-        
+
         if !crate::ip::is_global_addr(&host.ip_addr) && host.mac_addr != netdev::MacAddr::zero() {
             let vendor_name = match oui_db.lookup(&host.mac_addr.address()) {
                 Some(vendor) => vendor.vendor.to_string(),

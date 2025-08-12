@@ -162,7 +162,8 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
             .get_syn_ack_fingerprint(result.host.ip_addr, result.host.get_open_port_numbers()[0])
         {
             let os_fingerprint: MatchResult = crate::fp::get_fingerprint(&fingerprint);
-            result.host.os_family = format!("{} ({})", os_fingerprint.family, os_fingerprint.evidence);
+            result.host.os_family =
+                format!("{} ({})", os_fingerprint.family, os_fingerprint.evidence);
         }
     }
     // Set vendor name

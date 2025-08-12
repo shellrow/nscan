@@ -9,12 +9,12 @@ use nex::packet::packet::Packet;
 use nex::socket::icmp::{AsyncIcmpSocket, IcmpConfig, IcmpKind};
 use nex::socket::tcp::{AsyncTcpSocket, TcpConfig};
 use nex::socket::udp::{AsyncUdpSocket, UdpConfig};
-use tokio::io::AsyncWriteExt;
 use rand::{thread_rng, Rng};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use tokio::io::AsyncWriteExt;
 
 use crate::host::{Host, Port, PortStatus};
 
@@ -83,24 +83,16 @@ pub(crate) async fn send_hostscan_packets(
             match scan_setting.scan_type {
                 HostScanType::IcmpPingScan => {
                     let config = match dst.ip_addr {
-                        IpAddr::V4(_) => {
-                            IcmpConfig::new(IcmpKind::V4)
-                        }
-                        IpAddr::V6(_) => {
-                            IcmpConfig::new(IcmpKind::V6)
-                        }
+                        IpAddr::V4(_) => IcmpConfig::new(IcmpKind::V4),
+                        IpAddr::V6(_) => IcmpConfig::new(IcmpKind::V6),
                     };
                     let socket = Arc::new(AsyncIcmpSocket::new(&config).await.unwrap());
                     let _ = socket.send_to(&packet_bytes, target).await;
-                },
+                }
                 HostScanType::TcpPingScan => {
                     let config = match dst.ip_addr {
-                        IpAddr::V4(_) => {
-                            TcpConfig::raw_v4()
-                        }
-                        IpAddr::V6(_) => {
-                            TcpConfig::raw_v6()
-                        }
+                        IpAddr::V4(_) => TcpConfig::raw_v4(),
+                        IpAddr::V6(_) => TcpConfig::raw_v6(),
                     };
                     let socket = AsyncTcpSocket::from_config(&config).unwrap();
                     let _ = socket.send_to(&packet_bytes, target);
@@ -138,7 +130,11 @@ pub(crate) async fn send_hostscan_packets(
 }
 
 /// Experimental: non-root async host scan
-pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostScanSetting, ptx: &Arc<Mutex<Sender<Host>>>) -> ScanResult {
+pub async fn run_icmp_sock_hostscan(
+    interface: &Interface,
+    scan_setting: &HostScanSetting,
+    ptx: &Arc<Mutex<Sender<Host>>>,
+) -> ScanResult {
     let v4_config = IcmpConfig::new(IcmpKind::V4);
     let v4_socket = Arc::new(AsyncIcmpSocket::new(&v4_config).await.unwrap());
 
@@ -150,8 +146,10 @@ pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostSc
     let v6_socket_rx = v6_socket.clone();
 
     let src_ipv4 = crate::interface::get_interface_ipv4(interface).unwrap_or(Ipv4Addr::UNSPECIFIED);
-    let src_global_ipv6 = crate::interface::get_interface_global_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
-    let src_local_ipv6 = crate::interface::get_interface_local_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
+    let src_global_ipv6 =
+        crate::interface::get_interface_global_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
+    let src_local_ipv6 =
+        crate::interface::get_interface_local_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
 
     let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel::<()>();
     let replies: Arc<Mutex<Vec<Host>>> = Arc::new(Mutex::new(Vec::new()));
@@ -197,7 +195,7 @@ pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostSc
                                 }
                             }
                             SocketAddr::V6(_from) => {
-                                
+
                             }
                         }
                     }
@@ -248,7 +246,7 @@ pub async fn run_icmp_sock_hostscan(interface: &Interface, scan_setting: &HostSc
         let seq: u16 = 1;
         let socket: Arc<AsyncIcmpSocket> = if target.ip_addr.is_ipv4() {
             v4_socket.clone()
-        }else{
+        } else {
             v6_socket.clone()
         };
         let target = target.clone();
@@ -344,8 +342,8 @@ pub async fn try_connect_ports(
                         Ok(_) => {}
                         Err(_) => {}
                     }
-                },
-                Err(_) => {},
+                }
+                Err(_) => {}
             }
             match ptx.lock() {
                 Ok(lr) => match lr.send(socket_addr) {
@@ -396,9 +394,13 @@ pub fn run_connect_scan(
         for target in scan_setting.targets {
             let ptx = ptx.clone();
             tasks.push(tokio::spawn(async move {
-                let host =
-                    try_connect_ports(target, scan_setting.concurrency, scan_setting.connect_timeout, &ptx)
-                        .await;
+                let host = try_connect_ports(
+                    target,
+                    scan_setting.concurrency,
+                    scan_setting.connect_timeout,
+                    &ptx,
+                )
+                .await;
                 host
             }));
         }
@@ -470,17 +472,11 @@ pub(crate) async fn scan_hosts(
     }
     match scan_setting.scan_type {
         HostScanType::IcmpPingScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextProtocol::Icmp);
-            capture_options
-                .ip_protocols
-                .insert(IpNextProtocol::Icmpv6);
+            capture_options.ip_protocols.insert(IpNextProtocol::Icmp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Icmpv6);
         }
         HostScanType::TcpPingScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextProtocol::Tcp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
             for target in scan_setting.targets.clone() {
                 for port in target.get_ports() {
                     capture_options.src_ports.insert(port);
@@ -488,15 +484,9 @@ pub(crate) async fn scan_hosts(
             }
         }
         HostScanType::UdpPingScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextProtocol::Udp);
-            capture_options
-                .ip_protocols
-                .insert(IpNextProtocol::Icmp);
-            capture_options
-                .ip_protocols
-                .insert(IpNextProtocol::Icmpv6);
+            capture_options.ip_protocols.insert(IpNextProtocol::Udp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Icmp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Icmpv6);
         }
     }
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
@@ -595,12 +585,8 @@ pub(crate) async fn scan_ports(
     }
 
     let config = match scan_setting.targets[0].ip_addr {
-        IpAddr::V4(_) => {
-            TcpConfig::raw_v4()
-        }
-        IpAddr::V6(_) => {
-            TcpConfig::raw_v6()
-        }
+        IpAddr::V4(_) => TcpConfig::raw_v4(),
+        IpAddr::V6(_) => TcpConfig::raw_v6(),
     };
     let socket = AsyncTcpSocket::from_config(&config).unwrap();
 
@@ -626,14 +612,10 @@ pub(crate) async fn scan_ports(
     }
     match scan_setting.scan_type {
         PortScanType::TcpSynScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextProtocol::Tcp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
         }
         PortScanType::TcpConnectScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextProtocol::Tcp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
         }
     }
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));

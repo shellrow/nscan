@@ -3,7 +3,13 @@ use std::{collections::HashMap, net::IpAddr};
 use nex::packet::tcp::{TcpHeader, TcpOptionKind};
 use serde::{Deserialize, Serialize};
 
-use crate::{db::{self, model::{Entry, OsDbIndex}}, packet::frame::PacketFrame};
+use crate::{
+    db::{
+        self,
+        model::{Entry, OsDbIndex},
+    },
+    packet::frame::PacketFrame,
+};
 
 pub mod setting;
 
@@ -25,7 +31,16 @@ impl OsClass {
 
 /// OS families for classification
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum OsFamily { Windows, Linux, Bsd, Darwin, Solaris, NetworkOs, Embedded, Unknown }
+pub enum OsFamily {
+    Windows,
+    Linux,
+    Bsd,
+    Darwin,
+    Solaris,
+    NetworkOs,
+    Embedded,
+    Unknown,
+}
 
 impl OsFamily {
     pub fn as_str(&self) -> &str {
@@ -75,7 +90,9 @@ fn tcp_option_tokens(tcp: &TcpHeader) -> Vec<&'static str> {
     let mut prev_nop = false;
     for t in toks {
         if t == "NOP" {
-            if !prev_nop { out.push(t) }
+            if !prev_nop {
+                out.push(t)
+            }
             prev_nop = true;
         } else {
             prev_nop = false;
@@ -91,12 +108,15 @@ fn order_key(tokens: &[&str]) -> String {
 
 fn set_key(tokens: &[&str]) -> String {
     // Order options by priority, then alphabetically
-    const PRI: [&str; 5] = ["MSS","SACK","TS","WS","NOP"];
+    const PRI: [&str; 5] = ["MSS", "SACK", "TS", "WS", "NOP"];
     use std::collections::BTreeSet;
 
     let set: BTreeSet<&str> = tokens.iter().copied().collect();
     let mut head: Vec<&str> = PRI.iter().copied().filter(|t| set.contains(*t)).collect();
-    let mut tail: Vec<&str> = set.difference(&PRI.iter().copied().collect()).copied().collect();
+    let mut tail: Vec<&str> = set
+        .difference(&PRI.iter().copied().collect())
+        .copied()
+        .collect();
     tail.sort_unstable();
     head.extend(tail);
     format!("{{{}}}", head.join(","))
@@ -117,17 +137,17 @@ fn ttl_class_from_packet(frame: &PacketFrame) -> Option<u8> {
     if let Some(ip) = &frame.ipv4_header {
         let ttl = ip.ttl;
         return Some(match ttl {
-            0..=64   => 64,
+            0..=64 => 64,
             65..=128 => 128,
-            _        => 255,
+            _ => 255,
         });
     }
     if let Some(ip6) = &frame.ipv6_header {
         let h = ip6.hop_limit;
         return Some(match h {
-            0..=64   => 64,
+            0..=64 => 64,
             65..=128 => 128,
-            _        => 255,
+            _ => 255,
         });
     }
     None
@@ -168,7 +188,11 @@ fn map_family(s: &str) -> OsFamily {
     }
 }
 
-pub fn classify(frame: &PacketFrame, idx: &OsDbIndex, ttl_table: &HashMap<OsFamily, u8>) -> MatchResult {
+pub fn classify(
+    frame: &PacketFrame,
+    idx: &OsDbIndex,
+    ttl_table: &HashMap<OsFamily, u8>,
+) -> MatchResult {
     let Some(sig) = extract_signature(frame) else {
         // If no TCP options, we can't classify. So get family from TTL if available.
         let ttl_class_map = crate::db::get_ttl_class_map();
@@ -191,21 +215,32 @@ pub fn classify(frame: &PacketFrame, idx: &OsDbIndex, ttl_table: &HashMap<OsFami
 
     // 1) order_key + win_bucket exact match
     // This is the most reliable match, as it uses the exact ordered TCP options and window size.
-    if let Some(cands) = idx.by_order.get(&(sig.order_key.clone(), sig.win_bucket.clone())) {
+    if let Some(cands) = idx
+        .by_order
+        .get(&(sig.order_key.clone(), sig.win_bucket.clone()))
+    {
         // Additional confidence based on flags and TTL class
         let mut best = None::<(&Entry, f32)>;
         for e in cands {
             let mut conf = e.confidence;
             // Add confidence based on flags
-            if e.signature.has_ts == sig.has_ts { conf += 0.03; }
-            if e.signature.has_sack == sig.has_sack { conf += 0.03; }
-            if e.signature.has_ws == sig.has_ws { conf += 0.03; }
+            if e.signature.has_ts == sig.has_ts {
+                conf += 0.03;
+            }
+            if e.signature.has_sack == sig.has_sack {
+                conf += 0.03;
+            }
+            if e.signature.has_ws == sig.has_ws {
+                conf += 0.03;
+            }
 
             // Adjust based on TTL class if available (Windows=128, Linux/BSD/Darwin=64, others=255)
             if let Some(ttl) = sig.ttl_class {
                 let fam = map_family(&e.suggested_family);
                 if let Some(exp) = ttl_table.get(&fam) {
-                    if *exp == ttl { conf += 0.04; }
+                    if *exp == ttl {
+                        conf += 0.04;
+                    }
                 }
             }
 
@@ -229,20 +264,31 @@ pub fn classify(frame: &PacketFrame, idx: &OsDbIndex, ttl_table: &HashMap<OsFami
     }
 
     // 2) order not exact, but set_key + win_bucket match
-    if let Some(cands) = idx.by_set_win.get(&(sig.set_key.clone(), sig.win_bucket.clone())) {
+    if let Some(cands) = idx
+        .by_set_win
+        .get(&(sig.set_key.clone(), sig.win_bucket.clone()))
+    {
         let mut best = None::<(&Entry, f32)>;
         for e in cands {
             // Confidence starts at entry confidence, then adjust based on flags and TTL class
             let mut conf = e.confidence - 0.1;
             // Add confidence based on flags
-            if e.signature.has_ts == sig.has_ts { conf += 0.03; }
-            if e.signature.has_sack == sig.has_sack { conf += 0.03; }
-            if e.signature.has_ws == sig.has_ws { conf += 0.03; }
+            if e.signature.has_ts == sig.has_ts {
+                conf += 0.03;
+            }
+            if e.signature.has_sack == sig.has_sack {
+                conf += 0.03;
+            }
+            if e.signature.has_ws == sig.has_ws {
+                conf += 0.03;
+            }
 
             if let Some(ttl) = sig.ttl_class {
                 let fam = map_family(&e.suggested_family);
                 if let Some(exp) = ttl_table.get(&fam) {
-                    if *exp == ttl { conf += 0.04; }
+                    if *exp == ttl {
+                        conf += 0.04;
+                    }
                 }
             }
 
@@ -257,13 +303,20 @@ pub fn classify(frame: &PacketFrame, idx: &OsDbIndex, ttl_table: &HashMap<OsFami
             return MatchResult {
                 family: family.as_str().to_string(),
                 confidence,
-                evidence: format!("option_set+window_size match '{}','{}'", sig.set_key, sig.win_bucket),
+                evidence: format!(
+                    "option_set+window_size match '{}','{}'",
+                    sig.set_key, sig.win_bucket
+                ),
             };
         }
     }
 
     // 3) No match found, return unknown
-    MatchResult { family: OsFamily::Unknown.as_str().to_string(), confidence: 0, evidence: "no_match".into() }
+    MatchResult {
+        family: OsFamily::Unknown.as_str().to_string(),
+        confidence: 0,
+        evidence: "no_match".into(),
+    }
 }
 
 pub fn get_fingerprint(frame: &PacketFrame) -> MatchResult {
@@ -282,11 +335,17 @@ pub fn get_fingerprint_map(fingerprints: &Vec<PacketFrame>) -> HashMap<IpAddr, S
         if let Some(ip) = &frame.ipv4_header {
             let ip_addr = ip.source;
             let match_result = classify(frame, &idx, &ttl_table);
-            result.insert(ip_addr.into(), format!("{} ({})", match_result.family, match_result.evidence));
+            result.insert(
+                ip_addr.into(),
+                format!("{} ({})", match_result.family, match_result.evidence),
+            );
         } else if let Some(ip6) = &frame.ipv6_header {
             let ip_addr = ip6.source;
             let match_result = classify(frame, &idx, &ttl_table);
-            result.insert(ip_addr.into(), format!("{} ({})", match_result.family, match_result.evidence));
+            result.insert(
+                ip_addr.into(),
+                format!("{} ({})", match_result.family, match_result.evidence),
+            );
         }
     }
 

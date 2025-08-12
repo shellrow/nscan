@@ -1,15 +1,15 @@
 use crate::packet::setting::PacketBuildSetting;
 use bytes::Bytes;
 use netdev::MacAddr;
+use nex::packet::builder::{
+    ethernet::EthernetPacketBuilder, ipv4::Ipv4PacketBuilder, ipv6::Ipv6PacketBuilder,
+    tcp::TcpPacketBuilder,
+};
 use nex::packet::ethernet::EtherType;
 use nex::packet::ip::IpNextProtocol;
 use nex::packet::ipv4::Ipv4Flags;
 use nex::packet::packet::Packet;
 use nex::packet::tcp::{TcpFlags, TcpOptionPacket};
-use nex::packet::builder::{
-    ethernet::EthernetPacketBuilder, ipv4::Ipv4PacketBuilder,
-    ipv6::Ipv6PacketBuilder, tcp::TcpPacketBuilder,
-};
 use std::net::IpAddr;
 
 /// Build TCP SYN packet with default options

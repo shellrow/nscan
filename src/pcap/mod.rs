@@ -296,10 +296,7 @@ fn filter_ether_type(ether_type: EtherType, capture_options: &PacketCaptureOptio
     }
 }
 
-fn filter_ip_protocol(
-    protocol: IpNextProtocol,
-    capture_options: &PacketCaptureOptions,
-) -> bool {
+fn filter_ip_protocol(protocol: IpNextProtocol, capture_options: &PacketCaptureOptions) -> bool {
     if capture_options.ip_protocols.len() == 0 || capture_options.ip_protocols.contains(&protocol) {
         return true;
     } else {

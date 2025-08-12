@@ -29,9 +29,7 @@ pub fn next_hop_ip(iface: &Interface, target: IpAddr) -> Option<IpAddr> {
             }
             // off-link, return the default gateway (IPv4)
             match &iface.gateway {
-                Some(gw) => {
-                    gw.ipv4.iter().next().map(|ip| IpAddr::V4(*ip))
-                },
+                Some(gw) => gw.ipv4.iter().next().map(|ip| IpAddr::V4(*ip)),
                 None => None,
             }
         }
@@ -41,9 +39,7 @@ pub fn next_hop_ip(iface: &Interface, target: IpAddr) -> Option<IpAddr> {
             }
             // off-link, return the default gateway (IPv6)
             match &iface.gateway {
-                Some(gw) => {
-                    gw.ipv6.iter().next().map(|ip| IpAddr::V6(*ip))
-                },
+                Some(gw) => gw.ipv6.iter().next().map(|ip| IpAddr::V6(*ip)),
                 None => None,
             }
         }

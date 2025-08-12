@@ -37,15 +37,21 @@ impl PacketBuildSetting {
                     None => MacAddr::zero(),
                 };
                 let src_ip = match ping_setting.dst_ip {
-                    IpAddr::V4(_) => IpAddr::V4(crate::interface::get_interface_ipv4(&interface)
-                        .unwrap_or(Ipv4Addr::LOCALHOST)),
+                    IpAddr::V4(_) => IpAddr::V4(
+                        crate::interface::get_interface_ipv4(&interface)
+                            .unwrap_or(Ipv4Addr::LOCALHOST),
+                    ),
                     IpAddr::V6(ipv6_addr) => {
                         if nex::net::ip::is_global_ipv6(&ipv6_addr) {
-                            IpAddr::V6(crate::interface::get_interface_global_ipv6(&interface)
-                                .unwrap_or(Ipv6Addr::LOCALHOST))
+                            IpAddr::V6(
+                                crate::interface::get_interface_global_ipv6(&interface)
+                                    .unwrap_or(Ipv6Addr::LOCALHOST),
+                            )
                         } else {
-                            IpAddr::V6(crate::interface::get_interface_local_ipv6(&interface)
-                                .unwrap_or(Ipv6Addr::LOCALHOST))
+                            IpAddr::V6(
+                                crate::interface::get_interface_local_ipv6(&interface)
+                                    .unwrap_or(Ipv6Addr::LOCALHOST),
+                            )
                         }
                     }
                 };

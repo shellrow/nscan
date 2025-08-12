@@ -1,11 +1,11 @@
 use crate::fp::MatchResult;
 use crate::host::Host;
 use crate::scan::setting::{HostScanSetting, OsProbeSetting, PortScanSetting};
+use anyhow::Result;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
-use anyhow::Result;
 
 use super::async_io;
 use super::blocking;

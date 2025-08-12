@@ -1,10 +1,10 @@
 use crate::packet::setting::PacketBuildSetting;
 use nex::net::mac::MacAddr;
-use nex::packet::ethernet::EtherType;
 use nex::packet::builder::ethernet::EthernetPacketBuilder;
 use nex::packet::builder::ipv6::Ipv6PacketBuilder;
-use nex::packet::ip::IpNextProtocol;
 use nex::packet::builder::ndp::NdpPacketBuilder;
+use nex::packet::ethernet::EtherType;
+use nex::packet::ip::IpNextProtocol;
 use nex::packet::packet::Packet;
 use std::net::{IpAddr, Ipv6Addr};
 
@@ -45,11 +45,10 @@ pub fn build_ndp_packet(setting: PacketBuildSetting) -> Vec<u8> {
                 .destination(dst_mac)
                 .ethertype(EtherType::Ipv6)
                 .payload(ipv6.payload(ndp.build().to_bytes()).build().to_bytes());
-            
+
             let packet = ethernet.build().to_bytes();
             packet.to_vec()
         }
         _ => panic!("Source and destination IP versions must match"),
     }
-    
 }

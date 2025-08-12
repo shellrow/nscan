@@ -1,17 +1,29 @@
-use std::net::{IpAddr, Ipv4Addr};
-use netdev::{Interface, MacAddr};
 use anyhow::Result;
-use nex::packet::{arp::ArpOperation, frame::{Frame, ParseOption}};
+use netdev::{Interface, MacAddr};
+use nex::packet::{
+    arp::ArpOperation,
+    frame::{Frame, ParseOption},
+};
+use std::net::{IpAddr, Ipv4Addr};
 
 use crate::{nei::NetworkDevice, packet::setting::PacketBuildSetting};
 
 pub fn send_arp(ipv4_addr: Ipv4Addr, iface: &Interface) -> Result<NetworkDevice> {
-    let src_mac = iface.mac_addr.clone()
+    let src_mac = iface
+        .mac_addr
+        .clone()
         .ok_or_else(|| anyhow::anyhow!("Interface does not have a MAC address"))?;
-    let src_ip = iface.ipv4.iter()
+    let src_ip = iface
+        .ipv4
+        .iter()
         .map(|n| n.addr())
         .find(|ip| {
-            let mask = iface.ipv4.iter().find(|n| n.contains(&ipv4_addr)).map(|n| n.netmask()).unwrap_or(Ipv4Addr::new(255,255,255,0));
+            let mask = iface
+                .ipv4
+                .iter()
+                .find(|n| n.contains(&ipv4_addr))
+                .map(|n| n.netmask())
+                .unwrap_or(Ipv4Addr::new(255, 255, 255, 0));
             (u32::from(*ip) & u32::from(mask)) == (u32::from(ipv4_addr) & u32::from(mask))
         })
         .unwrap_or_else(|| iface.ipv4[0].addr());
@@ -36,7 +48,7 @@ pub fn send_arp(ipv4_addr: Ipv4Addr, iface: &Interface) -> Result<NetworkDevice>
         Err(e) => panic!("Failed to create channel: {}", e),
     };
     match tx.send(&packet) {
-        Some(_) => {},
+        Some(_) => {}
         None => return Err(anyhow::anyhow!("Failed to send ARP Request")),
     };
 
@@ -64,5 +76,4 @@ pub fn send_arp(ipv4_addr: Ipv4Addr, iface: &Interface) -> Result<NetworkDevice>
             Err(e) => eprintln!("Receive failed: {}", e),
         }
     }
-    
 }

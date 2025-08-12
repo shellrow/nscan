@@ -3,6 +3,7 @@ use crate::fp::MatchResult;
 use crate::packet::frame::PacketFrame;
 use crate::pcap::PacketCaptureOptions;
 use crate::scan::setting::OsProbeSetting;
+use anyhow::Result;
 use netdev::Interface;
 use nex::datalink::RawSender;
 use nex::packet::ip::IpNextProtocol;
@@ -12,7 +13,6 @@ use std::net::SocketAddr;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use anyhow::Result;
 
 use super::packet::build_portscan_packet;
 
@@ -31,8 +31,7 @@ pub(crate) fn send_probe_packets(
         }
     };
     for port in &probe_setting.ports {
-        let packet =
-            build_portscan_packet(&interface, probe_setting.ip_addr, *port, false);
+        let packet = build_portscan_packet(&interface, probe_setting.ip_addr, *port, false);
         match tx.send(&packet) {
             Some(_) => {
                 // Notify packet sent
@@ -96,10 +95,10 @@ pub(crate) fn run_os_probe(
         loopback: interface.is_loopback(),
     };
     capture_options.src_ips.insert(probe_setting.ip_addr);
-    capture_options.src_ports.extend(probe_setting.ports.clone());
     capture_options
-        .ip_protocols
-        .insert(IpNextProtocol::Tcp);
+        .src_ports
+        .extend(probe_setting.ports.clone());
+    capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     let stop_handle = Arc::clone(&stop);
     let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
@@ -130,12 +129,7 @@ pub(crate) fn run_os_probe(
     // Wait for listener to start
     let _ = ready_rx;
     // Send probe packets
-    send_probe_packets(
-        &mut tx,
-        &interface,
-        &probe_setting,
-        ptx,
-    );
+    send_probe_packets(&mut tx, &interface, &probe_setting, ptx);
     thread::sleep(probe_setting.wait_time);
     // Stop pcap
     match stop.lock() {
@@ -153,7 +147,7 @@ pub(crate) fn run_os_probe(
             eprintln!("Failed to join pcap_handler: {:?}", e);
         }
     }
-    
+
     let idx = OsDbIndex::from(crate::db::get_os_family_db());
     let ttl_table = crate::db::get_family_ttl_map();
     match packets.lock() {

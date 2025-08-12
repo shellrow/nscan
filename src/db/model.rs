@@ -50,13 +50,23 @@ impl From<OsDb> for OsDbIndex {
         let mut by_set_win: HashMap<(String, String), Vec<Entry>> = HashMap::new();
 
         for e in db.entries {
-            by_order.entry((e.signature.order_key.clone(), e.signature.win_bucket.clone()))
-                .or_default().push(e.clone());
-            by_set_win.entry((e.signature.set_key.clone(), e.signature.win_bucket.clone()))
-                .or_default().push(e);
+            by_order
+                .entry((
+                    e.signature.order_key.clone(),
+                    e.signature.win_bucket.clone(),
+                ))
+                .or_default()
+                .push(e.clone());
+            by_set_win
+                .entry((e.signature.set_key.clone(), e.signature.win_bucket.clone()))
+                .or_default()
+                .push(e);
         }
 
-        OsDbIndex { by_order, by_set_win }
+        OsDbIndex {
+            by_order,
+            by_set_win,
+        }
     }
 }
 

@@ -1,16 +1,16 @@
 use bytes::Bytes;
 use netdev::MacAddr;
+use nex::packet::builder::ethernet::EthernetPacketBuilder;
+use nex::packet::builder::icmp::IcmpPacketBuilder;
+use nex::packet::builder::icmpv6::Icmpv6PacketBuilder;
+use nex::packet::builder::ipv4::Ipv4PacketBuilder;
+use nex::packet::builder::ipv6::Ipv6PacketBuilder;
 use nex::packet::ethernet::EtherType;
 use nex::packet::icmp;
 use nex::packet::icmp::IcmpType;
 use nex::packet::icmpv6;
 use nex::packet::icmpv6::Icmpv6Type;
 use nex::packet::ip::IpNextProtocol;
-use nex::packet::builder::ethernet::EthernetPacketBuilder;
-use nex::packet::builder::icmp::IcmpPacketBuilder;
-use nex::packet::builder::icmpv6::Icmpv6PacketBuilder;
-use nex::packet::builder::ipv4::Ipv4PacketBuilder;
-use nex::packet::builder::ipv6::Ipv6PacketBuilder;
 use nex::packet::ipv4::Ipv4Flags;
 use nex::packet::packet::Packet;
 use std::net::IpAddr;
@@ -90,29 +90,20 @@ pub fn build_icmp_probe_packet(
     let icmp_packet: Bytes = match (setting.src_ip, setting.dst_ip) {
         (IpAddr::V4(src), IpAddr::V4(dst)) => {
             let icmp_type = match probe_type {
-                FingerprintType::IcmpEcho => {
-                    IcmpType::EchoRequest
-                }
-                FingerprintType::IcmpTimestamp => {
-                    IcmpType::TimestampRequest
-                }
-                FingerprintType::IcmpAddressMask => {
-                    IcmpType::AddressMaskRequest
-                }
-                FingerprintType::IcmpInformation => {
-                    IcmpType::InformationRequest
-                }
-                _ => {
-                    IcmpType::EchoRequest
-                }
+                FingerprintType::IcmpEcho => IcmpType::EchoRequest,
+                FingerprintType::IcmpTimestamp => IcmpType::TimestampRequest,
+                FingerprintType::IcmpAddressMask => IcmpType::AddressMaskRequest,
+                FingerprintType::IcmpInformation => IcmpType::InformationRequest,
+                _ => IcmpType::EchoRequest,
             };
             IcmpPacketBuilder::new(src, dst)
-            .icmp_type(icmp_type)
-            .icmp_code(icmp::echo_request::IcmpCodes::NoCode)
-            .echo_fields(0x1234, 0x1)
-            .payload(Bytes::from_static(b"hello"))
-            .build()
-            .to_bytes()},
+                .icmp_type(icmp_type)
+                .icmp_code(icmp::echo_request::IcmpCodes::NoCode)
+                .echo_fields(0x1234, 0x1)
+                .payload(Bytes::from_static(b"hello"))
+                .build()
+                .to_bytes()
+        }
         (IpAddr::V6(src), IpAddr::V6(dst)) => Icmpv6PacketBuilder::new(src, dst)
             .icmpv6_type(Icmpv6Type::EchoRequest)
             .icmpv6_code(icmpv6::echo_request::Icmpv6Codes::NoCode)

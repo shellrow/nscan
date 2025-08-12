@@ -3,9 +3,9 @@ pub mod ndp;
 
 use serde::{Deserialize, Serialize};
 
+use anyhow::Result;
 use netdev::mac::MacAddr;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use anyhow::Result;
 
 /// Structure of NetworkDevice information
 #[derive(Deserialize, Serialize, Clone, Eq, PartialEq, Hash, Debug)]

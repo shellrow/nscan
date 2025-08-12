@@ -1,8 +1,8 @@
 use crate::packet::setting::PacketBuildSetting;
 use nex::net::mac::MacAddr;
-use nex::packet::ethernet::EtherType;
 use nex::packet::builder::arp::ArpPacketBuilder;
 use nex::packet::builder::ethernet::EthernetPacketBuilder;
+use nex::packet::ethernet::EtherType;
 use nex::packet::packet::Packet;
 use std::net::IpAddr;
 
@@ -13,9 +13,8 @@ pub fn build_arp_packet(setting: PacketBuildSetting) -> Vec<u8> {
             match setting.dst_ip {
                 IpAddr::V4(dst_ipv4) => {
                     // ARP Header
-                    let arp_builder = ArpPacketBuilder::new(setting.src_mac, src_ipv4, dst_ipv4).operation(
-                        nex::packet::arp::ArpOperation::Request,
-                    );
+                    let arp_builder = ArpPacketBuilder::new(setting.src_mac, src_ipv4, dst_ipv4)
+                        .operation(nex::packet::arp::ArpOperation::Request);
                     // Ethernet Header
                     let eth_builder = EthernetPacketBuilder::new()
                         .source(setting.src_mac)

@@ -135,7 +135,7 @@ pub fn icmp_ping(
             match rx.next() {
                 Ok(packet) => {
                     let recv_time: Duration = Instant::now().duration_since(send_time);
-                    let frame: Frame = match Frame::from_buf(&packet, parse_option.clone()){
+                    let frame: Frame = match Frame::from_buf(&packet, parse_option.clone()) {
                         Some(frame) => frame,
                         None => continue,
                     };
