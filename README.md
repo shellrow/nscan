@@ -6,9 +6,6 @@
 Cross-platform network scan tool for host and service discovery.   
 Aims to be simple, fast, and efficient in performance.
 
-## Notice
-`nscan` will now be succeeded by [nrev](https://github.com/shellrow/nrev), our network mapping tool. Updates to `nscan` will be limited going forward, as we aim to keep `nscan` focused on scanning-specific tasks. We encourage all users to migrate to `nrev` for the latest features and improvements.
-
 ## Features
 - Port scan
 - Host scan
@@ -61,7 +58,6 @@ Commands:
   subdomain   Find subdomains. nscan subdomain --help for more information
   interfaces  Show network interfaces
   interface   Show default network interface
-  check       Check dependencies (Windows only)
   help        Print this message or the help of the given subcommand(s)
 
 Options:
@@ -94,3 +90,6 @@ When using nscan on Windows, please consider the following:
     - Place the Packet.lib file from the [Npcap SDK](https://npcap.com/#download) or WinPcap Developers pack in a directory named lib at the root of this repository.
     - The file can be found in the %LIB% or $Env:LIB environment variables.
     - Locate Packet.lib in <SDK>/Lib/x64/Packet.lib for the 64-bit toolchain or <SDK>/Lib/Packet.lib for the 32-bit toolchain.
+
+## Notice
+`nscan` will now be succeeded by [nrev](https://github.com/shellrow/nrev), our network mapping tool. Updates to `nscan` will be limited going forward, as we aim to keep `nscan` focused on scanning-specific tasks. 
