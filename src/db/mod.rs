@@ -115,12 +115,6 @@ pub fn get_os_ttl_list() -> Vec<model::OsTtl> {
     ds_os_ttl
 }
 
-pub fn get_subdomain() -> Vec<String> {
-    let subdomain: Vec<String> =
-        serde_json::from_str(config::SUBDOMAIN_JSON).expect("Invalid subdomain.json format");
-    subdomain
-}
-
 pub fn get_os_family_db() -> model::OsDb {
     let os_db: model::OsDb = serde_json::from_str(config::OS_FAMILY_FINGERPRINT_JSON)
         .expect("Invalid os-family-fingerprint.json format");

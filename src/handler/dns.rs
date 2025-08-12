@@ -1,4 +1,3 @@
-use crate::db;
 use crate::dns::domain::Domain;
 use crate::dns::{result::DomainScanResult, scanner::DomainScanner};
 use crate::util::tree::node_label;
@@ -52,7 +51,10 @@ pub fn handle_subdomain_scan(args: &ArgMatches) {
             }
             Err(_) => vec![],
         },
-        None => db::get_subdomain(),
+        None => {
+            output::log_with_time("Wordlist file not provided", "ERROR");
+            return;
+        },
     };
 
     let mut domain_scanner = match DomainScanner::new() {

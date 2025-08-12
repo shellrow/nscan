@@ -284,6 +284,7 @@ fn parse_args() -> ArgMatches {
                 .long("wordlist")
                 .value_name("file_path")
                 .value_parser(value_parser!(PathBuf))
+                .required(true)
             )
             .arg(Arg::new("timeout")
                 .help("Set timeout in ms - Example: --timeout 10000")

@@ -15,5 +15,4 @@ pub const OS_FAMILY_FINGERPRINT_JSON: &str =
 pub const OS_FAMILY_JSON: &str = include_str!("../../resources/os-family.json");
 pub const OS_TTL_JSON: &str = include_str!("../../resources/os-ttl.json");
 pub const OS_CLASS_TTL_JSON: &str = include_str!("../../resources/os-class-ttl.json");
-pub const SUBDOMAIN_JSON: &str = include_str!("../../resources/subdomain.json");
 pub const WELLKNOWN_PORTS_JSON: &str = include_str!("../../resources/wellknown-ports.json");
