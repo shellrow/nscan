@@ -54,7 +54,7 @@ pub fn handle_subdomain_scan(args: &ArgMatches) {
         None => {
             output::log_with_time("Wordlist file not provided", "ERROR");
             return;
-        },
+        }
     };
 
     let mut domain_scanner = match DomainScanner::new() {
