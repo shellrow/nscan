@@ -1,5 +1,5 @@
 use nex::net::interface::Interface;
-use nex::packet::{ethernet::EtherType, ip::IpNextLevelProtocol};
+use nex::packet::{ethernet::EtherType, ip::IpNextProtocol};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::net::IpAddr;
@@ -23,7 +23,7 @@ pub struct PacketCaptureSetting {
     /// Ether types to filter. If empty, all ether types will be captured
     pub ether_types: HashSet<EtherType>,
     /// IP protocols to filter. If empty, all IP protocols will be captured
-    pub ip_protocols: HashSet<IpNextLevelProtocol>,
+    pub ip_protocols: HashSet<IpNextProtocol>,
     /// Capture duration limit
     pub capture_timeout: Duration,
     /// Read Timeout for read next packet (Linux, BPF only)

@@ -72,7 +72,7 @@ pub struct Host {
     /// OS Family
     pub os_family: String,
     /// TTL
-    pub ttl: u8,
+    pub ttl: Option<u8>,
 }
 
 impl Host {
@@ -84,7 +84,7 @@ impl Host {
             mac_addr: MacAddr::zero(),
             vendor_name: String::new(),
             os_family: String::new(),
-            ttl: 0,
+            ttl: None,
         }
     }
     pub fn with_port_range(mut self, start: u16, end: u16) -> Self {

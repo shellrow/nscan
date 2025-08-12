@@ -1,7 +1,6 @@
 use super::payload::{PayloadInfo, PayloadType};
 use super::result::{ServiceProbeError, ServiceProbeResult};
 use super::setting::ServiceProbeSetting;
-use crate::db::tcp_service::PORT_SERVICE_MAP;
 use futures::stream::{self, StreamExt};
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
@@ -83,8 +82,9 @@ async fn probe_port(
     payload_info: Option<PayloadInfo>,
     timeout: Duration,
 ) -> ServiceProbeResult {
-    let service_name: String = match PORT_SERVICE_MAP.get(&port) {
-        Some(name) => name.to_string(),
+    let tcp_db = crate::db::TCP_SERVICE_DB.get().unwrap().read().unwrap();
+    let service_name: String = match tcp_db.get(port) {
+        Some(sv) => sv.name.clone(),
         None => String::new(),
     };
     let socket_addr: SocketAddr = SocketAddr::new(ip_addr, port);

@@ -1,17 +1,15 @@
-use crate::config::PCAP_WAIT_TIME_MILLIS;
 use crate::host::Host;
 use crate::packet::frame::PacketFrame;
 use crate::pcap::PacketCaptureOptions;
 use crate::scan::setting::{HostScanSetting, PortScanSetting};
 use netdev::Interface;
 use nex::datalink::RawSender;
-use nex::packet::ip::IpNextLevelProtocol;
+use nex::packet::ip::IpNextProtocol;
 use std::collections::HashSet;
 use std::net::SocketAddr;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 use super::packet::{build_hostscan_packet, build_portscan_packet};
 use super::result::{parse_hostscan_result, parse_portscan_result, ScanResult, ScanStatus};
@@ -20,9 +18,8 @@ use super::setting::{HostScanType, PortScanType};
 pub(crate) fn send_hostscan_packets(
     tx: &mut Box<dyn RawSender>,
     interface: &Interface,
-    targets: Vec<Host>,
+    scan_setting: &HostScanSetting,
     ptx: &Arc<Mutex<Sender<Host>>>,
-    scan_type: HostScanType,
 ) {
     // Acquire message sender lock
     let ptx_lock = match ptx.lock() {
@@ -32,16 +29,19 @@ pub(crate) fn send_hostscan_packets(
             return;
         }
     };
-    for target in targets {
-        let packet = build_hostscan_packet(&interface, &target, &scan_type, false);
+    for target in &scan_setting.targets {
+        let packet = build_hostscan_packet(&interface, &target, &scan_setting.scan_type, false);
         match tx.send(&packet) {
             Some(_) => {
                 // Notify packet sent
-                match ptx_lock.send(target) {
+                match ptx_lock.send(target.clone()) {
                     Ok(_) => {}
                     Err(e) => {
                         eprintln!("Failed to send message: {}", e);
                     }
+                }
+                if !scan_setting.send_rate.is_zero() {
+                    thread::sleep(scan_setting.send_rate);
                 }
             }
             None => {
@@ -56,9 +56,8 @@ pub(crate) fn send_hostscan_packets(
 pub(crate) fn send_portscan_packets(
     tx: &mut Box<dyn RawSender>,
     interface: &Interface,
-    targets: Vec<Host>,
+    scan_setting: &PortScanSetting,
     ptx: &Arc<Mutex<Sender<SocketAddr>>>,
-    scan_type: PortScanType,
 ) {
     // Acquire message sender lock
     let ptx_lock = match ptx.lock() {
@@ -68,10 +67,10 @@ pub(crate) fn send_portscan_packets(
             return;
         }
     };
-    for target in targets {
-        match scan_type {
+    for target in &scan_setting.targets {
+        match scan_setting.scan_type {
             PortScanType::TcpSynScan => {
-                for port in target.ports {
+                for port in &target.ports {
                     let packet =
                         build_portscan_packet(&interface, target.ip_addr, port.number, false);
                     match tx.send(&packet) {
@@ -82,6 +81,9 @@ pub(crate) fn send_portscan_packets(
                                 Err(e) => {
                                     eprintln!("Failed to send message: {}", e);
                                 }
+                            }
+                            if !scan_setting.send_rate.is_zero() {
+                                thread::sleep(scan_setting.send_rate);
                             }
                         }
                         None => {
@@ -144,17 +146,11 @@ pub(crate) fn scan_hosts(
     }
     match scan_setting.scan_type {
         HostScanType::IcmpPingScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextLevelProtocol::Icmp);
-            capture_options
-                .ip_protocols
-                .insert(IpNextLevelProtocol::Icmpv6);
+            capture_options.ip_protocols.insert(IpNextProtocol::Icmp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Icmpv6);
         }
         HostScanType::TcpPingScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextLevelProtocol::Tcp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
             for target in scan_setting.targets.clone() {
                 for port in target.ports {
                     capture_options.src_ports.insert(port.number);
@@ -162,25 +158,27 @@ pub(crate) fn scan_hosts(
             }
         }
         HostScanType::UdpPingScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextLevelProtocol::Udp);
-            capture_options
-                .ip_protocols
-                .insert(IpNextLevelProtocol::Icmp);
-            capture_options
-                .ip_protocols
-                .insert(IpNextLevelProtocol::Icmpv6);
+            capture_options.ip_protocols.insert(IpNextProtocol::Udp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Icmp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Icmpv6);
         }
     }
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     let stop_handle = Arc::clone(&stop);
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
     let packets: Arc<Mutex<Vec<PacketFrame>>> = Arc::new(Mutex::new(vec![]));
     let receive_packets: Arc<Mutex<Vec<PacketFrame>>> = Arc::clone(&packets);
     // Spawn pcap thread
     let pcap_handler = thread::spawn(move || {
         let packets: Vec<PacketFrame> =
             crate::pcap::start_capture(&mut rx, capture_options, &stop_handle);
+        // Notify that pcap is ready
+        match ready_tx.send(()) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Failed to send ready signal: {:?}", e);
+            }
+        }
         match receive_packets.lock() {
             Ok(mut receive_packets) => {
                 for p in packets {
@@ -192,17 +190,11 @@ pub(crate) fn scan_hosts(
             }
         }
     });
-    // Wait for listener to start (need fix for better way)
-    thread::sleep(Duration::from_millis(PCAP_WAIT_TIME_MILLIS));
+    // Wait for listener to start
+    let _ = ready_rx;
     let start_time = std::time::Instant::now();
     // Send probe packets
-    send_hostscan_packets(
-        &mut tx,
-        &interface,
-        scan_setting.targets.clone(),
-        ptx,
-        scan_setting.scan_type.clone(),
-    );
+    send_hostscan_packets(&mut tx, &interface, &scan_setting, ptx);
     thread::sleep(scan_setting.wait_time);
     // Stop pcap
     match stop.lock() {
@@ -267,7 +259,7 @@ pub(crate) fn scan_ports(
         dst_ports: HashSet::new(),
         ether_types: HashSet::new(),
         ip_protocols: HashSet::new(),
-        capture_timeout: scan_setting.timeout,
+        capture_timeout: scan_setting.task_timeout,
         read_timeout: scan_setting.wait_time,
         promiscuous: false,
         receive_undefined: false,
@@ -280,24 +272,28 @@ pub(crate) fn scan_ports(
     }
     match scan_setting.scan_type {
         PortScanType::TcpSynScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextLevelProtocol::Tcp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
         }
         PortScanType::TcpConnectScan => {
-            capture_options
-                .ip_protocols
-                .insert(IpNextLevelProtocol::Tcp);
+            capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
         }
     }
     let stop: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     let stop_handle = Arc::clone(&stop);
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
     let packets: Arc<Mutex<Vec<PacketFrame>>> = Arc::new(Mutex::new(vec![]));
     let receive_packets: Arc<Mutex<Vec<PacketFrame>>> = Arc::clone(&packets);
     // Spawn pcap thread
     let pcap_handler = thread::spawn(move || {
         let packets: Vec<PacketFrame> =
             crate::pcap::start_capture(&mut rx, capture_options, &stop_handle);
+        // Notify that pcap is ready
+        match ready_tx.send(()) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Failed to send ready signal: {:?}", e);
+            }
+        }
         match receive_packets.lock() {
             Ok(mut receive_packets) => {
                 for p in packets {
@@ -309,17 +305,11 @@ pub(crate) fn scan_ports(
             }
         }
     });
-    // Wait for listener to start (need fix for better way)
-    thread::sleep(Duration::from_millis(PCAP_WAIT_TIME_MILLIS));
+    // Wait for listener to start
+    let _ = ready_rx;
     let start_time = std::time::Instant::now();
     // Send probe packets
-    send_portscan_packets(
-        &mut tx,
-        &interface,
-        scan_setting.targets.clone(),
-        ptx,
-        scan_setting.scan_type.clone(),
-    );
+    send_portscan_packets(&mut tx, &interface, &scan_setting, ptx);
     thread::sleep(scan_setting.wait_time);
     // Stop pcap
     match stop.lock() {

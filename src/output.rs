@@ -30,6 +30,7 @@ pub fn get_progress_style() -> ProgressStyle {
         .template(
             "{spinner:.green} {msg} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
         )
+        .unwrap()
         .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏", "✓"])
         .progress_chars("#>-")
 }

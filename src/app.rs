@@ -4,7 +4,7 @@ use std::sync::{Mutex, OnceLock};
 
 // APP information
 pub const CRATE_BIN_NAME: &str = "nscan";
-pub const CRATE_UPDATE_DATE: &str = "2024-07-21";
+pub const CRATE_UPDATE_DATE: &str = "2025-08-12";
 pub const CRATE_REPOSITORY: &str = "https://github.com/shellrow/nscan";
 
 /// Global Mutex lock guard for quiet mode
@@ -38,7 +38,6 @@ pub enum AppCommands {
     Subdomain,
     Interfaces,
     Interface,
-    CheckDependencies,
 }
 
 impl AppCommands {
@@ -49,7 +48,6 @@ impl AppCommands {
             "subdomain" => Some(AppCommands::Subdomain),
             "interfaces" => Some(AppCommands::Interfaces),
             "interface" => Some(AppCommands::Interface),
-            "check" => Some(AppCommands::CheckDependencies),
             _ => None,
         }
     }

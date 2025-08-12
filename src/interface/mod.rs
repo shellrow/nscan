@@ -39,26 +39,26 @@ pub fn get_interface_by_name(name: String) -> Option<Interface> {
     return None;
 }
 
-pub fn get_interface_ipv4(iface: &Interface) -> Option<IpAddr> {
+pub fn get_interface_ipv4(iface: &Interface) -> Option<Ipv4Addr> {
     for ip in iface.ipv4.clone() {
-        return Some(IpAddr::V4(ip.addr()));
+        return Some(ip.addr());
     }
     return None;
 }
 
-pub fn get_interface_global_ipv6(iface: &Interface) -> Option<IpAddr> {
+pub fn get_interface_global_ipv6(iface: &Interface) -> Option<Ipv6Addr> {
     for ip in iface.ipv6.clone() {
         if nex::net::ip::is_global_ipv6(&ip.addr()) {
-            return Some(IpAddr::V6(ip.addr()));
+            return Some(ip.addr());
         }
     }
     return None;
 }
 
-pub fn get_interface_local_ipv6(iface: &Interface) -> Option<IpAddr> {
+pub fn get_interface_local_ipv6(iface: &Interface) -> Option<Ipv6Addr> {
     for ip in iface.ipv6.clone() {
         if !nex::net::ip::is_global_ipv6(&ip.addr()) {
-            return Some(IpAddr::V6(ip.addr()));
+            return Some(ip.addr());
         }
     }
     return None;

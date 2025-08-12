@@ -47,8 +47,17 @@ pub fn handle_hostscan(args: &ArgMatches) {
     };
     let send_rate = match host_args.get_one::<u64>("rate") {
         Some(send_rate) => Duration::from_millis(*send_rate),
-        None => Duration::from_millis(0),
+        None => Duration::from_millis(1),
     };
+    let detect_only = host_args.get_flag("detect-only");
+    // Currently, only ICMP ping scan supports detect-only mode
+    let async_scan = if host_args.get_flag("async") || detect_only {
+        true
+    } else {
+        false
+    };
+
+    let mut dns_map: HashMap<IpAddr, String> = HashMap::new();
     let target_ips: Vec<IpAddr> = match Ipv4Net::from_str(&target) {
         Ok(ipv4net) => {
             // convert hosts to Vec<IpAddr>
@@ -73,7 +82,26 @@ pub fn handle_hostscan(args: &ArgMatches) {
                                 }
                                 match IpAddr::from_str(host) {
                                     Ok(ip) => ips.push(ip),
-                                    Err(_) => continue,
+                                    Err(_) => {
+                                        // Resolve hostname to IP address
+                                        match crate::dns::lookup_host_name(&host) {
+                                            Some(ip) => {
+                                                ips.push(ip);
+                                                if !dns_map.contains_key(&ip) {
+                                                    dns_map.insert(ip, host.to_string());
+                                                }
+                                            }
+                                            None => {
+                                                output::log_with_time(
+                                                    &format!(
+                                                        "Failed to resolve hostname: {}",
+                                                        host
+                                                    ),
+                                                    "ERROR",
+                                                );
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             ips
@@ -105,9 +133,12 @@ pub fn handle_hostscan(args: &ArgMatches) {
         .set_if_index(interface.index)
         .set_scan_type(scan_type)
         .set_targets(targets)
+        .set_dns_map(dns_map)
         .set_timeout(timeout)
         .set_wait_time(wait_time)
-        .set_send_rate(send_rate);
+        .set_send_rate(send_rate)
+        .set_async_scan(async_scan)
+        .set_detect_only(detect_only);
     // Print options
     print_option(&target, &scan_setting, &interface);
     if !host_args.get_flag("random") {
@@ -143,7 +174,7 @@ pub fn handle_hostscan(args: &ArgMatches) {
     hostscan_result.sort_ports();
     hostscan_result.sort_hosts();
     let os_family_map: HashMap<IpAddr, String> =
-        crate::db::get_fingerprint_map(&hostscan_result.fingerprints);
+        crate::fp::get_fingerprint_map(&hostscan_result.fingerprints);
     for host in &mut hostscan_result.hosts {
         host.os_family = os_family_map
             .get(&host.ip_addr)
@@ -205,11 +236,13 @@ fn print_option(target: &str, setting: &HostScanSetting, interface: &Interface) 
         Some(&format!("{:?}", setting.wait_time)),
         None,
     ));
-    setting_tree.push(node_label(
-        "SendRate",
-        Some(&format!("{:?}", setting.send_rate)),
-        None,
-    ));
+    if !setting.async_scan {
+        setting_tree.push(node_label(
+            "SendRate",
+            Some(&format!("{:?}", setting.send_rate)),
+            None,
+        ));
+    }
     tree.push(setting_tree);
     let mut target_tree = Tree::new(node_label("Target", None, None));
     match Ipv4Net::from_str(&target) {
@@ -234,23 +267,25 @@ fn show_hostscan_result(hostscan_result: &HostScanResult) {
     if !crate::app::is_quiet_mode() {
         println!();
     }
-    let oui_map: HashMap<String, String> = crate::db::get_oui_detail_map();
-    let mut tree = Tree::new(node_label("HostScan Result", None, None));
+    let oui_db = crate::db::OUI_DB.get().unwrap().read().unwrap();
+    let mut tree: Tree<String> = Tree::new(node_label("HostScan Result", None, None));
     let mut hosts_tree = Tree::new(node_label("Hosts", None, None));
     for host in &hostscan_result.hosts {
         let mut host_tree = Tree::new(node_label(&host.ip_addr.to_string(), None, None));
         host_tree.push(node_label("Host Name", Some(&host.hostname), None));
-        host_tree.push(node_label("TTL", Some(&host.ttl.to_string()), None));
-        host_tree.push(node_label("OS Family", Some(&host.os_family), None));
-        if !crate::ip::is_global_addr(&host.ip_addr) {
-            let vendor_name = if host.mac_addr.address().len() > 16 {
-                let prefix8 = host.mac_addr.address()[0..8].to_uppercase();
-                oui_map.get(&prefix8).unwrap_or(&String::new()).to_string()
-            } else {
-                oui_map
-                    .get(&host.mac_addr.address())
-                    .unwrap_or(&String::new())
-                    .to_string()
+        host_tree.push(node_label(
+            "TTL",
+            host.ttl.map(|ttl| ttl.to_string()).as_deref(),
+            None,
+        ));
+        if !host.os_family.is_empty() {
+            host_tree.push(node_label("OS Family", Some(&host.os_family), None));
+        }
+
+        if !crate::ip::is_global_addr(&host.ip_addr) && host.mac_addr != netdev::MacAddr::zero() {
+            let vendor_name = match oui_db.lookup(&host.mac_addr.address()) {
+                Some(vendor) => vendor.vendor.to_string(),
+                None => String::new(),
             };
             host_tree.push(node_label(
                 "MAC Address",

@@ -22,7 +22,7 @@ pub enum ScanType {
  */
 
 /// Port Scan Type
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PortScanType {
     /// Default fast port scan type.
     ///
@@ -36,7 +36,7 @@ pub enum PortScanType {
 
 impl PortScanType {
     pub fn from_str(scan_type: &str) -> PortScanType {
-        match scan_type {
+        match scan_type.to_uppercase().as_str() {
             "SYN" | "TCP-SYN" | "TCP_SYN" => PortScanType::TcpSynScan,
             "CONNECT" | "TCP-CONNECT" | "TCP_CONNECT" => PortScanType::TcpConnectScan,
             _ => PortScanType::TcpSynScan,
@@ -57,7 +57,8 @@ pub struct PortScanSetting {
     pub protocol: Protocol,
     pub scan_type: PortScanType,
     pub concurrency: usize,
-    pub timeout: Duration,
+    pub task_timeout: Duration,
+    pub connect_timeout: Duration,
     pub wait_time: Duration,
     pub send_rate: Duration,
     pub randomize: bool,
@@ -72,10 +73,11 @@ impl Default for PortScanSetting {
             if_index: 0,
             targets: Vec::new(),
             protocol: Protocol::TCP,
-            scan_type: PortScanType::TcpSynScan,
+            scan_type: PortScanType::TcpConnectScan,
             concurrency: DEFAULT_PORTS_CONCURRENCY,
-            timeout: Duration::from_secs(30),
-            wait_time: Duration::from_secs(200),
+            task_timeout: Duration::from_secs(30),
+            connect_timeout: Duration::from_millis(200),
+            wait_time: Duration::from_millis(100),
             send_rate: Duration::from_millis(0),
             randomize: true,
             minimize_packet: false,
@@ -111,8 +113,12 @@ impl PortScanSetting {
         self.concurrency = concurrency;
         self
     }
-    pub fn set_timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
+    pub fn set_task_timeout(mut self, timeout: Duration) -> Self {
+        self.task_timeout = timeout;
+        self
+    }
+    pub fn set_connect_timeout(mut self, timeout: Duration) -> Self {
+        self.connect_timeout = timeout;
         self
     }
     pub fn set_wait_time(mut self, wait_time: Duration) -> Self {
@@ -198,6 +204,7 @@ pub struct HostScanSetting {
     pub minimize_packet: bool,
     pub dns_map: HashMap<IpAddr, String>,
     pub async_scan: bool,
+    pub detect_only: bool,
 }
 
 impl Default for HostScanSetting {
@@ -209,12 +216,13 @@ impl Default for HostScanSetting {
             scan_type: HostScanType::IcmpPingScan,
             concurrency: DEFAULT_PORTS_CONCURRENCY,
             timeout: Duration::from_secs(30),
-            wait_time: Duration::from_secs(200),
+            wait_time: Duration::from_millis(200),
             send_rate: Duration::from_millis(0),
             randomize: true,
             minimize_packet: false,
             dns_map: HashMap::new(),
             async_scan: false,
+            detect_only: false,
         }
     }
 }
@@ -273,6 +281,10 @@ impl HostScanSetting {
         self.async_scan = async_scan;
         self
     }
+    pub fn set_detect_only(mut self, detect_only: bool) -> Self {
+        self.detect_only = detect_only;
+        self
+    }
     pub fn randomize_hosts(&mut self) {
         let mut rng = rand::thread_rng();
         self.targets.shuffle(&mut rng);
@@ -281,6 +293,13 @@ impl HostScanSetting {
         for target in &mut self.targets {
             target.ports.shuffle(&mut rand::thread_rng());
         }
+    }
+    pub fn get_target_map(&self) -> HashMap<IpAddr, Host> {
+        let mut target_map: HashMap<IpAddr, Host> = HashMap::new();
+        for target in &self.targets {
+            target_map.insert(target.ip_addr, target.clone());
+        }
+        target_map
     }
 }
 
@@ -372,5 +391,89 @@ impl ServiceProbeSetting {
     /// Set TCP read timeout in milliseconds
     pub fn set_read_timeout_millis(&mut self, read_timeout_millis: u64) {
         self.read_timeout = Duration::from_millis(read_timeout_millis);
+    }
+}
+
+/// Probe setting for OS detection
+#[derive(Clone, Debug)]
+pub struct OsProbeSetting {
+    /// Interface index for sending packets
+    pub if_index: u32,
+    /// Destination IP address
+    pub ip_addr: IpAddr,
+    /// Destination Host Name
+    pub hostname: String,
+    /// Target ports for OS detection
+    pub ports: Vec<u16>,
+    pub task_timeout: Duration,
+    pub wait_time: Duration,
+    /// TCP connect (open) timeout
+    pub connect_timeout: Duration,
+    /// TCP read timeout
+    pub read_timeout: Duration,
+    pub send_rate: Duration,
+}
+
+impl OsProbeSetting {
+    /// Create new ProbeSetting
+    pub fn new() -> OsProbeSetting {
+        OsProbeSetting {
+            if_index: 0,
+            ip_addr: IpAddr::V4(Ipv4Addr::LOCALHOST),
+            hostname: String::new(),
+            ports: vec![],
+            task_timeout: Duration::from_secs(30),
+            wait_time: Duration::from_millis(200),
+            connect_timeout: Duration::from_millis(200),
+            read_timeout: Duration::from_secs(5),
+            send_rate: Duration::from_millis(0),
+        }
+    }
+    pub fn with_if_index(&mut self, if_index: u32) -> &mut Self {
+        self.if_index = if_index;
+        self
+    }
+    /// Set Destination IP address
+    pub fn with_ip_addr(&mut self, ip_addr: IpAddr) -> &mut Self {
+        self.ip_addr = ip_addr;
+        self
+    }
+    /// Set Destination Host Name. If IP address is not set, it will be resolved from the hostname.
+    pub fn with_hostname(&mut self, hostname: String) -> &mut Self {
+        self.hostname = hostname;
+        if self.ip_addr == IpAddr::V4(Ipv4Addr::LOCALHOST)
+            || self.ip_addr == IpAddr::V4(Ipv4Addr::UNSPECIFIED)
+            || self.ip_addr == IpAddr::V6(std::net::Ipv6Addr::LOCALHOST)
+            || self.ip_addr == IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED)
+        {
+            if let Some(ip_addr) = crate::dns::lookup_host_name(&self.hostname) {
+                self.ip_addr = ip_addr;
+            }
+        }
+        self
+    }
+    /// Add target port
+    pub fn add_port(&mut self, port: u16) -> &mut Self {
+        self.ports.push(port);
+        self
+    }
+    /// Set target ports
+    pub fn with_ports(&mut self, ports: Vec<u16>) -> &mut Self {
+        self.ports = ports;
+        self
+    }
+    /// Freeze and return a new OsProbeSetting
+    pub fn freeze(&self) -> OsProbeSetting {
+        OsProbeSetting {
+            if_index: self.if_index,
+            ip_addr: self.ip_addr,
+            hostname: self.hostname.clone(),
+            ports: self.ports.clone(),
+            task_timeout: self.task_timeout,
+            wait_time: self.wait_time,
+            connect_timeout: self.connect_timeout,
+            read_timeout: self.read_timeout,
+            send_rate: self.send_rate,
+        }
     }
 }

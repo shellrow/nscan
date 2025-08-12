@@ -1,38 +1,38 @@
 use crate::packet::setting::PacketBuildSetting;
 use nex::net::mac::MacAddr;
+use nex::packet::builder::arp::ArpPacketBuilder;
+use nex::packet::builder::ethernet::EthernetPacketBuilder;
 use nex::packet::ethernet::EtherType;
-use nex::util::packet_builder::arp::ArpPacketBuilder;
-use nex::util::packet_builder::builder::PacketBuilder;
-use nex::util::packet_builder::ethernet::EthernetPacketBuilder;
+use nex::packet::packet::Packet;
 use std::net::IpAddr;
 
 /// Build ARP packet
 pub fn build_arp_packet(setting: PacketBuildSetting) -> Vec<u8> {
-    let mut packet_builder = PacketBuilder::new();
-    // Ethernet Header
-    let ethernet_packet_builder = EthernetPacketBuilder {
-        src_mac: setting.src_mac,
-        dst_mac: MacAddr::broadcast(),
-        ether_type: EtherType::Arp,
-    };
-    packet_builder.set_ethernet(ethernet_packet_builder);
     match setting.src_ip {
         IpAddr::V4(src_ipv4) => {
             match setting.dst_ip {
                 IpAddr::V4(dst_ipv4) => {
                     // ARP Header
-                    let arp_packet = ArpPacketBuilder {
-                        src_mac: setting.src_mac,
-                        dst_mac: MacAddr::broadcast(),
-                        src_ip: src_ipv4,
-                        dst_ip: dst_ipv4,
-                    };
-                    packet_builder.set_arp(arp_packet);
+                    let arp_builder = ArpPacketBuilder::new(setting.src_mac, src_ipv4, dst_ipv4)
+                        .operation(nex::packet::arp::ArpOperation::Request);
+                    // Ethernet Header
+                    let eth_builder = EthernetPacketBuilder::new()
+                        .source(setting.src_mac)
+                        .destination(MacAddr::broadcast())
+                        .ethertype(EtherType::Arp);
+
+                    let packet = eth_builder.payload(arp_builder.build().to_bytes()).build();
+
+                    return packet.to_bytes().to_vec();
                 }
-                IpAddr::V6(_) => {}
+                IpAddr::V6(_) => {
+                    // ARP is not used with IPv6, return empty vector
+                    return Vec::new();
+                }
             }
         }
-        IpAddr::V6(_) => {}
+        IpAddr::V6(_) => {
+            return Vec::new(); // ARP is not used with IPv6
+        }
     }
-    packet_builder.packet()
 }

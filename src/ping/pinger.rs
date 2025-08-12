@@ -135,7 +135,10 @@ pub fn icmp_ping(
             match rx.next() {
                 Ok(packet) => {
                     let recv_time: Duration = Instant::now().duration_since(send_time);
-                    let frame: Frame = Frame::from_bytes(&packet, parse_option.clone());
+                    let frame: Frame = match Frame::from_buf(&packet, parse_option.clone()) {
+                        Some(frame) => frame,
+                        None => continue,
+                    };
                     // Datalink
                     let mut mac_addr: MacAddr = MacAddr::zero();
                     if let Some(datalink_layer) = &frame.datalink {
@@ -334,7 +337,10 @@ pub fn tcp_ping(
             match rx.next() {
                 Ok(packet) => {
                     let recv_time: Duration = Instant::now().duration_since(send_time);
-                    let frame: Frame = Frame::from_bytes(&packet, parse_option.clone());
+                    let frame: Frame = match Frame::from_buf(&packet, parse_option.clone()) {
+                        Some(frame) => frame,
+                        None => continue,
+                    };
                     // Datalink
                     let mut mac_addr: MacAddr = MacAddr::zero();
                     if let Some(datalink_layer) = &frame.datalink {
@@ -552,7 +558,10 @@ pub fn udp_ping(
             match rx.next() {
                 Ok(packet) => {
                     let recv_time: Duration = Instant::now().duration_since(send_time);
-                    let frame: Frame = Frame::from_bytes(&packet, parse_option.clone());
+                    let frame: Frame = match Frame::from_buf(&packet, parse_option.clone()) {
+                        Some(frame) => frame,
+                        None => continue,
+                    };
                     // Datalink
                     let mut mac_addr: MacAddr = MacAddr::zero();
                     if let Some(datalink_layer) = &frame.datalink {

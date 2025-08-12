@@ -1,11 +1,10 @@
-pub mod check;
 pub mod dns;
 pub mod host;
 pub mod interface;
 pub mod ping;
 pub mod port;
 
-use crate::db::model::OsFamilyFingerprint;
+use crate::fp::MatchResult;
 use crate::host::Host;
 use crate::json::port::PortScanResult;
 use crate::scan::result::ScanResult;
@@ -14,7 +13,6 @@ use crate::scan::setting::{PortScanSetting, PortScanType, ServiceProbeSetting};
 use clap::ArgMatches;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use netdev::mac::MacAddr;
-use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::thread;
@@ -84,7 +82,7 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
         .set_if_index(interface.index)
         .set_scan_type(PortScanType::TcpSynScan)
         .add_target(target_host.clone())
-        .set_timeout(Duration::from_millis(10000))
+        .set_task_timeout(Duration::from_millis(10000))
         .set_wait_time(default_waittime)
         .set_send_rate(Duration::from_millis(0));
     // Print options
@@ -138,7 +136,7 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
     if crate::app::is_quiet_mode() {
         bar.set_draw_target(ProgressDrawTarget::hidden());
     }
-    bar.enable_steady_tick(120);
+    bar.enable_steady_tick(Duration::from_millis(120));
     bar.set_style(output::get_progress_style());
     bar.set_position(0);
     bar.set_message("ServiceDetection");
@@ -163,24 +161,19 @@ pub fn default_probe(target_host: &str, args: &ArgMatches) {
         if let Some(fingerprint) = portscan_result
             .get_syn_ack_fingerprint(result.host.ip_addr, result.host.get_open_port_numbers()[0])
         {
-            let os_fingerprint: OsFamilyFingerprint =
-                crate::db::verify_os_family_fingerprint(&fingerprint);
-            result.host.os_family = os_fingerprint.os_family;
+            let os_fingerprint: MatchResult = crate::fp::get_fingerprint(&fingerprint);
+            result.host.os_family =
+                format!("{} ({})", os_fingerprint.family, os_fingerprint.evidence);
         }
     }
     // Set vendor name
     if !crate::ip::is_global_addr(&result.host.ip_addr) {
         if let Some(h) = portscan_result.get_host(result.host.ip_addr) {
             if h.mac_addr != MacAddr::zero() {
-                let oui_map: HashMap<String, String> = crate::db::get_oui_detail_map();
-                let vendor_name = if h.mac_addr.address().len() > 16 {
-                    let prefix8 = h.mac_addr.address()[0..8].to_uppercase();
-                    oui_map.get(&prefix8).unwrap_or(&String::new()).to_string()
-                } else {
-                    oui_map
-                        .get(&h.mac_addr.address())
-                        .unwrap_or(&String::new())
-                        .to_string()
+                let oui_db = crate::db::OUI_DB.get().unwrap().read().unwrap();
+                let vendor_name = match oui_db.lookup(&h.mac_addr.address()) {
+                    Some(vendor) => vendor.vendor.to_string(),
+                    None => String::new(),
                 };
                 result.host.mac_addr = h.mac_addr;
                 result.host.vendor_name = vendor_name;

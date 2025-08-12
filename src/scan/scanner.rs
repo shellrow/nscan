@@ -1,5 +1,7 @@
+use crate::fp::MatchResult;
 use crate::host::Host;
-use crate::scan::setting::{HostScanSetting, PortScanSetting};
+use crate::scan::setting::{HostScanSetting, OsProbeSetting, PortScanSetting};
+use anyhow::Result;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -118,5 +120,34 @@ impl ServiceDetector {
     pub fn run(&self) -> HashMap<u16, ServiceProbeResult> {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(super::service::run_service_probe(&self.setting, &self.tx))
+    }
+}
+
+pub struct OsDetector {
+    /// Probe setting for OS detection
+    pub setting: OsProbeSetting,
+    /// Sender for progress messaging
+    pub tx: Arc<Mutex<Sender<SocketAddr>>>,
+    /// Receiver for progress messaging
+    pub rx: Arc<Mutex<Receiver<SocketAddr>>>,
+}
+
+impl OsDetector {
+    /// Create new OsDetector
+    pub fn new(setting: OsProbeSetting) -> Self {
+        let (tx, rx) = channel();
+        Self {
+            setting,
+            tx: Arc::new(Mutex::new(tx)),
+            rx: Arc::new(Mutex::new(rx)),
+        }
+    }
+    /// Get progress receiver
+    pub fn get_progress_receiver(&self) -> Arc<Mutex<Receiver<SocketAddr>>> {
+        self.rx.clone()
+    }
+    /// Run OS detection
+    pub fn run(&self) -> Result<MatchResult> {
+        super::os::run_os_probe(&self.setting, &self.tx)
     }
 }

@@ -1,0 +1,17 @@
+[
+    {
+        "os_class": "UnixLike",
+        "os_description": "Unix-like: Linux / BSD / Darwin (macOS, iOS, ...)",
+        "initial_ttl": 64
+    },
+    {
+        "os_class": "Windows",
+        "os_description": "Microsoft Windows family",
+        "initial_ttl": 128
+    },
+    {
+        "os_class": "UnixLike",
+        "os_description": "NetworkOs or Unix-like: Solaris / illumos",
+        "initial_ttl": 255
+    }
+]

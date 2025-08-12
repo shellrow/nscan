@@ -1,16 +1,15 @@
-use crate::db::model::OsFamilyFingerprint;
+use crate::fp::MatchResult;
 use crate::host::{Host, PortStatus};
 use crate::json::port::PortScanResult;
 use crate::output;
 use crate::scan::result::ScanResult;
-use crate::scan::scanner::{PortScanner, ServiceDetector};
-use crate::scan::setting::{PortScanSetting, PortScanType, ServiceProbeSetting};
+use crate::scan::scanner::{OsDetector, PortScanner, ServiceDetector};
+use crate::scan::setting::{OsProbeSetting, PortScanSetting, PortScanType, ServiceProbeSetting};
 use crate::util::tree::node_label;
 use clap::ArgMatches;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use netdev::mac::MacAddr;
 use netdev::Interface;
-use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::thread;
@@ -102,11 +101,8 @@ pub fn handle_portscan(args: &ArgMatches) {
         }
     }
     let scan_type: PortScanType = match port_args.get_one::<String>("scantype") {
-        Some(scan_type) => match scan_type.as_str() {
-            "CONNECT" => PortScanType::TcpConnectScan,
-            _ => PortScanType::TcpSynScan,
-        },
-        None => PortScanType::TcpSynScan,
+        Some(scan_type) => PortScanType::from_str(scan_type),
+        None => PortScanType::TcpConnectScan,
     };
     let timeout = match port_args.get_one::<u64>("timeout") {
         Some(timeout) => Duration::from_millis(*timeout),
@@ -118,17 +114,18 @@ pub fn handle_portscan(args: &ArgMatches) {
     };
     let send_rate = match port_args.get_one::<u64>("rate") {
         Some(send_rate) => Duration::from_millis(*send_rate),
-        None => Duration::from_millis(0),
+        None => Duration::from_millis(1),
     };
     let target_host: Host =
         Host::new(target_ip_addr, target_host_name.clone()).with_ports(target_ports);
     let mut result: PortScanResult = PortScanResult::new(target_ip_addr, target_host_name);
     let mut scan_setting = PortScanSetting::default()
         .set_if_index(interface.index)
-        .set_scan_type(scan_type)
+        .set_scan_type(scan_type.clone())
         .add_target(target_host.clone())
-        .set_timeout(timeout)
+        .set_task_timeout(timeout)
         .set_wait_time(wait_time)
+        .set_connect_timeout(wait_time)
         .set_send_rate(send_rate);
     // Print options
     print_option(&scan_setting, &interface);
@@ -148,6 +145,17 @@ pub fn handle_portscan(args: &ArgMatches) {
     bar.set_style(output::get_progress_style());
     bar.set_position(0);
     bar.set_message("PortScan");
+
+    /* match crate::nei::resolve_next_hop(target_ip_addr, &interface) {
+        Ok(_next_hop) => {
+
+        }
+        Err(e) => {
+            output::log_with_time(&format!("Failed to resolve next hop: {}", e), "ERROR");
+            return;
+        }
+    } */
+
     let port_scanner = PortScanner::new(scan_setting);
     let rx = port_scanner.get_progress_receiver();
     // Run port scan
@@ -173,7 +181,7 @@ pub fn handle_portscan(args: &ArgMatches) {
     // Run service detection
     let probe_setting: ServiceProbeSetting = ServiceProbeSetting::default(
         target_host.ip_addr,
-        target_host.hostname,
+        target_host.hostname.clone(),
         portscan_result.hosts[0].get_open_port_numbers(),
     );
     let service_detector = ServiceDetector::new(probe_setting);
@@ -182,7 +190,7 @@ pub fn handle_portscan(args: &ArgMatches) {
     if crate::app::is_quiet_mode() {
         bar.set_draw_target(ProgressDrawTarget::hidden());
     }
-    bar.enable_steady_tick(120);
+    bar.enable_steady_tick(Duration::from_millis(120));
     bar.set_style(output::get_progress_style());
     bar.set_position(0);
     bar.set_message("ServiceDetection");
@@ -203,28 +211,57 @@ pub fn handle_portscan(args: &ArgMatches) {
         }
     }
     // OS detection
-    if result.host.get_open_port_numbers().len() > 0 {
+    if result.host.get_open_port_numbers().len() > 0 && scan_type == PortScanType::TcpSynScan {
         if let Some(fingerprint) = portscan_result
             .get_syn_ack_fingerprint(result.host.ip_addr, result.host.get_open_port_numbers()[0])
         {
-            let os_fingerprint: OsFamilyFingerprint =
-                crate::db::verify_os_family_fingerprint(&fingerprint);
-            result.host.os_family = os_fingerprint.os_family;
+            let os_fingerprint: MatchResult = crate::fp::get_fingerprint(&fingerprint);
+            result.host.os_family =
+                format!("{} ({})", os_fingerprint.family, os_fingerprint.evidence);
+        }
+    } else {
+        let probe_setting = OsProbeSetting::new()
+            .with_if_index(interface.index)
+            .with_ip_addr(target_host.ip_addr)
+            .with_hostname(target_host.hostname)
+            .with_ports(result.host.get_open_port_numbers())
+            .freeze();
+        let detector = OsDetector::new(probe_setting);
+        let os_rx = detector.get_progress_receiver();
+        let os_bar = ProgressBar::new(result.host.get_open_port_numbers().len() as u64);
+        if crate::app::is_quiet_mode() {
+            os_bar.set_draw_target(ProgressDrawTarget::hidden());
+        }
+        os_bar.enable_steady_tick(Duration::from_millis(120));
+        os_bar.set_style(output::get_progress_style());
+        os_bar.set_position(0);
+        os_bar.set_message("OSDetection");
+        let os_start_time = std::time::Instant::now();
+        let os_handle = thread::spawn(move || detector.run());
+        // Print progress
+        while let Ok(_socket_addr) = os_rx.lock().unwrap().recv() {
+            os_bar.inc(1);
+        }
+        let os_elapsed_time = os_start_time.elapsed();
+        os_bar.finish_with_message(format!("OSDetection ({:?})", os_elapsed_time));
+        let os_result = os_handle.join().unwrap();
+        match os_result {
+            Ok(os_match) => {
+                result.host.os_family = format!("{} ({})", os_match.family, os_match.evidence);
+            }
+            Err(e) => {
+                output::log_with_time(&format!("OS detection failed: {}", e), "ERROR");
+            }
         }
     }
     // Set vendor name
     if !crate::ip::is_global_addr(&result.host.ip_addr) {
         if let Some(h) = portscan_result.get_host(result.host.ip_addr) {
             if h.mac_addr != MacAddr::zero() {
-                let oui_map: HashMap<String, String> = crate::db::get_oui_detail_map();
-                let vendor_name = if h.mac_addr.address().len() > 16 {
-                    let prefix8 = h.mac_addr.address()[0..8].to_uppercase();
-                    oui_map.get(&prefix8).unwrap_or(&String::new()).to_string()
-                } else {
-                    oui_map
-                        .get(&h.mac_addr.address())
-                        .unwrap_or(&String::new())
-                        .to_string()
+                let oui_db = crate::db::OUI_DB.get().unwrap().read().unwrap();
+                let vendor_name = match oui_db.lookup(&h.mac_addr.address()) {
+                    Some(vendor) => vendor.vendor.to_string(),
+                    None => String::new(),
                 };
                 result.host.mac_addr = h.mac_addr;
                 result.host.vendor_name = vendor_name;
@@ -286,20 +323,28 @@ pub fn print_option(setting: &PortScanSetting, interface: &Interface) {
     ));
     setting_tree.push(node_label("InterfaceName", Some(&interface.name), None));
     setting_tree.push(node_label(
-        "Timeout",
-        Some(format!("{:?}", setting.timeout).as_str()),
+        "TaskTimeout",
+        Some(format!("{:?}", setting.task_timeout).as_str()),
         None,
     ));
-    setting_tree.push(node_label(
-        "WaitTime",
-        Some(format!("{:?}", setting.wait_time).as_str()),
-        None,
-    ));
-    setting_tree.push(node_label(
-        "SendRate",
-        Some(format!("{:?}", setting.send_rate).as_str()),
-        None,
-    ));
+    if setting.scan_type == PortScanType::TcpSynScan {
+        setting_tree.push(node_label(
+            "WaitTime",
+            Some(format!("{:?}", setting.wait_time).as_str()),
+            None,
+        ));
+        setting_tree.push(node_label(
+            "SendRate",
+            Some(format!("{:?}", setting.send_rate).as_str()),
+            None,
+        ));
+    } else {
+        setting_tree.push(node_label(
+            "ConnectTimeout",
+            Some(format!("{:?}", setting.connect_timeout).as_str()),
+            None,
+        ));
+    }
     tree.push(setting_tree);
 
     let mut target_tree = Tree::new(node_label("Target", None, None));
