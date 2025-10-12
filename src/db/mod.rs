@@ -1,134 +1,129 @@
-pub mod model;
+pub mod service;
+pub mod os;
+pub mod port;
+pub mod tls;
 pub mod oui;
-use ndb_oui::OuiDb;
-use ndb_tcp_service::TcpServiceDb;
+pub mod domain;
 
-use crate::config;
-use crate::fp::{OsClass, OsFamily};
+use std::time::{Duration, Instant};
+use futures::StreamExt;
 use anyhow::Result;
-use std::collections::HashMap;
-use std::sync::{OnceLock, RwLock};
 
-pub static OUI_DB: OnceLock<RwLock<OuiDb>> = OnceLock::new();
-pub static TCP_SERVICE_DB: OnceLock<RwLock<TcpServiceDb>> = OnceLock::new();
+/// Initialization function type
+type InitFn = fn() -> Result<()>;
 
-/// Initialize all databases
-pub fn init_databases() -> Result<()> {
-    init_oui_db()?;
-    init_tcp_service_db()?;
-    Ok(())
+/// Database initialization task
+struct DbTask {
+    name: &'static str,
+    init: InitFn,
 }
 
-pub fn init_oui_db() -> Result<()> {
-    // Initialize OUI database
-    let oui_db = OuiDb::bundled();
-    OUI_DB
-        .set(RwLock::new(oui_db))
-        .map_err(|_| anyhow::anyhow!("Failed to set OUI_DB in OnceLock"))?;
-    Ok(())
+const TASK_TCP_SERVICE: DbTask = DbTask { name: "tcp_service_db",       init: || service::init_tcp_service_db() };
+const TASK_UDP_SERVICE: DbTask = DbTask { name: "udp_service_db",       init: || service::init_udp_service_db() };
+const TASK_PORT_PROBE : DbTask = DbTask { name: "port_probe_db",        init: || service::init_port_probe_db() };
+const TASK_SVC_PROBE  : DbTask = DbTask { name: "service_probe_db",     init: || service::init_service_probe_db() };
+const TASK_RESP_SIGS  : DbTask = DbTask { name: "response_signatures",  init: || service::init_response_signatures_db() };
+const TASK_TLS_OID    : DbTask = DbTask { name: "tls_oid_map",          init: || tls::init_tls_oid_map() };
+const TASK_OS_DB      : DbTask = DbTask { name: "os_db",                init: || os::init_os_db() };
+const TASK_OUI_DB     : DbTask = DbTask { name: "oui_db",               init: || oui::init_oui_db() };
+
+/// Database initialization result record
+#[derive(Debug, Clone)]
+pub struct InitRecord {
+    pub name: &'static str,
+    pub elapsed: Duration,
+    pub ok: bool,
+    pub error: Option<String>,
 }
 
-pub fn init_tcp_service_db() -> Result<()> {
-    // Initialize TCP Service database
-    let tcp_service_db = TcpServiceDb::bundled();
-    TCP_SERVICE_DB
-        .set(RwLock::new(tcp_service_db))
-        .map_err(|_| anyhow::anyhow!("Failed to set TCP_SERVICE_DB in OnceLock"))?;
-    Ok(())
+/// Database initialization report
+#[derive(Debug, Clone)]
+pub struct InitReport {
+    pub total: Duration,
+    pub records: Vec<InitRecord>,
 }
 
-/* pub fn get_oui_db() -> OuiDb {
-    OuiDb::bundled()
+/// Database initializer (for once-only initialization)
+pub struct DbInitializer {
+    tasks: Vec<&'static DbTask>,
 }
 
-pub fn get_tcp_service_db() -> TcpServiceDb {
-    TcpServiceDb::bundled()
-} */
-
-pub fn get_default_ports() -> Vec<u16> {
-    let default_ports: Vec<u16> = serde_json::from_str(config::DEFAULT_PORTS_JSON)
-        .expect("Invalid default-ports.json format");
-    default_ports
-}
-
-pub fn get_wellknown_ports() -> Vec<u16> {
-    let wellknown_ports: Vec<u16> = serde_json::from_str(config::WELLKNOWN_PORTS_JSON)
-        .expect("Invalid wellknown-ports.json format");
-    wellknown_ports
-}
-
-pub fn get_http_ports() -> Vec<u16> {
-    let http_ports: Vec<u16> =
-        serde_json::from_str(config::HTTP_PORTS_JSON).expect("Invalid http-ports.json format");
-    http_ports
-}
-
-pub fn get_https_ports() -> Vec<u16> {
-    let https_ports: Vec<u16> =
-        serde_json::from_str(config::HTTPS_PORTS_JSON).expect("Invalid https-ports.json format");
-    https_ports
-}
-
-pub fn get_ttl_family_map() -> HashMap<u8, String> {
-    let mut ttl_family_map: HashMap<u8, String> = HashMap::new();
-    let ds_os_ttl: Vec<model::OsTtl> =
-        serde_json::from_str(config::OS_TTL_JSON).expect("Invalid os-ttl.json format");
-    for os_ttl in ds_os_ttl {
-        ttl_family_map.insert(os_ttl.initial_ttl, os_ttl.os_family.as_str().to_string());
+impl DbInitializer {
+    /// Create new initializer
+    pub fn new() -> Self { Self { tasks: Vec::new() } }
+    /// Add TCP service DB
+    pub fn with_tcp_services(mut self) -> Self { self.tasks.push(&TASK_TCP_SERVICE); self }
+    /// Add UDP service DB
+    pub fn with_udp_services(mut self) -> Self { self.tasks.push(&TASK_UDP_SERVICE); self }
+    /// Add port probe DB
+    pub fn with_port_probe(mut self)   -> Self { self.tasks.push(&TASK_PORT_PROBE);  self }
+    /// Add service probe DB
+    pub fn with_service_probe(mut self)-> Self { self.tasks.push(&TASK_SVC_PROBE);   self }
+    /// Add response signatures DB
+    pub fn with_response_sigs(mut self)-> Self { self.tasks.push(&TASK_RESP_SIGS);   self }
+    /// Add TLS OID map
+    pub fn with_tls_oids(mut self)     -> Self { self.tasks.push(&TASK_TLS_OID);     self }
+    /// Add OS DB
+    pub fn with_os_db(mut self)        -> Self { self.tasks.push(&TASK_OS_DB);       self }
+    /// Add OUI DB
+    pub fn with_oui_db(mut self)       -> Self { self.tasks.push(&TASK_OUI_DB);      self }
+    /// Add all databases
+    pub fn with_all() -> Self {
+        Self::new()
+            .with_tcp_services()
+            .with_udp_services()
+            .with_port_probe()
+            .with_service_probe()
+            .with_response_sigs()
+            .with_tls_oids()
+            .with_os_db()
+            .with_oui_db()
     }
-    ttl_family_map
-}
 
-pub fn get_ttl_class_map() -> HashMap<u8, String> {
-    let mut ttl_class_map: HashMap<u8, String> = HashMap::new();
-    let ds_os_ttl: Vec<model::OsClassTtl> =
-        serde_json::from_str(config::OS_CLASS_TTL_JSON).expect("Invalid os-class-ttl.json format");
-    for os_ttl in ds_os_ttl {
-        ttl_class_map.insert(os_ttl.initial_ttl, os_ttl.os_class.as_str().to_string());
+    /// Run initialization tasks, return report
+    pub async fn init(self) -> InitReport {
+        use futures::stream;
+
+        // Remove duplicate tasks (even if the same preset is stacked, it will only be done once)
+        let mut uniq: Vec<&'static DbTask> = Vec::new();
+        for t in self.tasks {
+            if !uniq.iter().any(|u| u.name == t.name) {
+                uniq.push(t);
+            }
+        }
+
+        let uniq_count = uniq.len();
+        tracing::debug!("Initializing databases ({} task(s))...", uniq_count);
+        let t0 = Instant::now();
+
+        let results = stream::iter(uniq)
+            .map(|task| async move {
+                let start = Instant::now();
+                let res  = (task.init)();
+                let ok   = res.is_ok();
+                let err  = res.err().map(|e| e.to_string());
+                InitRecord {
+                    name: task.name,
+                    elapsed: start.elapsed(),
+                    ok,
+                    error: err,
+                }
+            })
+            .buffer_unordered(uniq_count)
+            .collect::<Vec<_>>()
+            .await;
+
+        let total = t0.elapsed();
+
+        for r in &results {
+            if r.ok {
+                tracing::debug!("DB init ok: {} ({:?})", r.name, r.elapsed);
+            } else {
+                tracing::error!("DB init failed: {} ({:?}) - {}", r.name, r.elapsed, r.error.as_deref().unwrap_or("?"));
+            }
+        }
+        tracing::debug!("DB init done: {:?} total", total);
+
+        InitReport { total, records: results }
     }
-    ttl_class_map
-}
-
-pub fn get_class_ttl_map() -> HashMap<OsClass, u8> {
-    let mut class_ttl_map: HashMap<OsClass, u8> = HashMap::new();
-    let ds_os_ttl: Vec<model::OsClassTtl> =
-        serde_json::from_str(config::OS_CLASS_TTL_JSON).expect("Invalid os-class-ttl.json format");
-    for os_ttl in ds_os_ttl {
-        class_ttl_map.insert(os_ttl.os_class, os_ttl.initial_ttl);
-    }
-    class_ttl_map
-}
-
-pub fn get_family_ttl_map() -> HashMap<OsFamily, u8> {
-    let mut family_ttl_map: HashMap<OsFamily, u8> = HashMap::new();
-    let ds_os_ttl: Vec<model::OsTtl> =
-        serde_json::from_str(config::OS_TTL_JSON).expect("Invalid os-ttl.json format");
-    for os_ttl in ds_os_ttl {
-        family_ttl_map.insert(os_ttl.os_family, os_ttl.initial_ttl);
-    }
-    family_ttl_map
-}
-
-pub fn get_os_ttl_list() -> Vec<model::OsTtl> {
-    let ds_os_ttl: Vec<model::OsTtl> =
-        serde_json::from_str(config::OS_TTL_JSON).expect("Invalid os-ttl.json format");
-    ds_os_ttl
-}
-
-pub fn get_os_family_db() -> model::OsDb {
-    let os_db: model::OsDb = serde_json::from_str(config::OS_FAMILY_FINGERPRINT_JSON)
-        .expect("Invalid os-family-fingerprint.json format");
-    os_db
-}
-
-pub fn get_os_family_fingerprints() -> Vec<model::Entry> {
-    let os_db: model::OsDb = serde_json::from_str(config::OS_FAMILY_FINGERPRINT_JSON)
-        .expect("Invalid os-family-fingerprint.json format");
-    os_db.entries
-}
-
-pub fn get_os_family_list() -> Vec<String> {
-    let os_families: Vec<String> =
-        serde_json::from_str(config::OS_FAMILY_JSON).expect("Invalid os-family.json format");
-    os_families
 }

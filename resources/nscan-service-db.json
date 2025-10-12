@@ -1,0 +1,5461 @@
+{
+  "meta": {
+    "name": "Signatures Database",
+    "version": "1.0"
+  },
+  "signatures": [
+    {
+      "probe_id": "tcp:null",
+      "service": "daytime",
+      "regex": "^\\w+, +\\d+ +\\w+ +\\d+ +\\d+:\\d+:\\d+ [+-]\\d+\\r\\n([\\w:._ /\\\\-]+\\\\ats\\.exe)\\r\\n",
+      "regex_literal_tokens": [
+        "\\ats.exe"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "filemaker-xdbc",
+      "regex": "^2\\x00\\x00\\x00\\xc3\\x0b.\\x00\\x00\\x00([\\d.]+) on Mac OS X ([\\d.]+) \\(([\\w_]+)\\)\\x00\\x00\\x00\\x00\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "finger",
+      "regex": "^Windows NT Version ([\\d.]+) build (\\d+), \\d+ processors? \\(.*\\)\\r\\nFingerDW V([\\d.]+) - Hummingbird Ltd\\.\\n",
+      "regex_literal_tokens": [
+        ")FingerDW V",
+        "- Hummingbird Ltd.",
+        "Windows NT Version",
+        "build",
+        "processor"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_nt:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ([-/.+\\w]+) IBM TCP/IP for OS/2 - FTP Server [Vv]er \\d+:\\d+:\\d+ on [A-Z]",
+      "regex_literal_tokens": [
+        "220",
+        "IBM TCP/IP for OS/2 - FTP Server"
+      ],
+      "cpe": [
+        "cpe:/a:ibm:os2_ftp_server/",
+        "cpe:/o:ibm:os2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ([-/.+\\w]+) IBM TCP/IP f\\xfcr OS/2 - FTP-Server [Vv]er \\d+:\\d+:\\d+ .* bereit\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220",
+        "IBM TCP/IP fr OS/2 - FTP-Server",
+        "bereit."
+      ],
+      "cpe": [
+        "cpe:/a:ibm:os2_ftp_server::::de/",
+        "cpe:/o:ibm:os2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 .* FTP Server \\(ProFTPD ([\\d.]+) on Red Hat linux ([\\d.]+)\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        ") ready.",
+        "220",
+        "FTP Server (ProFTPD",
+        "on Red Hat linux"
+      ],
+      "cpe": [
+        "cpe:/o:redhat:linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ([-\\w_.]+) FTP server \\(SunOS 5\\.([789])\\) ready",
+      "regex_literal_tokens": [
+        ") ready",
+        "220",
+        "FTP server (SunOS 5."
+      ],
+      "cpe": [
+        "cpe:/o:sun:sunos:5.$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ([-\\w_.]+) FTP server \\(SunOS (\\S+)\\) ready",
+      "regex_literal_tokens": [
+        ") ready",
+        "220",
+        "FTP server (SunOS"
+      ],
+      "cpe": [
+        "cpe:/o:sun:sunos:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 VxWorks FTP server \\(VxWorks ?([\\d.]+) - Secure NetLinx version \\(([\\d.]+)\\)\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        ")) ready.",
+        "- Secure NetLinx version (",
+        "220 VxWorks FTP server (VxWorks"
+      ],
+      "cpe": [
+        "cpe:/o:harman:amx_firmware:$1/",
+        "cpe:/o:windriver:vxworks:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 VxWorks \\(VxWorks ([\\w._-]+)\\) FTP server ready\\r\\n",
+      "regex_literal_tokens": [
+        ") FTP server ready",
+        "220 VxWorks (VxWorks"
+      ],
+      "cpe": [
+        "cpe:/o:harman:amx_firmware:$1/",
+        "cpe:/o:windriver:vxworks:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ABB Robotics FTP server \\(VxWorks ([\\d.]+) rev ([\\d.]+)\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        ") ready.",
+        "220 ABB Robotics FTP server (VxWorks",
+        "rev"
+      ],
+      "cpe": [
+        "cpe:/o:windriver:vxworks:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ([-.\\w]+) FTP server \\(Version ([-.\\w]+)/OpenBSD\\) ready\\.\\r\\n$",
+      "regex_literal_tokens": [
+        "/OpenBSD) ready.",
+        "220",
+        "FTP server (Version"
+      ],
+      "cpe": [
+        "cpe:/a:openbsd:ftpd:$2/",
+        "cpe:/o:openbsd:openbsd/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ([\\w._-]+) FTP server \\(NetBSD-ftpd 20\\w+\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        ") ready.",
+        "220",
+        "FTP server (NetBSD-ftpd 20"
+      ],
+      "cpe": [
+        "cpe:/o:netbsd:netbsd/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 mandelbrot FTP server \\(Version ([\\d.]+) \\(NeXT ([\\d.]+)\\) .*\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "(NeXT",
+        ") ready.",
+        "220 mandelbrot FTP server (Version"
+      ],
+      "cpe": [
+        "cpe:/o:next:nextstep/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "220 ([-\\w_.]+) FTP server \\(Version:  Mac OS X Server ([\\d.]+) - \\+GSSAPI\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "- +GSSAPI) ready.",
+        "220",
+        "FTP server (Version: Mac OS X Server"
+      ],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x_server:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 FTP 9500 server \\(Version ([\\d.]+)\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        ") ready.",
+        "220 FTP 9500 server (Version"
+      ],
+      "cpe": [
+        "cpe:/o:symbian:symbian/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220  IBM TCP/IP for OS/2 - FTP Server ver ([\\d:.]+) on .* ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220 IBM TCP/IP for OS/2 - FTP Server ver",
+        "ready."
+      ],
+      "cpe": [
+        "cpe:/a:ibm:os2_ftp_server:$1/",
+        "cpe:/o:ibm:os2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-TCP/IP for VSE FTP Daemon Version ([\\w._-]+) ",
+      "regex_literal_tokens": [
+        "220-TCP/IP for VSE FTP Daemon Version"
+      ],
+      "cpe": [
+        "cpe:/o:ibm:z%2fvse/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-CentOS release ([\\w._-]+) .*\\r\\n220 ProFTPD ([\\w._-]+) Server \\(ProFTPD Default Installation\\)",
+      "regex_literal_tokens": [
+        "220 ProFTPD",
+        "220-CentOS release",
+        "Server (ProFTPD Default Installation)"
+      ],
+      "cpe": [
+        "cpe:/o:centos:centos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-TiMOS-\\w+-([\\w._-]+) cpm/hops ALCATEL ESS 7450 Copyright \\(c\\) 2000-2007 Alcatel-Lucent\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220-TiMOS-",
+        "cpm/hops ALCATEL ESS 7450 Copyright (c) 2000-2007 Alcatel-Lucent."
+      ],
+      "cpe": [
+        "cpe:/o:alcatel-lucent:timos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-FTPSERVE IBM VM Level (\\d)(\\d+) at ([\\w._-]+), [^\\r\\n]*\\r\\n220 Connection will close if idle for more than 5 minutes\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220 Connection will close if idle for more than 5 minutes.",
+        "220-FTPSERVE IBM VM Level"
+      ],
+      "cpe": [
+        "cpe:/o:ibm:z%2fvm:$1.$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 NET\\+OS ([\\d.]+) FTP server ready\\.\\r\\n503 Bad sequence of commands\\r\\n",
+      "regex_literal_tokens": [
+        "220 NET+OS",
+        "FTP server ready.503 Bad sequence of commands"
+      ],
+      "cpe": [
+        "cpe:/o:digi:net%2bos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-  Menuet FTP Server v([\\d.]+)\\r\\n220 Username and Password required\\r\\n",
+      "regex_literal_tokens": [
+        "220 Username and Password required",
+        "220- Menuet FTP Server v"
+      ],
+      "cpe": [
+        "cpe:/o:menuetos:menuetos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 tandem FTP SERVER \\w+ \\(Version ([\\w.]+) TANDEM \\w+\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "(Version",
+        ") ready.",
+        "220 tandem FTP SERVER",
+        "TANDEM"
+      ],
+      "cpe": [
+        "cpe:/o:tandem:guardian/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ftp server corona \\(([\\w._-]+)\\)\\r\\n",
+      "regex_literal_tokens": [
+        "220 ftp server corona ("
+      ],
+      "cpe": [
+        "cpe:/o:theos:theos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 vxTarget FTP server \\(VxWorks ([\\d.]+)\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        ") ready.",
+        "220 vxTarget FTP server (VxWorks"
+      ],
+      "cpe": [
+        "cpe:/o:windriver:vxworks:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-Welcome to the S60 Dumb FTP Server \\(dftpd\\)\\r\\n",
+      "regex_literal_tokens": [
+        "220-Welcome to the S60 Dumb FTP Server (dftpd)"
+      ],
+      "cpe": [
+        "cpe:/o:symbian:symbian/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 <\\w+>  Tenor Multipath Switch FTP server \\(Version VxWorks([\\w._-]+)\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        ") ready.",
+        "220 <",
+        "> Tenor Multipath Switch FTP server (Version VxWorks"
+      ],
+      "cpe": [
+        "cpe:/o:windriver:vxworks:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 -= HyNetOS FTP Server =-\\r\\n500 Command \\(null\\) not understood\\r\\n",
+      "regex_literal_tokens": [
+        "220 -= HyNetOS FTP Server =-500 Command (null) not understood"
+      ],
+      "cpe": [
+        "cpe:/o:hyperstone:hynetos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 Welcome to Solar FTP Server \\(http://solarftp\\.com\\)\\r\\n",
+      "regex_literal_tokens": [
+        "220 Welcome to Solar FTP Server (http://solarftp.com)"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 Aos FTP Server ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220 Aos FTP Server ready."
+      ],
+      "cpe": [
+        "cpe:/o:eth:a2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 FreeFloat Ftp Server \\(Version ([\\w._-]+)\\)\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220 FreeFloat Ftp Server (Version"
+      ],
+      "cpe": [
+        "cpe:/a:freefloat:freefloat_ftp_server:$1/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220(?:-.*\\r\\n220)* [\\d.]+ FTP Server \\(Apache/([\\w._-]+) \\(Ubuntu\\) (.*)\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "(Ubuntu)",
+        ") ready.",
+        "220",
+        "FTP Server (Apache/"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 Wind River FTP server ([\\w._-]+) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220 Wind River FTP server",
+        "ready."
+      ],
+      "cpe": [
+        "cpe:/a:windriver:ftp_server:$1/",
+        "cpe:/o:windriver:vxworks/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-TiMOS-B-([\\w._-]+) both/hops ALCATEL SR ([\\w._-]+) Copyright \\(c\\) \\d+-\\d+ Alcatel-Lucent\\.\\r\\n220-All rights reserved\\. All use subject to applicable license agreements\\.\\r\\n220-Built on (.*) by builder in /rel[\\w._-]+/[\\w._-]+/[\\w._-]+/panos/main\\r\\n220-\\r\\n220-This is a Maxcom, system restricted to authorized individuals\\. This system is subject to monitoring\\. Unauthorized users, access, and/or modification will be prosecuted\\.\\r\\n220 FTP server ready\\r\\n",
+      "regex_literal_tokens": [
+        "/panos/main220-220-This is a Maxcom, system restricted to authorized individuals. This system is subject to monitoring. Unauthorized users, access, and/or modification will be prosecuted.220 FTP server ready",
+        "220-TiMOS-B-",
+        "Alcatel-Lucent.220-All rights reserved. All use subject to applicable license agreements.220-Built on",
+        "Copyright (c)",
+        "both/hops ALCATEL SR",
+        "by builder in /rel"
+      ],
+      "cpe": [
+        "cpe:/h:alcatel:$2_service_router/",
+        "cpe:/o:alcatel:timos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ([\\w.-]+) FTP server \\(StarOS\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220",
+        "FTP server (StarOS) ready."
+      ],
+      "cpe": [
+        "cpe:/o:cisco:staros/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-  FTP Server \\(RTOS-UH\\) ready\\. \\(c\\)IEP  Version: ([\\d.]+)\\r\\n220 Connection is automatically closed if idle for 10 Minutes\\r\\n",
+      "regex_literal_tokens": [
+        "220 Connection is automatically closed if idle for 10 Minutes",
+        "220- FTP Server (RTOS-UH) ready. (c)IEP Version:"
+      ],
+      "cpe": [
+        "cpe:/o:universitathanover:rtos-uh/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220-Debian GNU/Linux (\\d+)\\r\\n220 ProFTPD ([\\w._-]+) Server ",
+      "regex_literal_tokens": [
+        "220 ProFTPD",
+        "220-Debian GNU/Linux",
+        "Server"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 MinWin FTP server ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220 MinWin FTP server ready."
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_10:::iot/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ftp",
+      "regex": "^220 ([\\w._-]+) FTP server \\(U(?:LTRIX|ltrix) Version ([\\d.]+) ([^)]+)\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        ") ready.",
+        "220",
+        "FTP server (U",
+        "LTRIX",
+        "Version",
+        "ltrix"
+      ],
+      "cpe": [
+        "cpe:/o:dec:ultrix:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d .*\\r\\nServer: micro_httpd\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1",
+        "Server: micro_httpd"
+      ],
+      "cpe": [
+        "cpe:/o:acme:micro_httpd/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nServer: Menuet\\r\\nConnection: close\\r\\nContent-Length: 0\\d+\\r\\nContent-Type: image/bmp\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "Content-Type: image/bmp",
+        "HTTP/1.1 200 OKServer: MenuetConnection: closeContent-Length: 0"
+      ],
+      "cpe": [
+        "cpe:/o:menuetos:menuetos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 500 Internal Server Error\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: LG HDCP Server\\r\\n.*<envelope><HDCPError>500</HDCPError><HDCPErrorDetail>Internal Server Error</HDCPErrorDetail></envelope>$",
+      "regex_literal_tokens": [
+        "<envelope><HDCPError>500</HDCPError><HDCPErrorDetail>Internal Server Error</HDCPErrorDetail></envelope>",
+        "HTTP/1.1 500 Internal Server Error",
+        "Server: LG HDCP Server"
+      ],
+      "cpe": [
+        "cpe:/h:lg:lw5700/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ibm-hmc",
+      "regex": "^\\xab\\xab\\xab\\xab\\xa0\\x81\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x13\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:ibm:hardware_management_console/",
+        "cpe:/o:ibm:aix/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "imap",
+      "regex": "^\\* OK \\[[^\\[]+\\] Dovecot \\(Ubuntu\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "* OK [",
+        "] Dovecot (Ubuntu) ready."
+      ],
+      "cpe": [
+        "cpe:/a:dovecot:dovecot/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "imap",
+      "regex": "^\\* OK ([-.\\w]+) Cyrus IMAP4 v([-.\\w\\+]+)-Red Hat [-.\\w\\+]+ server ready\\r\\n",
+      "regex_literal_tokens": [
+        "* OK",
+        "-Red Hat",
+        "Cyrus IMAP4 v",
+        "server ready"
+      ],
+      "cpe": [
+        "cpe:/a:cmu:cyrus_imap_server:$2/",
+        "cpe:/o:redhat:linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "imap",
+      "regex": "^\\* OK (?:\\[CAPABILITY IMAP4[^\\]]*?\\] )?([-\\w_.]+) Cyrus IMAP4? v([-\\w_.]+)-Debian",
+      "regex_literal_tokens": [
+        "* OK",
+        "-Debian",
+        "Cyrus IMAP",
+        "[CAPABILITY IMAP4"
+      ],
+      "cpe": [
+        "cpe:/a:cmu:cyrus_imap_server:$2/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "imap",
+      "regex": "^\\* OK \\[CAPABILITY IMAP4rev1 [^]]*\\] ([-.\\w]+) Cyrus IMAP [^ -]*-Debian-(\\d[\\w.]+)[\\w+-]* server ready\\r\\n",
+      "regex_literal_tokens": [
+        "* OK [CAPABILITY IMAP4rev1",
+        "-Debian-",
+        "Cyrus IMAP",
+        "server ready"
+      ],
+      "cpe": [
+        "cpe:/a:cmu:cyrus_imap_server:$2/",
+        "cpe:/o:debian:debian_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "imap",
+      "regex": "^\\* OK ([\\w._-]+) IMAP2bis Service ([\\w._()-]+) at .* ([-+]\\d+)",
+      "regex_literal_tokens": [
+        "* OK",
+        "IMAP2bis Service"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/",
+        "cpe:/o:slackware:slackware_linux:3.5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "imap-proxy",
+      "regex": "^\\* BYE concurrent connection limit in avast! exceeded\\(pass:\\d+, processes:([\\w._-]+)\\[\\d+\\]\\)\\r\\n",
+      "regex_literal_tokens": [
+        "* BYE concurrent connection limit in avast! exceeded(pass:",
+        ", processes:"
+      ],
+      "cpe": [
+        "cpe:/a:avast:antivirus/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "imap-proxy",
+      "regex": "^ BYE concurrent connection limit in AVG exceeded\\(pass:\\d+, processes:([\\w._-]+)\\[\\d+\\]\\)\\r\\n",
+      "regex_literal_tokens": [
+        ", processes:",
+        "BYE concurrent connection limit in AVG exceeded(pass:"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "imap-proxy",
+      "regex": "^\\* BYE Cannot connect to IMAP server ([\\w._-]+) \\([^)]*\\), connect error \\d+\\r\\n",
+      "regex_literal_tokens": [
+        "), connect error",
+        "* BYE Cannot connect to IMAP server"
+      ],
+      "cpe": [
+        "cpe:/a:avast:antivirus/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ipmi-advertiserd",
+      "regex": "^\\x0e\\x00\\x00\\x00\\x00\\x00\\x00$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:supermicro:intelligent_platform_management_firmware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "lmtp",
+      "regex": "^220 ([\\w.-]+) Dovecot \\(Ubuntu\\) ready\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220",
+        "Dovecot (Ubuntu) ready."
+      ],
+      "cpe": [
+        "cpe:/a:dovecot:dovecot/",
+        "cpe:/o:canonical:ubuntu_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "nntp",
+      "regex": "^200 NNTP Service ([\\w._-]+) Version: [\\w._-]+ Posting Allowed \\r\\n",
+      "regex_literal_tokens": [
+        "200 NNTP Service",
+        "Posting Allowed",
+        "Version:"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_2000/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "nntp",
+      "regex": "^200 NNTP-service ([\\w._-]+) Version: [\\w._-]+ Posting Allowed \\r\\n",
+      "regex_literal_tokens": [
+        "200 NNTP-service",
+        "Posting Allowed",
+        "Version:"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_2000/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "nntp",
+      "regex": "^200 Service NNTP ([\\w._-]+) Version: [\\w._-]+ Posting Allowed \\r\\n",
+      "regex_literal_tokens": [
+        "200 Service NNTP",
+        "Posting Allowed",
+        "Version:"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "nntp",
+      "regex": "^200 Servicio NNTP ([\\w._-]+) Version: [\\w._-]+ Posting Allowed \\r\\n",
+      "regex_literal_tokens": [
+        "200 Servicio NNTP",
+        "Posting Allowed",
+        "Version:"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows::::es/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "nntp",
+      "regex": "^200 Servi\\xe7o NNTP ([\\w._-]+) Version: [\\w._-]+ Posting Allowed \\r\\n",
+      "regex_literal_tokens": [
+        "200 Servio NNTP",
+        "Posting Allowed",
+        "Version:"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows::::pt/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "nntp",
+      "regex": "^200 NNTP Service Microsoft\\xae Internet Services (\\d[-.\\w]+) Version: \\d+\\.\\d+\\.\\d+\\.\\d+ Posting Allowed \\r\\n",
+      "regex_literal_tokens": [
+        "200 NNTP Service Microsoft Internet Services",
+        "Posting Allowed",
+        "Version:"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "nntp",
+      "regex": "^200 ([-\\w_.]+) InterNetNews NNRP server INN ([\\d.]+) .* \\(Debian\\) ready \\(posting ok\\)\\.\\r\\n",
+      "regex_literal_tokens": [
+        "(Debian) ready (posting ok).",
+        "200",
+        "InterNetNews NNRP server INN"
+      ],
+      "cpe": [
+        "cpe:/a:isc:inn:$2/",
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "nntp-proxy",
+      "regex": "^5?02 concurrent connection limit in avast! exceeded\\(pass:\\d+, processes:([\\w._-]+)\\[\\d+\\]\\)\\r\\n",
+      "regex_literal_tokens": [
+        ", processes:",
+        "02 concurrent connection limit in avast! exceeded(pass:"
+      ],
+      "cpe": [
+        "cpe:/a:avast:antivirus/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "pop3",
+      "regex": "^\\+OK ([-\\w_.]+) Cyrus POP3 v(\\S+?)[-_]?Debian\\S+ server ready",
+      "regex_literal_tokens": [
+        "+OK",
+        "Cyrus POP3 v",
+        "Debian",
+        "server ready"
+      ],
+      "cpe": [
+        "cpe:/a:cmu:cyrus_imap_server:$2/",
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "pop3",
+      "regex": "^\\+OK Microsoft Windows POP3 Service Version 1.0 <",
+      "regex_literal_tokens": [
+        "+OK Microsoft Windows POP3 Service Version 1",
+        "0 <"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_2000/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "pop3",
+      "regex": "^\\+OK Server Ready\\r\\n",
+      "regex_literal_tokens": [
+        "+OK Server Ready"
+      ],
+      "cpe": [
+        "cpe:/o:cisco:vpn_3000_concentrator_series_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "pop3-proxy",
+      "regex": "^-ERR Cannot connect to POP server ([\\w._-]+) \\([^)]*\\), connect error \\d+\\r\\n",
+      "regex_literal_tokens": [
+        "), connect error",
+        "-ERR Cannot connect to POP server"
+      ],
+      "cpe": [
+        "cpe:/a:avast:antivirus/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "remote-rac",
+      "regex": "^\\x10\\x00\\x00\\x00\\t\\xe7\\xa0o\\xde&\\xdc\\xfec\\xbf\\xb91\\xef\\xc3\\?\\xc9\\x10\\x00\\x00\\x00\\xa1\\xcasZ6\\[\\xdf\\x0cc\\xbf\\xb91\\xef\\xc3\\?\\xc9\\x08\\x00\\x19\\xdbh\\x06\\xa1\\xfc\\x91\\xce$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "remote-rac",
+      "regex": "^\\x02\\x00\\x00\\x00\\xfe\\x00\\x00\\x00\\x00\\x01\\x00\\x00.{256}$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "rethinkdb-intracluster",
+      "regex": "^RethinkDB ([\\w._~-]+ubuntu[\\w._~-]+) cluster\\n\\xab\\xa6\\x04\\^\\x11!M\\xd6\\x99\\xb6\\xb5\\xbe\\x1cxR\\xdd\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x7f\\x00\\x00\\x01\\x7f\\x00\\x01\\x01Wq\\x00\\x00$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "sieve",
+      "regex": "^\\\"IMPLEMENTATION\\\" \\\"Cyrus timsieved v([\\w._-]+-Red Hat[- ][\\w._+-]+)\\\"\\r\\n",
+      "regex_literal_tokens": [
+        "\"IMPLEMENTATION\" \"Cyrus timsieved v",
+        "-Red Hat"
+      ],
+      "cpe": [
+        "cpe:/a:cmu:cyrus_imap_server:$1/",
+        "cpe:/o:redhat:linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "sieve",
+      "regex": "^\\\"IMPLEMENTATION\\\" \\\"Cyrus timsieved v([\\w._-]+-Debian[- ][\\w._+-]+)\\\"\\r\\n",
+      "regex_literal_tokens": [
+        "\"IMPLEMENTATION\" \"Cyrus timsieved v",
+        "-Debian"
+      ],
+      "cpe": [
+        "cpe:/a:cmu:cyrus_imap_server:$1/",
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "sieve",
+      "regex": "^\\\"IMPLEMENTATION\\\" \\\"Cyrus timsieved v([\\w_.]+)-OS X ([^\"]+)\\\"\\r\\n",
+      "regex_literal_tokens": [
+        "\"IMPLEMENTATION\" \"Cyrus timsieved v",
+        "-OS X"
+      ],
+      "cpe": [
+        "cpe:/a:cmu:cyrus_imap_server:$1/",
+        "cpe:/o:apple:mac_os_x:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "sieve",
+      "regex": "^\\\"IMPLEMENTATION\\\" \\\"Dovecot \\(Ubuntu\\) Pigeonhole\\\"\\r\\n\\\"SIEVE\\\" \\\"[\\w._;-]+(?:\\s+[\\w._;-]+)*\\\"\\r\\n\\\"NOTIFY\\\" \\\"mailto\\\"\\r\\n\\\"SASL\\\" \\\"[\\w._;-]*(?:\\s+[\\w._;-]+)*\\\"\\r\\n\\\"STARTTLS\\\"\\r\\n\\\"VERSION\\\" \\\"([\\w._-]+)\\\"\\r\\nOK \\\"[^\"]*\\\"\\r\\n$",
+      "regex_literal_tokens": [
+        "\"\"NOTIFY\" \"mailto\"\"SASL\" \"",
+        "\"\"STARTTLS\"\"VERSION\" \"",
+        "\"IMPLEMENTATION\" \"Dovecot (Ubuntu) Pigeonhole\"\"SIEVE\" \"",
+        "\"OK \""
+      ],
+      "cpe": [
+        "cpe:/o:canonical:ubuntu_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp",
+      "regex": "^220 [\\*\\d\\ ]{2,300}\\r\\n",
+      "regex_literal_tokens": [
+        "220"
+      ],
+      "cpe": [
+        "cpe:/o:cisco:pix_firewall_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp",
+      "regex": "^220 ([-\\w_.]+) running IBM MVS SMTP CS V2R10 on .*\\r\\n",
+      "regex_literal_tokens": [
+        "220",
+        "running IBM MVS SMTP CS V2R10 on"
+      ],
+      "cpe": [
+        "cpe:/o:ibm:mvs/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp",
+      "regex": "^220 [-\\w_]+ ESMTP ([-\\w_.]+) \\(Debian/GNU\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(Debian/GNU)",
+        "220",
+        "ESMTP"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp",
+      "regex": "^220 ESMTP \\(Debian/GNU Mewwwwwww\\)\\r\\n",
+      "regex_literal_tokens": [
+        "220 ESMTP (Debian/GNU Mewwwwwww)"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp",
+      "regex": "^220 ([\\w._-]+) [\\w._-]+ ESMTP Postfix \\(Debian/GNU\\)",
+      "regex_literal_tokens": [
+        "220",
+        "ESMTP Postfix (Debian/GNU)"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp",
+      "regex": "^220 ([-\\w_.]+) running IBM MVS SMTP CS (\\w+) on .*\\r\\n",
+      "regex_literal_tokens": [
+        "220",
+        "running IBM MVS SMTP CS"
+      ],
+      "cpe": [
+        "cpe:/o:ibm:mvs/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp",
+      "regex": "^220-\\S+ Sendmail ([\\d.]+)/A/UX ([\\d.]+) ready at .*\\r\\n220 ESMTP spoken here\\r\\n",
+      "regex_literal_tokens": [
+        "/A/UX",
+        "220 ESMTP spoken here",
+        "220-",
+        "Sendmail",
+        "ready at"
+      ],
+      "cpe": [
+        "cpe:/a:sendmail:sendmail:$1/",
+        "cpe:/o:apple:a_ux:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp",
+      "regex": "^220-([-\\w_.]+) Sendmail IBM OS/2 SENDMAIL VERSION ([\\w./]+) ready at .*\\r\\n220 ESMTP spoken here\\r\\n",
+      "regex_literal_tokens": [
+        "220 ESMTP spoken here",
+        "220-",
+        "Sendmail IBM OS/2 SENDMAIL VERSION",
+        "ready at"
+      ],
+      "cpe": [
+        "cpe:/a:sendmail:sendmail:$2/",
+        "cpe:/o:ibm:os2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp-proxy",
+      "regex": "^421 concurrent connection limit in avast! exceeded\\(pass:0, processes:([\\w._-]+)\\[\\d+\\]\\)\\r\\n",
+      "regex_literal_tokens": [
+        "421 concurrent connection limit in avast! exceeded(pass:0, processes:"
+      ],
+      "cpe": [
+        "cpe:/a:avast:antivirus/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "smtp-proxy",
+      "regex": "^421 Cannot connect to SMTP server ([\\w._-]+) \\([^)]*\\), connect error \\d+\\r\\n",
+      "regex_literal_tokens": [
+        "), connect error",
+        "421 Cannot connect to SMTP server"
+      ],
+      "cpe": [
+        "cpe:/a:avast:antivirus/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-OpenSSH_([\\w._-]+) Debian-(\\S*maemo\\S*)\\r?\\n",
+      "regex_literal_tokens": [
+        "-OpenSSH_",
+        "Debian-",
+        "SSH-",
+        "maemo"
+      ],
+      "cpe": [
+        "cpe:/a:openbsd:openssh:$2/",
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-OpenSSH_([\\w._-]+)[ -]{1,2}Debian[ -_](.*ubuntu.*)\\r\\n",
+      "regex_literal_tokens": [
+        "-OpenSSH_",
+        "Debian",
+        "SSH-",
+        "ubuntu"
+      ],
+      "cpe": [
+        "cpe:/a:openbsd:openssh:$2/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-OpenSSH_([\\w._-]+)[ -]{1,2}Ubuntu[ -_]([^\\r\\n]+)\\r?\\n",
+      "regex_literal_tokens": [
+        "-OpenSSH_",
+        "SSH-",
+        "Ubuntu"
+      ],
+      "cpe": [
+        "cpe:/a:openbsd:openssh:$2/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-OpenSSH_([\\w._-]+)[ -]{1,2}Debian[ -_]([^\\r\\n]+)\\r?\\n",
+      "regex_literal_tokens": [
+        "-OpenSSH_",
+        "Debian",
+        "SSH-"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-OpenSSH_[\\w.]+-FC-([\\w.-]+)\\.fc(\\d+)\\r\\n",
+      "regex_literal_tokens": [
+        "-FC-",
+        "-OpenSSH_",
+        ".fc",
+        "SSH-"
+      ],
+      "cpe": [
+        "cpe:/a:openbsd:openssh:$2/",
+        "cpe:/o:fedoraproject:fedora_core:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-OpenSSH_([\\w._-]+) NetBSD_Secure_Shell-([\\w._+-]+)\\r?\\n",
+      "regex_literal_tokens": [
+        "-OpenSSH_",
+        "NetBSD_Secure_Shell-",
+        "SSH-"
+      ],
+      "cpe": [
+        "cpe:/a:openbsd:openssh:$2/",
+        "cpe:/o:netbsd:netbsd/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-OpenSSH_([\\w._-]+) Trisquel_GNU/linux_([\\d.]+)(?:-\\d+)?\\r\\n",
+      "regex_literal_tokens": [
+        "-OpenSSH_",
+        "SSH-",
+        "Trisquel_GNU/linux_"
+      ],
+      "cpe": [
+        "cpe:/o:trisquel_project:trisquel_gnu%2flinux:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-OpenSSH_([\\w._-]+) SolidFire Element \\r\\n",
+      "regex_literal_tokens": [
+        "-OpenSSH_",
+        "SSH-",
+        "SolidFire Element"
+      ],
+      "cpe": [
+        "cpe:/o:netapp:element_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-ROSSSH\\r\\n",
+      "regex_literal_tokens": [
+        "-ROSSSH",
+        "SSH-"
+      ],
+      "cpe": [
+        "cpe:/o:mikrotik:routeros/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-DOPRA-([\\w._-]+)\\n",
+      "regex_literal_tokens": [
+        "-DOPRA-",
+        "SSH-"
+      ],
+      "cpe": [
+        "cpe:/o:huawei:dopra_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "ssh",
+      "regex": "^SSH-([\\d.]+)-SC123/SC143 CHIP-RTOS V([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "-SC123/SC143 CHIP-RTOS V",
+        "SSH-"
+      ],
+      "cpe": [
+        "cpe:/o:beck-ipc:chip-rtos:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x18\\xff\\xfb\\x01\\x1b\\[2J\\x1b\\[\\?7l\\x1b.*HP [-.\\w]+ ProCurve Switch ([-.\\w]+)\\r\\n\\rFirmware revision ([-.\\w]+)\\r\\n\\r\\r",
+      "regex_literal_tokens": [
+        "Firmware revision",
+        "ProCurve Switch",
+        "[2J[?7l"
+      ],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_$1/",
+        "cpe:/o:hp:procurve_switch_software:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\x1b\\[20;1H\\r\\n\\r\\x1b\\[\\?25h\\x1b\\[20;11H\\x1b\\[21;1HSession Terminated, Connect again\\r\\n\\r\\x1b\\[\\?25h\\x1b\\[21;1H\\xff\\xfd\\x18\\xff\\xfb\\x01\\x1b\\[2J\\x1b\\[\\?7l\\x1b\\[[34];23r\\x1b\\[\\?6l\\x1b\\[1;1H\\x1b\\[\\?25l\\x1b\\[1;1HHP [-.\\w]+ ProCurve Switch ([-.\\w]+)\\r\\n\\rFirmware revision ([-.\\w]+)\\r\\n\\r\\r",
+      "regex_literal_tokens": [
+        ";23r[?6l[1;1H[?25l[1;1HHP",
+        "Firmware revision",
+        "ProCurve Switch",
+        "[20;1H[?25h[20;11H[21;1HSession Terminated, Connect again[?25h[21;1H[2J[?7l["
+      ],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_$1/",
+        "cpe:/o:hp:procurve_switch_software:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x18\\xff\\xfb\\x01\\x1b\\[2J\\x1b\\[\\?7l\\x1b.*ProCurve [\\w._-]+ Switch ([\\w._-]+)\\r\\r\\nSoftware revision ([\\w._-]+)\\r\\r\\n",
+      "regex_literal_tokens": [
+        "ProCurve",
+        "Software revision",
+        "Switch",
+        "[2J[?7l"
+      ],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_$1/",
+        "cpe:/o:hp:procurve_switch_software:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd%\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfd'\\xff\\xfd\\x1f\\xff\\xfd\\x00\\xff\\xfb\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:microsoft:windows_xp/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\r\\nNo more connections are allowed to telnet server\\. Please try again later\\.\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:microsoft:windows_xp/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfd\\x1f\\xff\\xfd\\x18Windows NT Workstation ([\\d.]+) \\(build \\d+\\) Service Pack (\\d+)\\r\\nRemotelyAnywhere Telnet Server ([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "(build",
+        ") Service Pack",
+        "RemotelyAnywhere Telnet Server",
+        "Windows NT Workstation"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_nt:$1:sp$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\xfd\\xff\\xfb\\x01\\n\\r\\n\\rFabric OS \\(tm\\)  Release v([\\w.]+)\\n\\r\\n\\r",
+      "regex_literal_tokens": [
+        "Fabric OS (tm) Release v"
+      ],
+      "cpe": [
+        "cpe:/o:brocade:fabric_os:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\r\\nWelcome to slush\\.  \\(Version ([\\d.]+)\\)\\r\\n\\r\\n\\r\\n\\xff\\xfb\\x01\\xff\\xfb\\x03([-\\w_. ]+) login: ",
+      "regex_literal_tokens": [
+        "Welcome to slush. (Version",
+        "login:"
+      ],
+      "cpe": [
+        "cpe:/o:systronix:tinios/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\r\\nWelcome to NetLinx v([\\d.]+) Copyright AMX ",
+      "regex_literal_tokens": [
+        "Copyright AMX",
+        "Welcome to NetLinx v"
+      ],
+      "cpe": [
+        "cpe:/o:harman:amx_firmware:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\r\\nWelcome to NetLinx v([\\d.]+) , AMX LLC\\r\\n>",
+      "regex_literal_tokens": [
+        ", AMX LLC>",
+        "Welcome to NetLinx v"
+      ],
+      "cpe": [
+        "cpe:/o:harman:amx_firmware:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x01\\xff\\xfd\\x1f\\xff\\xfb\\x01\\xff\\xfb\\x03Fritz!Box user: ",
+      "regex_literal_tokens": [
+        "Fritz!Box user:"
+      ],
+      "cpe": [
+        "cpe:/o:avm:fritzos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x01\\xff\\xfd!\\xff\\xfb\\x01\\xff\\xfb\\x03\\(none\\) login: ",
+      "regex_literal_tokens": [
+        "!(none) login:"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x03\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfb\\x01\\r\\n\\r\\nPIX passwd: ",
+      "regex_literal_tokens": [
+        "PIX passwd:"
+      ],
+      "cpe": [
+        "cpe:/o:cisco:pix_firewall_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfb\\x01\\r\\nPrecise/RTCS v([\\d.]+) Telnet server\\r\\n\\r\\x00\\r\\nService Port Manager Active\\r\\x00\\r\\n<Esc> Ends Session\\r\\x00\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:precise:mqx:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x03\\xff\\xfb\\x01\\xff\\xfe\\x01\\xff\\xfd\\x00\\r\\nser2net port \\d+ device (/dev/[-\\w_]+) \\[\\d+ \\w+\\] \\(Debian GNU/Linux\\)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfe\\x01\\n\\rTerminal shell v1\\.0\\n\\r\\rCopyright \\xa9\\d+ Netopia, Inc\\.  All rights reserved\\.\\n\\r\\rNetopia Model ([\\w-]+) Wireless DSL Ethernet Switch\\n\\rRunning Netopia SOC OS version ([\\d.]+ \\(build \\w+\\))\\n",
+      "regex_literal_tokens": [
+        "(build",
+        "Netopia, Inc. All rights reserved.Netopia Model",
+        "Terminal shell v1.0Copyright",
+        "Wireless DSL Ethernet SwitchRunning Netopia SOC OS version"
+      ],
+      "cpe": [
+        "cpe:/o:netopia:soc_os:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfe\\x01\\n\\rTerminal shell v1\\.0\\n\\r\\rCopyright \\xa92008 Motorola, Inc\\.  All rights reserved\\.\\n\\r\\rNetopia Model ([\\d-]+)(?: AnnexA)? High-Power Wireless DSL Ethernet Managed Switch\\n\\rRunning Netopia SOC OS version ([\\w.-]+ \\(build \\w+\\))\\n",
+      "regex_literal_tokens": [
+        "(build",
+        "AnnexA",
+        "High-Power Wireless DSL Ethernet Managed SwitchRunning Netopia SOC OS version",
+        "Terminal shell v1.0Copyright 2008 Motorola, Inc. All rights reserved.Netopia Model"
+      ],
+      "cpe": [
+        "cpe:/o:netopia:soc_os:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^(?:\\x1b\\[23;1H\\r\\n\\r\\x1b\\[\\?25h\\x1b\\[23;11H\\x1b\\[24;1HSession Terminated, Connect again\\r\\n\\r\\x1b\\[\\?25h\\x1b\\[24;1H)?\\xff\\xfd\\x18\\xff\\xfb\\x01\\x1b\\[2J\\x1b\\[\\?7l\\x1b\\[3;23r\\x1b\\[\\?6l\\x1b\\[1;1H\\x1b\\[\\?25l\\x1b\\[1;1HProCurve (J\\w+) Switch (\\d+)\\r\\n\\rFirmware revision ([^\\r\\n]+)\\r\\n",
+      "regex_literal_tokens": [
+        "Firmware revision",
+        "Switch",
+        "[23;1H[?25h[23;11H[24;1HSession Terminated, Connect again[?25h[24;1H",
+        "[2J[?7l[3;23r[?6l[1;1H[?25l[1;1HProCurve J"
+      ],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_$2/",
+        "cpe:/o:hp:procurve_switch_software:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfd\\x18\\xff\\xfb\\x03$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:tandem:guardian/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x01\\xff\\xfd\\x1f\\xff\\xfd!\\xff\\xfb\\x01\\xff\\xfb\\x03\\r\\r\\n\\r\\n\\r.*\\xaf\\xaf\\xaf\\xaf\\xaf\\r\\n\\r               Kernel ([\\w._-]+) \\(00:17:54\\)\\r\\n\\rdreambox login: ",
+      "regex_literal_tokens": [
+        "(00:17:54)dreambox login:",
+        "Kernel"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x01\\xff\\xfd\\x1f\\xff\\xfd!\\xff\\xfb\\x01\\xff\\xfb\\x03\\r\\r\\n\\r\\n\\r\\r\\n\\rWelcome to DreamBox\\.\\r\\n\\rRunning under Kernel ([\\w._-]+) \\.\\r\\n\\rBased on (Gemini [\\w._-]+ GUI)\\.\\r\\n\\rKernel and utilities compiled by SatDream\\.\\r\\n\\r\\r\\n\\r\\r\\n\\rhttp://www\\.satderam\\.ru , info@satdream\\.ru , dreambox@satdream\\.ru\\r\\n",
+      "regex_literal_tokens": [
+        "!Welcome to DreamBox.Running under Kernel",
+        ".Based on Gemini",
+        "GUI.Kernel and utilities compiled by SatDream.http://www.satderam.ru , info@satdream.ru , dreambox@satdream.ru"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfc\\x01\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfe\\x18\\xff\\xfd\\x1f\\xff\\xfb\\x1f\\xff\\xfb\\\"\\xff\\xfb\\x05TiMOS-([\\w._-]+) cpm/hops ALCATEL SR (\\w+)",
+      "regex_literal_tokens": [
+        "\"TiMOS-",
+        "cpm/hops ALCATEL SR"
+      ],
+      "cpe": [
+        "cpe:/o:alcatel-lucent:timos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x01\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfd\\x18\\xff\\xfd\\x1f\\r\\n\\*{78}\\r\\n\\* Copyright \\(c\\) 2010-2\\d\\d\\d Hewlett-Packard Development Company, L\\.P\\. {10}\\*\\r\\n\\* Without the owner's prior written consent, {33}\\*\\r\\n\\* no decompiling or reverse-engineering shall be allowed\\. {20}\\*\\r\\n\\*{78}\\r\\n\\r\\n\\r\\nLogin authentication\\r\\n\\r\\n\\r\\nUsername:",
+      "regex_literal_tokens": [
+        "* Copyright (c) 2010-2",
+        "** Without the owner's prior written consent,",
+        "** no decompiling or reverse-engineering shall be allowed.",
+        "Hewlett-Packard Development Company, L.P.",
+        "Login authenticationUsername:"
+      ],
+      "cpe": [
+        "cpe:/o:hp:comware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfc\\x01\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfd\\x18\\xff\\xfb\\x18\\xff\\xfd\\x1f\\xff\\xfb\\x1f\\xff\\xfb\\\"\\xff\\xfb\\x05Username:",
+      "regex_literal_tokens": [
+        "\"Username:"
+      ],
+      "cpe": [
+        "cpe:/o:oneaccess:oneos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x18\\xff\\xfb\\x01\\x1b\\[2J\\x1b\\[\\?7l\\x1b\\[3;23r\\x1b\\[\\?6l\\x1b\\[1;1H\\x1b\\[\\?25l\\x1b\\[1;1HProCurve J\\w+ Switch ([\\w-]+)\\r\\n\\rSoftware revision ([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "Software revision",
+        "Switch",
+        "[2J[?7l[3;23r[?6l[1;1H[?25l[1;1HProCurve J"
+      ],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_$1/",
+        "cpe:/o:hp:procurve_switch_software:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x01\\xff\\xfd\\x1f\\xff\\xfd!\\xff\\xfb\\x01\\xff\\xfb\\x03\\r\\r\\nWelcome to Linux \\(([\\w._-]+)\\) for MIPS\\r\\n\\rKernel ([\\w._-]+) Treckle on an MIPS\\r\\n\\r[\\w._-]+ login: ",
+      "regex_literal_tokens": [
+        "!Welcome to Linux (",
+        ") for MIPSKernel",
+        "Treckle on an MIPS",
+        "login:"
+      ],
+      "cpe": [
+        "cpe:/h:zksoftware:$1/",
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^Eltin\\r\\n Ethernut Nut/OS witamy\\.\\r\\nkey=[0-9A-F]+\\r\\n$",
+      "regex_literal_tokens": [
+        "Eltin Ethernut Nut/OS witamy.key="
+      ],
+      "cpe": [
+        "cpe:/o:ethernut:nut_os::::pl/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfd\\x1fWELCOME\\r\\n NO UNAUTHORIZED LOGIN\\r\\n Private property\\r\\nlogin: ",
+      "regex_literal_tokens": [
+        "WELCOME NO UNAUTHORIZED LOGIN Private propertylogin:"
+      ],
+      "cpe": [
+        "cpe:/h:patton:sn4638/",
+        "cpe:/o:patton:smartware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x03XMR-2:  Console access 2047\\r\\n\\r\\nUsername: ",
+      "regex_literal_tokens": [
+        "XMR-2: Console access 2047Username:"
+      ],
+      "cpe": [
+        "cpe:/o:brocade:ironware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfd\\x01\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfb\\x05\\xff\\xfd\\x05Welcome to InterNiche Telnet Server ([\\w._-]+)\\r\\n\\r\\n\\r\\nlogin: ",
+      "regex_literal_tokens": [
+        "Welcome to InterNiche Telnet Server",
+        "login:"
+      ],
+      "cpe": [
+        "cpe:/o:micrium:uc%2fos-iii/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x01\\xff\\xfd\\x1f\\xff\\xfb\\x01\\xff\\xfb\\x03\\r\\r\\nWelcome to Vyatta\\r\\n\\rvyatta login: ",
+      "regex_literal_tokens": [
+        "Welcome to Vyattavyatta login:"
+      ],
+      "cpe": [
+        "cpe:/a:brocade:vyatta_vrouter_software/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x03\\xff\\xfb\\x03\\xff\\xfd\\x01\\xff\\xfb\\x01\\r\\n\\r\\x1b\\[2J\\x1b\\[0;0H\\x1b\\[K\\x1b\\[1;0H\\x1b\\[K\\x1b\\[2;0H\\x1b\\[K\\x1b\\[3;0H\\x1b\\[K\\x1b\\[4;0H\\x1b\\[K\\x1b\\[5;0H\\x1b\\[K\\x1b\\[6;0H\\x1b\\[K\\x1b\\[7;0H\\x1b\\[K\\x1b\\[8;0H\\x1b\\[K\\x1b\\[9;0H\\x1b\\[K\\x1b\\[10;0H\\x1b\\[K\\x1b\\[11;0H\\x1b\\[K\\x1b\\[12;0H\\x1b\\[K\\x1b\\[13;0H\\x1b\\[K\\x1b\\[14;0H\\x1b\\[K\\x1b\\[15;0H\\x1b\\[K\\x1b\\[16;0H\\x1b\\[K\\x1b\\[17;0H\\x1b\\[K\\x1b\\[18;0H\\x1b\\[K\\x1b\\[19;0H\\x1b\\[K\\x1b\\[20;0H\\x1b\\[K\\x1b\\[21;0H\\x1b\\[K\\x1b\\[22;0H\\x1b\\[K\\x1b\\[23;0HArrowKey/TAB/BACK=Move  SPACE=Toggle  ENTER=Select  ESC=Back",
+      "regex_literal_tokens": [
+        "[2J[0;0H[K[1;0H[K[2;0H[K[3;0H[K[4;0H[K[5;0H[K[6;0H[K[7;0H[K[8;0H[K[9;0H[K[10;0H[K[11;0H[K[12;0H[K[13;0H[K[14;0H[K[15;0H[K[16;0H[K[17;0H[K[18;0H[K[19;0H[K[20;0H[K[21;0H[K[22;0H[K[23;0HArrowKey/TAB/BACK=Move SPACE=Toggle ENTER=Select ESC=Back"
+      ],
+      "cpe": [
+        "cpe:/o:linksys:srw2024/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x01\\xff\\xfd\\x1f\\xff\\xfd!\\xff\\xfb\\x01\\xff\\xfb\\x03\\r\\r\\nIngenic linux machine\\r\\n\\rKernel ([\\w._-]+) on an mips\\r\\n\\r\\(none\\) login: ",
+      "regex_literal_tokens": [
+        "!Ingenic linux machineKernel",
+        "on an mips(none) login:"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x18\\xff\\xfd \\xff\\xfd#\\xff\\xfd'\\xff\\xfd\\$\\xff\\xfd!",
+      "regex_literal_tokens": [
+        "#'$!"
+      ],
+      "cpe": [
+        "cpe:/h:cisco:asr_9010/",
+        "cpe:/o:cisco:ios_xr:3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x03\\xff\\xfb\\x01HGFMA-B> GET / HTTP/1\\.0\\r\\nGET: Command not found\\.\\r\\nHGFMA-B> \\r\\nHGFMA-B> ",
+      "regex_literal_tokens": [
+        "HGFMA-B> GET / HTTP/1.0GET: Command not found.HGFMA-B> HGFMA-B>"
+      ],
+      "cpe": [
+        "cpe:/o:hay_systems:hsl_2.75g_femtocell/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x03\\xff\\xfb\\x01\\xff\\xfb\\x00\\xff\\xfd\\x00Auto-sensing\\.\\.\\.\\r\\n    \\x1b\\[6n\\x08\\x08\\x08\\x08\\r    \\x1b\\[!\\x08\\x08\\x08\\r\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x08\\x08\\x08\\x08\\x08\\x08\\x08\\x08\\x08\\r\\n\\r\\n            WELCOME!\\r\\n\\r\\nLegion \\(#(\\d+)\\)\\r\\nRunning Worldgroup by GALACTICOMM\\r\\nONLINE \\d+ BAUD AT \\d+:\\d\\d \\d+-\\w+-\\d\\d\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:microsoft:windows_nt/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfb\\x01\\r\\nRTCS v([\\w._-]+) Telnet server\\r\\npress Ctrl-L to enable/disable debug output\\r\\x00\\r\\n\\r\\x00\\r\\nService Port Manager Active\\r\\x00\\r\\n<Esc> Ends Session\\r\\x00\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/h:emersonnetworkpower:liebert_nxc/",
+        "cpe:/o:precise:mqx:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x03\\r\\n\\r\\n Welcome to OpenVMS \\(TM\\) VAX Operating System, Version V([\\d.]+)    \\r\\n\\r\\n\\rUsername: ",
+      "regex_literal_tokens": [
+        "Username:",
+        "Welcome to OpenVMS (TM) VAX Operating System, Version V"
+      ],
+      "cpe": [
+        "cpe:/o:hp:openvms:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x01\\xff\\xfd\\x1f\\xff\\xfd!\\xff\\xfb\\x01\\xff\\xfb\\x03\\r\\r\\n\\r\\n\\rNVS\\r\\n\\rLinux (2\\.\\d+\\.\\d+)(?:[\\w._-]+)? on a armv\\w+ \\(\\d\\d:\\d\\d:\\d\\d\\)\\r\\n\\r([\\w._-]+) login: ",
+      "regex_literal_tokens": [
+        "!NVSLinux 2.",
+        "login:",
+        "on a armv"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfd\\x1f\\r\\nlogin: ",
+      "regex_literal_tokens": [
+        "login:"
+      ],
+      "cpe": [
+        "cpe:/h:patton:sn4638/",
+        "cpe:/o:patton:smartware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfb\\x01\\r\\nPrecise/RTCS v([\\w._-]+) Telnet server\\r\\n\\x1b\\[0m\\x1b\\[2J\\x1b\\[1;1H\\x1b\\[\\?25l\\x1b\\[0;30;47m\\x1b\\[0;34;47m\\*{80}\\r\\x00\\r\\n\\* {78}\\*\\r\\x00\\r\\n\\*{80}\\r\\x00\\r\\n\\* {12}Remote Status {13}\\* {12}Remote Control {13}\\*\\r\\x00\\r\\n\\*{80}\\r\\x00\\r\\n\\*  Exciter #: ",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/h:harris:flexstar_hdx-fm/",
+        "cpe:/o:precise:mqx:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfe\\x01\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfd\\x1fUser name: ",
+      "regex_literal_tokens": [
+        "User name:"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_10:::iot/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\xff\\xfb\\x03\\xff\\xfb\\x00\\xff\\xfd\\x01\\xff\\xfd\\x00\\r\\x00\\n\\r\\x00\\n-{77}\\r\\x00\\nModel name {7}: ([\\w-]+)\\r\\x00\\nMAC address {6}: ([A-F0-9:]+)\\r\\x00\\nSerial No {8}: (\\d+)\\r\\x00\\nFirmware version : (([\\d.]+) Build \\d+)\\r\\x00\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/h:moxa:$1/",
+        "cpe:/o:moxa:$SUBST(1,\"-\",\"_\")_firmware:$5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x03\\xff\\xfd\\x03\\xff\\xfb\\x01\\r\\nPrecise/RTCS v(\\d[\\w._-]+) Telnet server\\r\\n\\x1b\\[2J\\r\\nUsername: ",
+      "regex_literal_tokens": [
+        "Precise/RTCS v",
+        "Telnet server[2JUsername:"
+      ],
+      "cpe": [
+        "cpe:/o:precise:mqx:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "vspe",
+      "regex": "^\\nADA38072\\r\\nAD_80099\\r\\nABA39071\\r\\nAB_07096\\r\\nACA40064\\r\\nAC_00090\\r\\nADA41066\\r\\nAD_81100\\r\\nABA42065\\r\\nAB_08097\\r\\nACA43067\\r\\nACA44068\\r\\nAC_01091\\r\\nADA45070\\r\\nAD_81100\\r\\nADA45070\\r\\nADA45070\\r\\nADA45070\\r\\nABA46069\\r\\nAB_09098\\r\\n",
+      "regex_literal_tokens": [
+        "ADA38072AD_80099ABA39071AB_07096ACA40064AC_00090ADA41066AD_81100ABA42065AB_08097ACA43067ACA44068AC_01091ADA45070AD_81100ADA45070ADA45070ADA45070ABA46069AB_09098"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "zos-commserver",
+      "regex": "^EZY1315E \\d\\d/\\d\\d/\\d\\d \\d\\d:\\d\\d:\\d\\d INVALID TRANID=\\r\\n\\r\\n PARTNER INET ADDR=[\\d.]+ PORT=   \\d+                                      ",
+      "regex_literal_tokens": [
+        "EZY1315E",
+        "INVALID TRANID= PARTNER INET ADDR=",
+        "PORT="
+      ],
+      "cpe": [
+        "cpe:/o:ibm:z%2fos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "airdroid",
+      "regex": "^#connected,all connect count: 1\\{\\\"event\\\":\\\"device_status\\\",\\\"data\\\":\\{\\\"wifi_name\\\":\\\"([^\\\"]+)\\\",\\\"wifi_signal\\\":\\d+,\\\"battery\\\":\\d+,\\\"batterycharging\\\":\\w+,\\\"gsm_signal\\\":\\d+,\\\"sms_unread\\\":\\d+,\\\"sdcard\\\":\\d+,\\\"updateinfo\\\":null\\}\\}",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:airdroid:airdroid/",
+        "cpe:/o:google:android/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "elm-agent",
+      "regex": "^ELM Manager Agent ([\\w._-]+)\\r\\nCopyright \\xa9 \\d+-\\d+ TNT Software, Inc\\.\\r\\n",
+      "regex_literal_tokens": [
+        "Copyright",
+        "ELM Manager Agent",
+        "TNT Software, Inc."
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "elm-manager",
+      "regex": "^ELM Enterprise Manager ([\\w._-]+)\\r\\nCopyright \\xa9 \\d+-\\d+ TNT Software, Inc\\.\\r\\n",
+      "regex_literal_tokens": [
+        "Copyright",
+        "ELM Enterprise Manager",
+        "TNT Software, Inc."
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "finger",
+      "regex": "^Punix version ([\\d./()]+) - Current Time \\(since boot\\) \\d+:\\d\\d:\\d\\d\\r\\nName        pid    stat   pc       cpusec    stack    pr/sy   idle    tty\\r\\n",
+      "regex_literal_tokens": [
+        "- Current Time (since boot)",
+        "Name pid stat pc cpusec stack pr/sy idle tty",
+        "Punix version"
+      ],
+      "cpe": [
+        "cpe:/o:christopher_williams:punix:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "finger",
+      "regex": "^Login     Name       Tty      Idle  Login Time   Office     Office Phone\\r\\n",
+      "regex_literal_tokens": [
+        "Login Name Tty Idle Login Time Office Office Phone"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "finger",
+      "regex": "^finger: /var/adm/lastlog open error\\nNo one logged on\\r\\n",
+      "regex_literal_tokens": [
+        "finger: /var/adm/lastlog open errorNo one logged on"
+      ],
+      "cpe": [
+        "cpe:/o:sun:sunos:5.10/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "finger",
+      "regex": "^finger: /var/adm/lastlog open error\\nLogin       Name",
+      "regex_literal_tokens": [
+        "finger: /var/adm/lastlog open errorLogin Name"
+      ],
+      "cpe": [
+        "cpe:/o:sun:sunos:5.10/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "finger",
+      "regex": "^finger: /usr/adm/lastlog open error\\nLogin +Name +TTY Idle +When +Office\\r\\n",
+      "regex_literal_tokens": [
+        "Name",
+        "Office",
+        "TTY Idle",
+        "When",
+        "finger: /usr/adm/lastlog open errorLogin"
+      ],
+      "cpe": [
+        "cpe:/o:dec:osf_1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "finger",
+      "regex": "^\\nDebian GNU/Linux      Copyright \\(c\\) 1993-1999 Software in the Public Interest\\n\\n                 Your site has been rejected for some reason\\.\\n\\n         This may be caused by a missing RFC 1413 identd on your site\\.\\n\\n",
+      "regex_literal_tokens": [
+        "Debian GNU/Linux Copyright (c) 1993-1999 Software in the Public Interest Your site has been rejected for some reason. This may be caused by a missing RFC 1413 identd on your site."
+      ],
+      "cpe": [
+        "cpe:/a:debian:cfingerd/",
+        "cpe:/o:debian:debian_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "finger",
+      "regex": "^Debian GNU/Linux      Copyright \\(C\\) 1993-1999 Software in the Public Interest\\n.*You haven't specified a user\\.\\n\\n               A general listing is not provided to the public\\.",
+      "regex_literal_tokens": [
+        "Debian GNU/Linux Copyright (C) 1993-1999 Software in the Public Interest",
+        "You haven't specified a user. A general listing is not provided to the public."
+      ],
+      "cpe": [
+        "cpe:/a:debian:cfingerd/",
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "ftp",
+      "regex": "^220 Service ready\\.\\r\\n501 Syntax Error\\.\\r\\n",
+      "regex_literal_tokens": [
+        "220 Service ready.501 Syntax Error."
+      ],
+      "cpe": [
+        "cpe:/o:hay_systems:hsl_2.75g_femtocell/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "gntp",
+      "regex": "^GNTP/1\\.0 -ERROR NONE\\r\\nError-Code: 301\\r\\nError-Description: Growl does not recognize the protocol beginning with \\r\\n\\r\\n\\r\\nOrigin-Software-Name: Growl\\r\\nOrigin-Software-Version: ([\\d.]+)\\r\\nOrigin-Platform-Version: ([\\d.]+)\\r\\nOrigin-Machine-Name: (.*)\\r\\nOrigin-Platform-Name: Mac OS X\\r\\n\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "GNTP/1.0 -ERROR NONEError-Code: 301Error-Description: Growl does not recognize the protocol beginning with Origin-Software-Name: GrowlOrigin-Software-Version:",
+        "Origin-Machine-Name:",
+        "Origin-Platform-Name: Mac OS X",
+        "Origin-Platform-Version:"
+      ],
+      "cpe": [
+        "cpe:/a:growl:growl:$1/",
+        "cpe:/o:apple:mac_os_x:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nContent-Type: text/html\\r\\n\\r\\n<html><head><title>mongodb ([\\w._-]+):\\d+ </title>.*<pre>db version v([\\w._-]+), pdfile version ([\\w._-]+)\\ngit hash: ([0-9a-f]{40})\\nsys info: Linux [\\w._-]+ ([\\w._-]+) .* BOOST_LIB_VERSION=([\\w._-]+)\\n\\ndbwritelocked:  \\d+ \\(initial\\)\\nuptime:    ([^\\n]+)\\n",
+      "regex_literal_tokens": [
+        "(initial)uptime:",
+        ", pdfile version",
+        "</title>",
+        "<pre>db version v",
+        "BOOST_LIB_VERSION=",
+        "HTTP/1.0 200 OKContent-Type: text/html<html><head><title>mongodb",
+        "dbwritelocked:",
+        "git hash:",
+        "sys info: Linux"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nContent-Type: text/html\\r\\n\\r\\n<html><head><title>mongodb ([\\w._-]+):\\d+ </title>.*<pre>db version v([\\w._-]+), pdfile version ([\\w._-]+)\\ngit hash: nogitversion\\nsys info: Linux [\\w._-]+ ([\\w._-]+) .* BOOST_LIB_VERSION=([\\w._-]+)\\n\\ndblocked:  \\d+ \\(initial\\)\\nuptime:    ([^\\n]+)\\n",
+      "regex_literal_tokens": [
+        "(initial)uptime:",
+        ", pdfile version",
+        "</title>",
+        "<pre>db version v",
+        "BOOST_LIB_VERSION=",
+        "HTTP/1.0 200 OKContent-Type: text/html<html><head><title>mongodb",
+        "dblocked:",
+        "git hash: nogitversionsys info: Linux"
+      ],
+      "cpe": [
+        "cpe:/a:mongodb:mongodb:$2/",
+        "cpe:/o:linux:linux_kernel:$4/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nServer: sfcHttpd\\r\\nContent-Length: 0\\r\\nConnection: close\\r\\n\\r\\nHTTP/1\\.1 400 Bad Request\\r\\nServer: sfcHttpd\\r\\nContent-Length: 0\\r\\nConnection: close\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 501 Not ImplementedServer: sfcHttpdContent-Length: 0Connection: closeHTTP/1.1 400 Bad RequestServer: sfcHttpdContent-Length: 0Connection: close"
+      ],
+      "cpe": [
+        "cpe:/o:supermicro:intelligent_platform_management_firmware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 400 Bad Request\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: doubleTwist Sync \\(Android\\)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0 400 Bad Request",
+        "Server: doubleTwist Sync (Android)"
+      ],
+      "cpe": [
+        "cpe:/o:google:android/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "http",
+      "regex": "^HTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/([\\w._-]+)\\r\\nHTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/[\\w._-]+\\r\\nHTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/[\\w._-]+\\r\\nHTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/[\\w._-]+\\r\\nHTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/[\\w._-]+\\r\\nHTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/[\\w._-]+\\r\\nHTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/[\\w._-]+\\r\\nHTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/[\\w._-]+\\r\\nHTTP/0\\.0 400 Bad request\\r\\nServer: Aos HTTP Server/[\\w._-]+\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/0.0 400 Bad requestServer: Aos HTTP Server/"
+      ],
+      "cpe": [
+        "cpe:/o:eth:a2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 400 Bad Request\\r\\nCONNECTION: close\\r\\n\\r\\n$",
+      "regex_literal_tokens": [
+        "HTTP/1.1 400 Bad RequestCONNECTION: close"
+      ],
+      "cpe": [
+        "cpe:/o:freebsd:freebsd:8.0/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "ident",
+      "regex": "^: USERID : UNIX : CacheFlow Server\\r\\n",
+      "regex_literal_tokens": [
+        ": USERID : UNIX : CacheFlow Server"
+      ],
+      "cpe": [
+        "cpe:/o:bluecoat:cacheos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "asf-rmcp",
+      "regex": "^\\x00\\x00\\x00\\x02\\t\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:supermicro:intelligent_platform_management_firmware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "jrpgt",
+      "regex": "^<<jrpgt!>>\\x7c$",
+      "regex_literal_tokens": [
+        "<<jrpgt!>>|"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "pmcd",
+      "regex": "^\\x00\\x00\\x00\\x14\\x00\\x00p\\x00\\x00\\x00\\x03.\\xff\\xff\\xfc\\x11\\x02\\x00..$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:sgi:irix:6.5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x03\\xff\\xfb\\x03\\xff\\xfd\\x18\\xff\\xfd\\x17Please wait\\. The connection to your station is still in the process of being established\\. Your last input has been discarded\\.\\r\\nPlease wait\\. The connection to your station is still in the process of being established\\. Your last input has been discarded\\.\\r\\n",
+      "regex_literal_tokens": [
+        "Please wait. The connection to your station is still in the process of being established. Your last input has been discarded.Please wait. The connection to your station is still in the process of being established. Your last input has been discarded."
+      ],
+      "cpe": [
+        "cpe:/o:burroughs:mcp/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "telnet",
+      "regex": "^\\xff\\xfd\\x18\\xff\\xfa\\x18\\x01\\xff\\xf0\\xff\\xfb\\x03\\xff\\xfd\\x01\\xff\\xfd\\x1f\\xff\\xfb\\x05\\xff\\xfd!\\xff\\xfb\\x01TELNET_SERVER V([\\d.]+) RTOS-UH \\(c\\)IEP,1995-\\d\\d\\d\\d ready\\r\\nUsername:",
+      "regex_literal_tokens": [
+        "!TELNET_SERVER V",
+        "RTOS-UH (c)IEP,1995-",
+        "readyUsername:"
+      ],
+      "cpe": [
+        "cpe:/o:universitathanover:rtos-uh/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "uucp",
+      "regex": "^login: login: login: $",
+      "regex_literal_tokens": [
+        "login: login: login:"
+      ],
+      "cpe": [
+        "cpe:/o:netbsd:netbsd/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: Net-OS (\\d+)\\.xx UPnP/([\\d.]+)\\r\\n\\r\\n<HTML><HEAD><TITLE>501 Not Implemented</TITLE></HEAD><BODY><H1>Not Implemented</H1>The HTTP Method is not implemented by this server\\.</BODY></HTML>\\r\\n",
+      "regex_literal_tokens": [
+        ".xx UPnP/",
+        "501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: Net-OS",
+        "<HTML><HEAD><TITLE>501 Not Implemented</TITLE></HEAD><BODY><H1>Not Implemented</H1>The HTTP Method is not implemented by this server.</BODY></HTML>"
+      ],
+      "cpe": [
+        "cpe:/o:digi:net%2bos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "telnet",
+      "regex": "^\\xff\\xfb\\x01\\n\\rSSH service name not present in rcvd msg\\n\\rSSH Session task 0x\\w+: Version Exchange Failed\\n\\r\\n\\r\\n\\rSSH service name not present in rcvd msg\\n\\r",
+      "regex_literal_tokens": [
+        ": Version Exchange FailedSSH service name not present in rcvd msg",
+        "SSH service name not present in rcvd msgSSH Session task 0x"
+      ],
+      "cpe": [
+        "cpe:/a:cisco:telnet/",
+        "cpe:/o:cisco:aironet_350/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "telnet",
+      "regex": "^\\x1b\\[24;1HUsername: \\x1b\\[\\?25h\\x1b\\[24;1H\\x1b\\[\\?25h\\x1b\\[24;11H\\x1b\\[24;11H\\x1b\\[\\?25h\\x1b\\[24;11H\\x1b\\[24;1H\\r\\n\\r\\x1b\\[\\?25h\\x1b\\[24;11H\\xff\\xfd\\x18\\xff\\xfb\\x01\\x1b\\[2J\\x1b\\[\\?7l\\x1b\\[3;23r\\x1b\\[\\?6l\\x1b\\[1;1H\\x1b\\[\\?25l\\x1b\\[1;1HProCurve (\\w+) Switch (\\w+)\\r\\n\\rSoftware revision ([\\w.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "Software revision",
+        "Switch",
+        "[24;1HUsername: [?25h[24;1H[?25h[24;11H[24;11H[?25h[24;11H[24;1H[?25h[24;11H[2J[?7l[3;23r[?6l[1;1H[?25l[1;1HProCurve"
+      ],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_$2/",
+        "cpe:/o:hp:procurve_switch_software:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: AsusWRT/([\\d.]+) UPnP/([\\w.]+) MiniUPnPd/([\\w.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "MiniUPnPd/",
+        "Server: AsusWRT/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:asus:asuswrt:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: FedoraCore/(\\d+) UPnP/([\\w._-]+) MiniUPnPd/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "MiniUPnPd/",
+        "Server: FedoraCore/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:fedoraproject:fedora_core:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Debian/([\\w.]+) UPnP/([\\w._-]+) MiniUPnPd/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "MiniUPnPd/",
+        "Server: Debian/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Debian/([\\w.]+) UPnP/([\\w._-]+) miniupnpd/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "Server: Debian/",
+        "UPnP/",
+        "miniupnpd/"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Ubuntu/([\\w._-]+) UPnP/([\\w._-]+) miniupnpd/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "Server: Ubuntu/",
+        "UPnP/",
+        "miniupnpd/"
+      ],
+      "cpe": [
+        "cpe:/o:canonical:ubuntu_linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Linux/(([234]\\.[\\d.]+)[\\w._-]+) UPnP/([\\w._-]+) [Mm]ini[Uu][Pp]n[Pp]d/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "Server: Linux/",
+        "UPnP/",
+        "ini"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: SmoothWall Express/([\\d.]+) UPnP/([\\d.]+) MiniUPnPd/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "MiniUPnPd/",
+        "Server: SmoothWall Express/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:smoothwall:smoothwall:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: Debian/([\\w._/-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: Debian/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux:$1/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: RedHatEnterpriseServer/([\\w._/-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: RedHatEnterpriseServer/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/",
+        "cpe:/o:redhat:enterprise_linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: Fedora/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: Fedora/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:fedoraproject:fedora:$1/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: RAIDiator/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: RAIDiator/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:netgear:raidiator:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: Ubuntu/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: Ubuntu/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:canonical:ubuntu_linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: Gentoo/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: Gentoo/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:gentoo:linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: SUSE LINUX/n/a DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: SUSE LINUX/n/a DLNADOC/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:suse:suse_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: Linux/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: Linux/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: (?:Linux )?(([234]\\.[\\d.]+)[\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server:",
+        "Linux",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: OpenWrt Linux/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: OpenWrt Linux/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: FreeBSD/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: FreeBSD/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:freebsd:freebsd:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: RAIDiator/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) ReadyDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: RAIDiator/",
+        "ReadyDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:netgear:raidiator:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: Linux[ /]([\\d.]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) ReadyDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: Linux",
+        "ReadyDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: ([\\d._-]+)ReadyNAS DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) ReadyDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server:",
+        "ReadyDLNA/",
+        "ReadyNAS DLNADOC/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: (?:Linux )?(([234]\\.[\\d.]+)[\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) ReadyDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server:",
+        "Linux",
+        "ReadyDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r.*\\nServer: RedHatEnterpriseServer/([\\d.]+) UPnP/([\\d.]+) MiniUPnPd/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "MiniUPnPd/",
+        "Server: RedHatEnterpriseServer/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/",
+        "cpe:/o:redhat:enterprise_linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^ 501 Not Implemented\\r.*\\nServer: EXOS/OpenWrt UPnP/([\\d.]+) MiniUPnPd/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "501 Not Implemented",
+        "MiniUPnPd/",
+        "Server: EXOS/OpenWrt UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/0\\.0 400 Bad Request\\r\\nServer: Windows/([\\w._-]+\\.2600)/Service Pack (\\d+), UPnP/([\\d.]+), TVersity Media Server/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", TVersity Media Server/",
+        ", UPnP/",
+        ".2600/Service Pack",
+        "HTTP/0.0 400 Bad RequestServer: Windows/"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_xp::sp$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/0\\.0 400 Bad Request\\r\\nServer: Windows/([\\w._-]+)\\.6001/Service Pack (\\d+), UPnP/([\\d.]+), TVersity Media Server/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", TVersity Media Server/",
+        ", UPnP/",
+        ".6001/Service Pack",
+        "HTTP/0.0 400 Bad RequestServer: Windows/"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_vista::sp$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d .*\\r\\nDATE: .*\\r\\nConnection: Keep-Alive\\r\\nServer: LINUX/([\\w._-]+) UPnP/([\\d.]+) BRCM400/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "BRCM400/",
+        "Connection: Keep-AliveServer: LINUX/",
+        "DATE:",
+        "HTTP/1.1",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d .*\\r\\nDATE: .*\\r\\nConnection: Keep-Alive\\r\\nServer: LINUX/([\\w._-]+) UPnP/([\\d.]+) ZyXEL-UPnP/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "Connection: Keep-AliveServer: LINUX/",
+        "DATE:",
+        "HTTP/1.1",
+        "UPnP/",
+        "ZyXEL-UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 400 Bad Request\\r\\nServer: Symbian/([\\w._-]+) UPnP/([\\d.]+)\\r\\nContent-Length: 151\\r\\n\\r\\n<!DOCTYPE HTML PUBLIC \\\"-//IETF//DTD HTML 2\\.0//EN\\\">\\n<html><head>\\n<title>400 Bad Request</title>\\n</head><body>\\n<h1>Bad Request</h1>\\n<hr />\\n</body></html>$",
+      "regex_literal_tokens": [
+        "Content-Length: 151<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><html><head><title>400 Bad Request</title></head><body><h1>Bad Request</h1><hr /></body></html>",
+        "HTTP/1.1 400 Bad RequestServer: Symbian/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:symbian:symbian/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "upnp",
+      "regex": "^HTTP/0\\.0 400 Bad Request\\r\\nSERVER: Linux/([\\w._-]+) UPnP/([\\w._-]+) SKY DLNADOC/([\\w._-]+)\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/0.0 400 Bad RequestSERVER: Linux/",
+        "SKY DLNADOC/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "unreal-media",
+      "regex": "^\\xb1\\x36\\x00\\x00\\x19\\x00\\x00\\x00\\x30\\x05\\xff\\x8f\\x00\\x00\\x00\\x00\\x88\\xff.\\x03.\\xef.\\x00$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "finger",
+      "regex": "^finger: GET: no such user\\nfinger: /: no such user\\nfinger: HTTP/1\\.0: no such user\\n$",
+      "regex_literal_tokens": [
+        "finger: GET: no such userfinger: /: no such userfinger: HTTP/1.0: no such user"
+      ],
+      "cpe": [
+        "cpe:/o:netbsd:netbsd/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "gopher",
+      "regex": "^iUnable to locate requested resource\\.\\t\\t([\\w._-]+)\\t\\d+\\r\\n\\.\\r\\n",
+      "regex_literal_tokens": [
+        "iUnable to locate requested resource."
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "gopher",
+      "regex": "^Error: File or directory not found!\\r\\n______________________________________________________________________\\r\\n              Gophered by Gophernicus/([\\w._-]+) on archlinux/rolling ",
+      "regex_literal_tokens": [
+        "Error: File or directory not found!______________________________________________________________________ Gophered by Gophernicus/",
+        "on archlinux/rolling"
+      ],
+      "cpe": [
+        "cpe:/o:archlinux:arch_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] 401 Unauthorized\\r\\nDate: .*\\r\\nWWW-Authenticate: Basic realm=\\\"PIX\\\"",
+      "regex_literal_tokens": [
+        "401 UnauthorizedDate:",
+        "HTTP/1.",
+        "WWW-Authenticate: Basic realm=\"PIX\""
+      ],
+      "cpe": [
+        "cpe:/o:cisco:pix_firewall_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Server: Cherokee/([-.\\w]+) \\(Debian GNU/Linux\\)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:cherokee-project:cherokee:$1/",
+        "cpe:/o:debian:debian_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Server: Cherokee/([-.\\w]+) \\(Ubuntu\\)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:cherokee-project:cherokee:$1/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Server: Cherokee/([-.\\w]+) \\(openSUSE Build Service\\)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:cherokee-project:cherokee:$1/",
+        "cpe:/o:novell:opensuse/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Server: Cherokee/([-.\\w]+) \\(Gentoo Linux\\)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:cherokee-project:cherokee:$1/",
+        "cpe:/o:gentoo:linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: eHTTP v([\\w._-]+)\\r\\n.*<title>\\s*([\\w._-]+)\\s*-\\s*(?:HP )?(?:\\w+ )?ProCurve Switch ([\\w._-]+)",
+      "regex_literal_tokens": [
+        "<title>",
+        "HTTP/1.0 200 OKServer: eHTTP v",
+        "ProCurve Switch"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/h:hp:procurve_switch_$3/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: eHTTP v([\\w._-]+)\\r\\n.*<title>\\s*(?:HP )?(?:\\w+\\s+)?ProCurve Switch ([\\w._-]+)",
+      "regex_literal_tokens": [
+        "<title>",
+        "HTTP/1.0 200 OKServer: eHTTP v",
+        "ProCurve Switch"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/h:hp:procurve_switch_$2/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: eHTTP v([\\w._-]+)\\r\\n.*<title>\\s*([\\w._-]+)\\s*-\\s*(?:HP )?(?:\\w+ )?ProCurve ([\\w._-]+) Switch",
+      "regex_literal_tokens": [
+        "<title>",
+        "HTTP/1.0 200 OKServer: eHTTP v",
+        "ProCurve",
+        "Switch"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/h:hp:procurve_switch_$3/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: eHTTP v([\\w._-]+)\\r\\n.*<title>\\s*(?:HP )?(?:\\w+\\s+)?ProCurve ([\\w._-]+) Switch",
+      "regex_literal_tokens": [
+        "<title>",
+        "HTTP/1.0 200 OKServer: eHTTP v",
+        "ProCurve",
+        "Switch"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/h:hp:procurve_switch_$2/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: eHTTP v([\\w._-]+)\\r\\n.*<title>\\s*([ \\w._-]+?)\\s*-\\s*(?:HP )?(?:\\w+ )?ProCurve Switch ([\\w._-]+)",
+      "regex_literal_tokens": [
+        "<title>",
+        "HTTP/1.0 200 OKServer: eHTTP v",
+        "ProCurve Switch"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/h:hp:procurve_switch_$3/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 401 Unauthorized\\r\\nServer: eHTTP v([\\w._-]+)\\r\\n(?:[^\\r\\n]+\\r\\n)*?WWW-Authenticate: Basic realm=\\\"HP ([-.\\w]+)\\\"\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 401 UnauthorizedServer: eHTTP v",
+        "WWW-Authenticate: Basic realm=\"HP"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 401 Unauthorized\\r\\nServer: eHTTP v([\\w._-]+)\\r\\n(?:[^\\r\\n]+\\r\\n)*?WWW-Authenticate: Basic realm=\\\"ProCurve (J\\w+)\\\"\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 401 UnauthorizedServer: eHTTP v",
+        "WWW-Authenticate: Basic realm=\"ProCurve J"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/h:hp:procurve_switch_$2/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nServer: Web Server\\r\\nContent-Type: text/html\\r\\nCache-Control: no-cache\\r\\nPragma: no-cache\\r\\n\\r\\n\\r\\n   <!DOCTYPE HTML PUBLIC \\\"-//W3C//DTD HTML 4\\.0 Transitional//EN\\\">\\n<HTML>\\n<HEAD>\\n   <TITLE>Login</TITLE>",
+      "regex_literal_tokens": [
+        "HTTP/1.1 200 OKServer: Web ServerContent-Type: text/htmlCache-Control: no-cachePragma: no-cache <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\"><HTML><HEAD> <TITLE>Login</TITLE>"
+      ],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_1810g/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: eHTTP v([\\w._-]+)\\r\\n.*<title>HP Virtual Stack</title>\\n<!-- Changed by: Jon A\\. LaRosa, 26-Apr-2000 -->\\n",
+      "regex_literal_tokens": [
+        "<title>HP Virtual Stack</title><!-- Changed by: Jon A. LaRosa, 26-Apr-2000 -->",
+        "HTTP/1.0 200 OKServer: eHTTP v"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/h:hp:procurve_switch_2626/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^Server: Apache/([-\\.\\w]+) \\(Ubuntu\\)\\r?$",
+      "regex_flags": "mi",
+      "regex_literal_tokens": [
+        "Server: Apache/",
+        "(Ubuntu)"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server:$1/",
+        "cpe:/o:canonical:ubuntu_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^Server: Apache/([-\\.\\w]+) \\(Debian\\)\\r?$",
+      "regex_flags": "mi",
+      "regex_literal_tokens": [
+        "Server: Apache/",
+        "(Debian)"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server:$1/",
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^Server: Apache/([-\\.\\w]+) \\(CentOS\\)\\r?$",
+      "regex_flags": "mi",
+      "regex_literal_tokens": [
+        "Server: Apache/",
+        "(CentOS)"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server:$1/",
+        "cpe:/o:centos:centos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^Server: Apache/([-\\.\\w]+) \\((?:Red Hat|RHEL)\\)\\r?$",
+      "regex_flags": "mi",
+      "regex_literal_tokens": [
+        "Server: Apache/",
+        "(Red Hat|RHEL)"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server:$1/",
+        "cpe:/o:redhat:enterprise_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d.*\\r\\nDate: .*\\r\\nServer: Apache-AdvancedExtranetServer/(\\d[-.\\w]+) \\(Mandriva Linux/PREFORK-([-\\w_.]+)\\) (.*)\\r\\n",
+      "regex_literal_tokens": [
+        "(Mandriva Linux/PREFORK-",
+        "Date:",
+        "HTTP/1.",
+        "Server: Apache-AdvancedExtranetServer/"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server:$1/",
+        "cpe:/o:mandriva:linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d.*\\r\\nServer: nginx/([\\d.]+) \\(Ubuntu\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(Ubuntu)",
+        "HTTP/1.",
+        "Server: nginx/"
+      ],
+      "cpe": [
+        "cpe:/a:igor_sysoev:nginx:$1/",
+        "cpe:/o:canonical:ubuntu_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nDate: .+\\r\\nServer: Tomcat/([-.\\w]+)\\r\\nContent-Type: text/html\\r\\nContent-Length: \\d+\\r\\nServlet-Engine: Tomcat/[-.\\w]+ \\(Java ([-.\\w]+); SunOS ([-.\\w]+) (\\w+); java\\.vendor=Sun Microsystems Inc\\.\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(Java",
+        "; SunOS",
+        "; java.vendor=Sun Microsystems Inc.)",
+        "Content-Type: text/htmlContent-Length:",
+        "HTTP/1.0 200 OKDate:",
+        "Server: Tomcat/",
+        "Servlet-Engine: Tomcat/"
+      ],
+      "cpe": [
+        "cpe:/a:apache:tomcat:$1/",
+        "cpe:/a:sun:jre:$2/",
+        "cpe:/o:sun:sunos:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nServer: EHTTP/([\\d.]+)\\r\\nPragma:no-cache\\r\\nContent-Type:text/html\\r\\n\\r\\n<html> \\n<head>\\n<title> \\n(.*) \\n- HP \\w+ ProCurve Switch (\\w+)\\n</title>",
+      "regex_literal_tokens": [
+        "- HP",
+        "</title>",
+        "HTTP/1.0",
+        "Pragma:no-cacheContent-Type:text/html<html> <head><title>",
+        "ProCurve Switch",
+        "Server: EHTTP/"
+      ],
+      "cpe": [
+        "cpe:/a:ehttp:ehttp:$1/",
+        "cpe:/h:hp:procurve_switch_$3/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Connection: close\\r\\nContent-Length: \\d+\\r\\nContent-Type: text/html.*\\r\\n\\r\\n<!DOCTYPE html\\nPUBLIC.*\\n<title>MikroTik RouterOS Managing Webpage</title>\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:mikrotik:routeros/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Content-Type: text/html.*\\r\\n\\r\\n<!DOCTYPE html PUBLIC.*<title>RouterOS router configuration page</title>",
+      "regex_literal_tokens": [
+        "<!DOCTYPE html PUBLIC",
+        "<title>RouterOS router configuration page</title>",
+        "Content-Type: text/html",
+        "HTTP/1.0 200 OK"
+      ],
+      "cpe": [
+        "cpe:/o:mikrotik:routeros/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 403 Forbidden\\r\\nDate: .*\\r\\nServer: Microsoft-WinCE/([\\w._-]+)\\r\\nContent-Type: text/html\\r\\nContent-Length: 125\\r\\n\\r\\n<html><head><title>Access Denied</title></head><body><B>Access denied\\.</B><P>The action requested is forbidden\\.</body></html>$",
+      "regex_literal_tokens": [
+        "Content-Type: text/htmlContent-Length: 125<html><head><title>Access Denied</title></head><body><B>Access denied.</B><P>The action requested is forbidden.</body></html>",
+        "HTTP/1.1 403 ForbiddenDate:",
+        "Server: Microsoft-WinCE/"
+      ],
+      "cpe": [
+        "cpe:/h:crestron/",
+        "cpe:/o:microsoft:windows_ce:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)content-length: \\d+\\r\\ncontent-type: text/html\\r\\ndate: .*<title>MikroTik RouterOS Managing Webpage</title>",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:mikrotik:routeros/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nServer: Thy/([\\d.]+) Debian/[\\w/]+ \\([^)]+\\) GnuTLS/([\\d.]+) zlib/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        ") GnuTLS/",
+        "Debian/",
+        "HTTP/1.0",
+        "Server: Thy/",
+        "zlib/"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nServer: Thy/([\\d.]+) Debian \\(\\w+\\) GnuTLS/([\\d.]+) zlib/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        ") GnuTLS/",
+        "Debian (",
+        "HTTP/1.0",
+        "Server: Thy/",
+        "zlib/"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nDate: .*\\r\\nServer: Java/[\\d.]+\\r\\nContent-type: text/html\\r\\nContent-length: \\d+\\r\\n\\r\\n.*<TITLE>TINIWebServer</TITLE>.*Current temperature ([\\d.]+) F<BR>",
+      "regex_literal_tokens": [
+        "<TITLE>TINIWebServer</TITLE>",
+        "Content-type: text/htmlContent-length:",
+        "Current temperature",
+        "F<BR>",
+        "HTTP/1.0 200 OKDate:",
+        "Server: Java/"
+      ],
+      "cpe": [
+        "cpe:/o:systronix:tinios/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 302 Found\\r\\nLocation: http://www\\.cfauth\\.com/\\?cfru[\\w=]+\\r\\nCache-Control: no-cache\\r\\nPragma: no-cache\\r\\n",
+      "regex_literal_tokens": [
+        "Cache-Control: no-cachePragma: no-cache",
+        "HTTP/1.1 302 FoundLocation: http://www.cfauth.com/?cfru"
+      ],
+      "cpe": [
+        "cpe:/o:bluecoat:cacheos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\nContent-Length: \\d+\\n.*<B>Cable Modem Description :</B>.*<P>ZyXEL Prestige (\\w+), HW V([\\d.]+), SW ZyNOS V([\\d.]+)\\(",
+      "regex_literal_tokens": [
+        ", HW V",
+        ", SW ZyNOS V",
+        "<B>Cable Modem Description :</B>",
+        "<P>ZyXEL Prestige",
+        "Content-Length:",
+        "HTTP/1.0"
+      ],
+      "cpe": [
+        "cpe:/o:zyxel:zynos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d .*\\r\\nDate: .*\\r\\nServer: Embperl/([\\w.]+) Apache/([\\w.]+) \\(Fedora\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(Fedora)",
+        "Apache/",
+        "Date:",
+        "HTTP/1.",
+        "Server: Embperl/"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server:$2/",
+        "cpe:/a:ecos:embperl:$1/",
+        "cpe:/o:fedoraproject:fedora/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d .*\\r\\nDate: .*\\r\\nServer: Embperl/([\\w.]+) Apache/([\\w.]+) \\(Debian GNU/Linux\\) (.*)\\r\\n",
+      "regex_literal_tokens": [
+        "(Debian GNU/Linux)",
+        "Apache/",
+        "Date:",
+        "HTTP/1.",
+        "Server: Embperl/"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server:$2/",
+        "cpe:/a:ecos:embperl:$1/",
+        "cpe:/o:debian:debian_linux:$3/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d .*\\r\\nDate: .*\\r\\nServer: Embperl/([\\w.]+) Apache/([\\w.]+) \\(Debian GNU/Linux\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(Debian GNU/Linux)",
+        "Apache/",
+        "Date:",
+        "HTTP/1.",
+        "Server: Embperl/"
+      ],
+      "cpe": [
+        "cpe:/a:apache:http_server:$2/",
+        "cpe:/a:ecos:embperl:$1/",
+        "cpe:/o:debian:debian_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d .*\\r\\nDate: .*\\r\\nServer: PicoWebServer\\r\\n",
+      "regex_literal_tokens": [
+        "Date:",
+        "HTTP/1.",
+        "Server: PicoWebServer"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_ce/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 302 Redirect\\r\\nServer: GoAhead-Webs\\r\\nDate: .*\\r\\nPragma: no-cache\\r\\nCache-Control: no-cache\\r\\nContent-Type: text/html\\r\\nLocation: http://Netlinx/WebControl\\.asp\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0 302 RedirectServer: GoAhead-WebsDate:",
+        "Pragma: no-cacheCache-Control: no-cacheContent-Type: text/htmlLocation: http://Netlinx/WebControl.asp"
+      ],
+      "cpe": [
+        "cpe:/a:goahead:goahead_webserver/",
+        "cpe:/o:harman:amx_firmware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*<title>mikrotik routeros > administration</title>.*font-size: 9px\\\">mikrotik routeros ([\\d.]+) administration",
+      "regex_literal_tokens": [
+        "<title>mikrotik routeros > administration</title>",
+        "HTTP/1.0",
+        "administration",
+        "font-size: 9px\">mikrotik routeros"
+      ],
+      "cpe": [
+        "cpe:/o:mikrotik:routeros:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Server: BeOS/PoorMan\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:be:beos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Server: Novell-Agent ([\\w._-]+) \\(Linux\\)\\r\\n.*<TITLE>GroupWise Monitor  - Status</TITLE>",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:novell:groupwise/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Server: Allegro-Software-RomPager/(\\d[-.\\w]+)\\r\\n\\r\\n.*<title>ExtremeWare Management Interface</title>",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:allegro:rompager:$1/",
+        "cpe:/o:extremenetworks:extremeware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nDate: .*\\r\\nContent-Length: \\d+\\r\\nContent-Type: text/html\\r\\nServer: HyNetOS/([\\d.]+)\\r\\n\\r\\n<HTML>\\r\\n<HEAD>\\r\\n<TITLE>EverFocus EDSR Applet \\(([\\d.]+)\\)</TITLE>",
+      "regex_literal_tokens": [
+        ")</TITLE>",
+        "<HTML><HEAD><TITLE>EverFocus EDSR Applet (",
+        "Content-Length:",
+        "Content-Type: text/htmlServer: HyNetOS/",
+        "HTTP/1.0 200 OKDate:"
+      ],
+      "cpe": [
+        "cpe:/o:hyperstone:hynetos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nServer: XOS (\\w+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0",
+        "Server: XOS"
+      ],
+      "cpe": [
+        "cpe:/o:extremenetworks:extremeware_xos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*<title>Smart VoIP IAD Web Configuration Pages</title>",
+      "regex_literal_tokens": [
+        "<title>Smart VoIP IAD Web Configuration Pages</title>",
+        "HTTP/1.0"
+      ],
+      "cpe": [
+        "cpe:/h:patton:sl4020/",
+        "cpe:/o:patton:smartware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d (?s:.*?)Server: Web Server\\r\\n.*\\n<title>Cisco Systems, Inc\\. VPN 3000 Concentrator \\[vpn-conc-3030\\]</title>\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:cisco:vpn_3000_concentrator_series_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nDate:.*<title>Welcome to VMware ESX Server ([\\d.]+)</title>\\n\\n",
+      "regex_literal_tokens": [
+        "</title>",
+        "<title>Welcome to VMware ESX Server",
+        "HTTP/1.1 200 OKDate:"
+      ],
+      "cpe": [
+        "cpe:/o:vmware:esx:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nDate: .*document\\.write\\(\\\"<title>\\\" \\+ ID_EE?SX_Welcome \\+ \\\"</title>",
+      "regex_literal_tokens": [
+        "HTTP/1.1 200 OKDate:",
+        "SX_Welcome + \"</title>",
+        "document.write(\"<title>\" + ID_E"
+      ],
+      "cpe": [
+        "cpe:/o:vmware:esxi/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nDate: .*\\r\\nServer: GG/([\\d.]+) \\(Unix\\) Debian GNU/Linux\\r\\nWWW-Authenticate: Basic realm=\\\"gg zone\\\"\\r\\n",
+      "regex_literal_tokens": [
+        "(Unix) Debian GNU/LinuxWWW-Authenticate: Basic realm=\"gg zone\"",
+        "Date:",
+        "HTTP/1.0",
+        "Server: GG/"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 401 Authorization Required\\r\\nconnection: Close\\r\\ncontent-type: text/html\\r\\nserver: NEWS/([\\w._-]+ \\(Funk\\)) \\(Windows 2000\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(Funk) (Windows 2000)",
+        "HTTP/1.0 401 Authorization Requiredconnection: Closecontent-type: text/htmlserver: NEWS/"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_2000/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 400 Bad Request\\r\\nDate: .*\\r\\nRIPT-Server: iTunesLib/([-\\w_.]+) \\(Mac OS X\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(Mac OS X)",
+        "HTTP/1.1 400 Bad RequestDate:",
+        "RIPT-Server: iTunesLib/"
+      ],
+      "cpe": [
+        "cpe:/a:apple:apple_tv/",
+        "cpe:/o:apple:mac_os_x/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 401 Unauthorized\\r\\nServer: mini_httpd/([-\\w_.]+)/astlinux (\\w+)\\r\\nDate: .*\\r\\nCache-Control: no-cache,no-store\\r\\nWWW-Authenticate: Basic realm=\\\"\\.\\\"\\r\\n",
+      "regex_literal_tokens": [
+        "/astlinux",
+        "Cache-Control: no-cache,no-storeWWW-Authenticate: Basic realm=\".\"",
+        "Date:",
+        "HTTP/1.0 401 UnauthorizedServer: mini_httpd/"
+      ],
+      "cpe": [
+        "cpe:/a:acme:mini_httpd:$1/",
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: http server ([\\w._-]+)\\r\\n(?:[^\\r\\n]+\\r\\n)*?Content-length: 291\\r\\n.*if\\(location\\.hostname\\.indexOf\\(':'\\) == -1\\)\\{location\\.href='http://'\\+location\\.hostname\\+':'\\+8080\\+'/';\\n\\}",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:2.6/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 301 Moved Permanently\\r\\nDate: .*\\r\\nLocation: https://([\\w._-]+)/\\r\\nConnection: close\\r\\nContent-Type: text/html\\r\\nContent-Length: 56\\r\\n\\r\\n<HTML><BODY><H1>301 Moved Permanently</H1></BODY></HTML>$",
+      "regex_literal_tokens": [
+        "/Connection: closeContent-Type: text/htmlContent-Length: 56<HTML><BODY><H1>301 Moved Permanently</H1></BODY></HTML>",
+        "HTTP/1.1 301 Moved PermanentlyDate:",
+        "Location: https://"
+      ],
+      "cpe": [
+        "cpe:/o:vmware:esxi/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 301 Moved Permanently\\r\\nDate: .*\\r\\nLocation: https://([\\w._-]+)/\\r\\nConnection: close\\r\\nContent-Length: 0\\r\\n\\r\\n$",
+      "regex_literal_tokens": [
+        "/Connection: closeContent-Length: 0",
+        "HTTP/1.1 301 Moved PermanentlyDate:",
+        "Location: https://"
+      ],
+      "cpe": [
+        "cpe:/o:vmware:esx:3.5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 401 Unauthorized\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: THEO\\+Server/([\\d.]+)\\r\\n(?:[^\\r\\n]+\\r\\n)*?WWW-Authenticate: Basic realm=\\\"THEOS Web-based Maintenance\\\"\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 401 Unauthorized",
+        "Server: THEO+Server/",
+        "WWW-Authenticate: Basic realm=\"THEOS Web-based Maintenance\""
+      ],
+      "cpe": [
+        "cpe:/o:theos:theos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nServer: Web Server\\r\\n.*top\\.location\\.href = \\\"/hp_login\\.html\\\";\\r\\n</script>\\r\\n\\r\\n\\r\\n<BODY style=\\\"text-align: center\\\" onload=\\\"document\\.forms\\[0\\]\\.login\\.focus\\(\\);CheckError\\(\\)\\\">\\r\\n<FORM METHOD=\\\"POST\\\" ACTION=\\\"/hp_login\\.html\\\">",
+      "regex_literal_tokens": [
+        "HTTP/1.1 200 OKServer: Web Server",
+        "top.location.href = \"/hp_login.html\";</script><BODY style=\"text-align: center\" onload=\"document.forms[0].login.focus();CheckError()\"><FORM METHOD=\"POST\" ACTION=\"/hp_login.html\">"
+      ],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_1810g/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: RapidLogic/([\\w._-]+)\\r\\n.*<title>OneAccess WCF</title>",
+      "regex_literal_tokens": [
+        "<title>OneAccess WCF</title>",
+        "HTTP/1.0 200 OKServer: RapidLogic/"
+      ],
+      "cpe": [
+        "cpe:/a:rapidlogic:httpd:$1/",
+        "cpe:/o:oneaccess:oneos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nCONTENT-ENCODING: gzip\\r\\n(?:[^\\r\\n]+\\r\\n)*?SERVER: Linux/([\\w._-]+) Motorola/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 200 OKCONTENT-ENCODING: gzip",
+        "Motorola/",
+        "SERVER: Linux/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nDATE: .*\\r\\nCONTENT-TYPE: httpd/unix-directory\\r\\nCONTENT-LENGTH: 0\\r\\nALLOW: GET, POST, HEAD, OPTIONS\\r\\nSERVER: Linux/([\\w._-]+) Motorola/([\\w._-]+)\\r\\n\\r\\n$",
+      "regex_literal_tokens": [
+        "CONTENT-TYPE: httpd/unix-directoryCONTENT-LENGTH: 0ALLOW: GET, POST, HEAD, OPTIONSSERVER: Linux/",
+        "HTTP/1.1 200 OKDATE:",
+        "Motorola/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 302 Moved Temporarily\\r\\nPragma: no-cache\\r\\nLocation: https://[\\w._-]+/\\r\\n.*<TITLE>Redirect Notification</TITLE>.*<P>Please click <a href=\\\"https://[\\w._-]+/\\\">here</a> to go to the correct location\\.",
+      "regex_literal_tokens": [
+        "/\">here</a> to go to the correct location.",
+        "<P>Please click <a href=\"https://",
+        "<TITLE>Redirect Notification</TITLE>",
+        "HTTP/1.0 302 Moved TemporarilyPragma: no-cacheLocation: https://"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:2.6/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n.*<title>XBMC</title>\\r\\n\\t\\t<meta http-equiv=\\\"Content-Language\\\" content=\\\"EN\\\" />.*<!-- <link rel=\\\"search\\\" href=\\\"/provider\\.xml\\\" type=\\\"application/opensearchdescription\\+xml\\\" title=\\\"XBMC Library\\\" /> -->",
+      "regex_literal_tokens": [
+        "<!-- <link rel=\"search\" href=\"/provider.xml\" type=\"application/opensearchdescription+xml\" title=\"XBMC Library\" /> -->",
+        "<title>XBMC</title><meta http-equiv=\"Content-Language\" content=\"EN\" />",
+        "HTTP/1.1 200 OK"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\n.*<title>XBMC</title>\\s*<meta http-equiv=\\\"Content-Language\\\" content=\\\"EN\\\" />.*<!-- <link rel=\\\"search\\\" href=\\\"/?provider\\.xml\\\" type=\\\"application/opensearchdescription\\+xml\\\" title=\\\"XBMC Library\\\" /> -->",
+      "regex_literal_tokens": [
+        "200 OK",
+        "<!-- <link rel=\"search\" href=\"",
+        "<meta http-equiv=\"Content-Language\" content=\"EN\" />",
+        "<title>XBMC</title>",
+        "HTTP/1.",
+        "provider.xml\" type=\"application/opensearchdescription+xml\" title=\"XBMC Library\" /> -->"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nContent-Length: 134\\r\\nExpires: .*\\r\\nContent-Type: text/html\\r\\nDate: .*\\r\\n\\r\\n<html>\\n<head>\\n<title>XBMC Web Media Manager</title> \\n<meta HTTP-EQUIV=\\\"REFRESH\\\" content=\\\"0; url=\\./movies/index\\.html\\\">\\n</head>\\n</html>\\n$",
+      "regex_literal_tokens": [
+        "<html><head><title>XBMC Web Media Manager</title> <meta HTTP-EQUIV=\"REFRESH\" content=\"0; url=./movies/index.html\"></head></html>",
+        "Content-Type: text/htmlDate:",
+        "HTTP/1.1 200 OKContent-Length: 134Expires:"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 401 Unauthorized\\r\\nContent-Length: 0\\r\\n(?:[^\\r\\n]+\\r\\n)*?WWW-Authenticate: Basic realm=XBMC\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 401 UnauthorizedContent-Length: 0",
+        "WWW-Authenticate: Basic realm=XBMC"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nContent-Length: \\d+\\r\\nExpires: .*\\r\\nLast-Modified: .*\\r\\nContent-Type: text/html\\r\\nAccept-Ranges: bytes\\r\\nDate: .*\\r\\n\\r\\n<!DOCTYPE html>.*<title>XBMC \\x7c Web interface</title>",
+      "regex_literal_tokens": [
+        "<!DOCTYPE html>",
+        "<title>XBMC | Web interface</title>",
+        "Content-Type: text/htmlAccept-Ranges: bytesDate:",
+        "Expires:",
+        "HTTP/1.0 200 OKContent-Length:",
+        "Last-Modified:"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: CMSHTTPD/([\\w._-]+) z_VM/([\\w._-]+) ([^\\r\\n]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0 200 OK",
+        "Server: CMSHTTPD/",
+        "z_VM/"
+      ],
+      "cpe": [
+        "cpe:/o:ibm:z%2fvm:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: HyNetOS/([\\w._-]+)\\r\\n.*<title>(CS\\d+) SNMP/Web Adapter</title>",
+      "regex_literal_tokens": [
+        "<title>CS",
+        "HTTP/1.1 200 OK",
+        "SNMP/Web Adapter</title>",
+        "Server: HyNetOS/"
+      ],
+      "cpe": [
+        "cpe:/o:hyperstone:hynetos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: ShellHTTPD/([\\w._-]+)\\r\\n.*<title>Dachstein LEAF Firewall</title>",
+      "regex_literal_tokens": [
+        "<title>Dachstein LEAF Firewall</title>",
+        "HTTP/1.0 200 OK",
+        "Server: ShellHTTPD/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:2.2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 505 HTTP Version not supported\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Good\\.iWare WebDAV Server for iPhone\\r\\n.*If you have any questions, please contact <a href=\\\"mailto:support@goodreader\\.net\\\">support@goodreader\\.net</a>",
+      "regex_literal_tokens": [
+        "HTTP/1.1 505 HTTP Version not supported",
+        "If you have any questions, please contact <a href=\"mailto:support@goodreader.net\">support@goodreader.net</a>",
+        "Server: Good.iWare WebDAV Server for iPhone"
+      ],
+      "cpe": [
+        "cpe:/o:apple:iphone_os/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 505 HTTP Version not supported\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: GoodReader for iPad\\r\\n.*If you have any questions, please contact <a href=\\\"mailto:support@goodreader\\.net\\\">support@goodreader\\.net</a>",
+      "regex_literal_tokens": [
+        "HTTP/1.1 505 HTTP Version not supported",
+        "If you have any questions, please contact <a href=\"mailto:support@goodreader.net\">support@goodreader.net</a>",
+        "Server: GoodReader for iPad"
+      ],
+      "cpe": [
+        "cpe:/o:apple:iphone_os/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nConnection: close\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: AvatronHTTP \\(com\\.avatron\\.AirSharingHD,([\\w._-]+)\\)\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0 200 OKConnection: close",
+        "Server: AvatronHTTP (com.avatron.AirSharingHD,"
+      ],
+      "cpe": [
+        "cpe:/h:apple:ipad/",
+        "cpe:/h:apple:iphone/",
+        "cpe:/o:apple:iphone_os/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: zVWS ([\\w._-]+) Velocity Software, Inc\\. on  z/VM  (V\\d+R[\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0 200 OK",
+        "Server: zVWS",
+        "Velocity Software, Inc. on z/VM V"
+      ],
+      "cpe": [
+        "cpe:/o:ibm:z%2fvm:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: Barrelfish\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0 200 OKServer: Barrelfish"
+      ],
+      "cpe": [
+        "cpe:/o:barrelfish:barrelfish/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 403 Forbidden\\r\\nDate: .*\\r\\nServer: Helix Mobile Server/([\\w._-]+) \\(win-x86_64-vc10\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(win-x86_64-vc10)",
+        "HTTP/1.0 403 ForbiddenDate:",
+        "Server: Helix Mobile Server/"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nContent-Length: 0\\r\\n\\r\\n$",
+      "regex_literal_tokens": [
+        "HTTP/1.0 200 OKContent-Length: 0"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 505 HTTP Version Not Supported\\r\\n.*<title>VMware View</title>",
+      "regex_literal_tokens": [
+        "<title>VMware View</title>",
+        "HTTP/1.1 505 HTTP Version Not Supported"
+      ],
+      "cpe": [
+        "cpe:/o:vmware:esx/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nCONTENT-ENCODING: gzip\\r\\nEXPIRES: .*\\r\\nCONTENT-LENGTH: \\d+\\r\\nLAST-MODIFIED: .*\\r\\nDATE: .*\\r\\nCONTENT-TYPE: text/html; charset=UTF-8\\r\\nCACHE-CONTROL: max-age=0, no-cache, public\\r\\nSERVER: Linux/([\\w._-]+) Motorola/([\\w._-]+) DAV/2\\r\\n",
+      "regex_literal_tokens": [
+        "CONTENT-LENGTH:",
+        "CONTENT-TYPE: text/html; charset=UTF-8CACHE-CONTROL: max-age=0, no-cache, publicSERVER: Linux/",
+        "DATE:",
+        "DAV/2",
+        "HTTP/1.1 200 OKCONTENT-ENCODING: gzipEXPIRES:",
+        "LAST-MODIFIED:",
+        "Motorola/"
+      ],
+      "cpe": [
+        "cpe:/o:google:android/",
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d [^\\r\\n]*\\r\\nCONTENT-TYPE: text/html\\r.*\\nServer: IBM_CICS_Transaction_Server/([\\w._-]+)\\(zOS\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(zOS)",
+        "CONTENT-TYPE: text/html",
+        "HTTP/1.",
+        "Server: IBM_CICS_Transaction_Server/"
+      ],
+      "cpe": [
+        "cpe:/o:ibm:z%2fos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nConnection: close\\r\\nContent-Encoding: gzip\\r\\nContent-Type: text/html; charset=iso-8859-1\\r\\n\\r\\n\\x1f\\x8b\\x08\\x00\\x00\\x00\\x00\\x00\\x02\\x03\\xa5\\x93Mo",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/h:hp:procurve_switch_1800/",
+        "cpe:/o:hp:procurve_switch_software/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nConnection: close\\r\\nContent-Type: text/html; charset=utf-8\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: webcam 7\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 200 OKConnection: closeContent-Type: text/html; charset=utf-8",
+        "Server: webcam 7"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 401 Unauthorized\\nWWW-Authenticate: Basic realm='unRAID SMU'\\n$",
+      "regex_literal_tokens": [
+        "HTTP/1.1 401 UnauthorizedWWW-Authenticate: Basic realm='unRAID SMU'"
+      ],
+      "cpe": [
+        "cpe:/o:lime_technology:unraid_server:4/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nConnection: Close\\r\\nPragma: no-cache\\r\\nCache-Control: private, max-age=0\\r\\nDate: .*\\r\\nExpires: -1\\r\\nContent-Type: text/html\\r\\nTransfer-Encoding: chunked\\r\\nRefresh: 60; URL=\\r\\n\\r\\n[0-9a-f]+\\r\\n<HTML><title>([\\w._-]+) unRAID Server</title>",
+      "regex_literal_tokens": [
+        "<HTML><title>",
+        "Expires: -1Content-Type: text/htmlTransfer-Encoding: chunkedRefresh: 60; URL=",
+        "HTTP/1.1 200 OKConnection: ClosePragma: no-cacheCache-Control: private, max-age=0Date:",
+        "unRAID Server</title>"
+      ],
+      "cpe": [
+        "cpe:/o:lime_technology:unraid_server:4/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Etag: ([\\w._ -]+)\\r\\n.*\\xef\\xbb\\xbf<!DOCTYPE html .*<title>AirDroid</title>",
+      "regex_literal_tokens": [
+        "<!DOCTYPE html",
+        "<title>AirDroid</title>",
+        "Etag:",
+        "HTTP/1.1 200 OK"
+      ],
+      "cpe": [
+        "cpe:/a:airdroid:airdroid:$1/",
+        "cpe:/o:google:android/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Etag: ([\\w._ -]+)\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: AirDroid-g\\r\\n",
+      "regex_literal_tokens": [
+        "Etag:",
+        "HTTP/1.1 200 OK",
+        "Server: AirDroid-g"
+      ],
+      "cpe": [
+        "cpe:/a:airdroid:airdroid:$1/",
+        "cpe:/o:google:android/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: AirDroid ([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 200 OK",
+        "Server: AirDroid"
+      ],
+      "cpe": [
+        "cpe:/a:airdroid:airdroid:$1/",
+        "cpe:/o:google:android/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 500 Server Error\\r\\nContent-Length: 0\\r\\nServer: HBHTTP POGOBASIC - ([\\w._-]+) - Linux\\r\\n",
+      "regex_literal_tokens": [
+        "- Linux",
+        "HTTP/1.1 500 Server ErrorContent-Length: 0Server: HBHTTP POGOBASIC -"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 404 Not Found\\r\\nContent-Length: 0\\r\\nServer: HBHTTP POGOBASIC - ([\\w._-]+) - Linux\\r\\n",
+      "regex_literal_tokens": [
+        "- Linux",
+        "HTTP/1.1 404 Not FoundContent-Length: 0Server: HBHTTP POGOBASIC -"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: Mini web server ([\\w._-]+) ZTE corp 2005\\.\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0 200 OKServer: Mini web server",
+        "ZTE corp 2005."
+      ],
+      "cpe": [
+        "cpe:/h:zte:zxv10_w300/",
+        "cpe:/o:montavista:linux_kernel:2.4.17/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nConnection: keep-alive\\r\\nContent-Length: \\d+\\r\\nContent-Type: text/html; charset=utf-8\\r\\n\\r\\n<html><head><title>PlayBook WebInspector</title>",
+      "regex_literal_tokens": [
+        "Content-Type: text/html; charset=utf-8<html><head><title>PlayBook WebInspector</title>",
+        "HTTP/1.1 200 OKConnection: keep-aliveContent-Length:"
+      ],
+      "cpe": [
+        "cpe:/h:rim:blackberry_playbook_tablet/",
+        "cpe:/o:rim:blackberry_playbook_os:2.0/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: TMeter\\r\\n.*<Version>([\\w._-]+) Unicode</Version>\\r\\n\\t<CaptureStatus>In capture</CaptureStatus>\\r\\n\\t<XmlTrafficReport>([^<]*)</XmlTrafficReport>\\r\\n",
+      "regex_literal_tokens": [
+        "</XmlTrafficReport>",
+        "<Version>",
+        "HTTP/1.1 200 OK",
+        "Server: TMeter",
+        "Unicode</Version><CaptureStatus>In capture</CaptureStatus><XmlTrafficReport>"
+      ],
+      "cpe": [
+        "cpe:/a:trafficreg:tmeter:$1/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nContent type: text/xml; charset=utf-8\\r\\n.*<Name>TMeter</Name>\\r\\n\\t<Copyright>Copyright \\(c\\) \\d\\d\\d\\d Trafficreg Software</Copyright>\\r\\n\\t<Version>([\\d.]+) Unicode</Version>\\r\\n",
+      "regex_literal_tokens": [
+        "<Name>TMeter</Name><Copyright>Copyright (c)",
+        "HTTP/1.1 200 OKContent type: text/xml; charset=utf-8",
+        "Trafficreg Software</Copyright><Version>",
+        "Unicode</Version>"
+      ],
+      "cpe": [
+        "cpe:/a:trafficreg:tmeter:$1/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\nServer: Integrity\\nContent-type: text/html\\n\\n<!DOCTYPE HTML PUBLIC \\\"-//IETF//DTD HTML 2\\.0//EN\\\">\\n<html>\\n<head>\\n<title>Welcome to INTEGRITY</title>",
+      "regex_literal_tokens": [
+        "HTTP/1.0 200 OKServer: IntegrityContent-type: text/html<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><html><head><title>Welcome to INTEGRITY</title>"
+      ],
+      "cpe": [
+        "cpe:/o:hay_systems:hsl_2.75g_femtocell/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nDate: .*\\r\\nServer: BQTWWW/([\\w._-]+) \\(RSX\\) \\(RSX-11M-PLUS V([\\w._-]+)\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(RSX) (RSX-11M-PLUS V",
+        "HTTP/1.0 200 OKDate:",
+        "Server: BQTWWW/"
+      ],
+      "cpe": [
+        "cpe:/o:dec:rsx_11m_plus:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\nContent-Type: text/xml;charset=utf-8\\r\\nContent-Length: \\d+\\r\\nConnection: close\\r\\nX-Plex-Protocol: 1\\.0\\r\\nCache-Control: no-cache(?:\\r\\nDate: .*)?\\r\\n\\r\\n<\\?xml version=\\\"1\\.0\\\" encoding=\\\"UTF-8\\\"\\?>\\n<MediaContainer size=\\\"\\d+\\\" [^>]*friendlyName=\\\"([^\"]*)\\\" [^>]*platform=\\\"Linux\\\" platformVersion=\\\"(((?:2\\.)?\\d\\.\\d+)[^\"]+)\\\" [^>]*version=\\\"([^\"]+)",
+      "regex_literal_tokens": [
+        "200 OKContent-Type: text/xml;charset=utf-8Content-Length:",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><MediaContainer size=\"",
+        "Connection: closeX-Plex-Protocol: 1.0Cache-Control: no-cache",
+        "Date:",
+        "HTTP/1.",
+        "friendlyName=\"",
+        "platform=\"Linux\" platformVersion=\"",
+        "version=\""
+      ],
+      "cpe": [
+        "cpe:/a:plex:plex_media_server:$4/",
+        "cpe:/o:linux:linux_kernel:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\nContent-Type: text/xml;charset=utf-8\\r\\nContent-Length: \\d+\\r\\nConnection: close\\r\\nX-Plex-Protocol: 1\\.0\\r\\nCache-Control: no-cache(?:\\r\\nDate: .*)?\\r\\n\\r\\n<\\?xml version=\\\"1\\.0\\\" encoding=\\\"UTF-8\\\"\\?>\\n<MediaContainer size=\\\"\\d+\\\" [^>]*friendlyName=\\\"([^\"]*)\\\" [^>]*platform=\\\"Linux\\\" platformVersion=\\\"(((?:2\\.)?\\d\\.\\d+)[^\"]+)\\\"",
+      "regex_literal_tokens": [
+        "200 OKContent-Type: text/xml;charset=utf-8Content-Length:",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><MediaContainer size=\"",
+        "Connection: closeX-Plex-Protocol: 1.0Cache-Control: no-cache",
+        "Date:",
+        "HTTP/1.",
+        "friendlyName=\"",
+        "platform=\"Linux\" platformVersion=\""
+      ],
+      "cpe": [
+        "cpe:/a:plex:plex_media_server/",
+        "cpe:/o:linux:linux_kernel:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\nX-Plex-Protocol: 1\\.0\\r\\nContent-Type: text/xml;charset=utf-8\\r\\nContent-Length: \\d+\\r\\nConnection: close\\r\\nCache-Control: no-cache(?:\\r\\nDate: .*)?\\r\\n\\r\\n<\\?xml version=\\\"1\\.0\\\" encoding=\\\"UTF-8\\\"\\?>\\n<MediaContainer size=\\\"\\d+\\\" [^>]*friendlyName=\\\"([^\"]*)\\\" [^>]*platform=\\\"Linux\\\" platformVersion=\\\"(((?:2\\.)?\\d\\.\\d+)[^\"]+)\\\" [^>]*version=\\\"([^\"]+)",
+      "regex_literal_tokens": [
+        "200 OKX-Plex-Protocol: 1.0Content-Type: text/xml;charset=utf-8Content-Length:",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><MediaContainer size=\"",
+        "Connection: closeCache-Control: no-cache",
+        "Date:",
+        "HTTP/1.",
+        "friendlyName=\"",
+        "platform=\"Linux\" platformVersion=\"",
+        "version=\""
+      ],
+      "cpe": [
+        "cpe:/a:plex:plex_media_server:$4/",
+        "cpe:/o:linux:linux_kernel:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\nX-Plex-Protocol: 1\\.0\\r\\nContent-Type: text/xml;charset=utf-8\\r\\nContent-Length: \\d+\\r\\nConnection: close\\r\\nCache-Control: no-cache(?:\\r\\nDate: .*)?\\r\\n\\r\\n<\\?xml version=\\\"1\\.0\\\" encoding=\\\"UTF-8\\\"\\?>\\n<MediaContainer size=\\\"\\d+\\\" [^>]*friendlyName=\\\"([^\"]*)\\\" [^>]*platform=\\\"Linux\\\" platformVersion=\\\"(((?:2\\.)?\\d\\.\\d+)[^\"]+)\\\"",
+      "regex_literal_tokens": [
+        "200 OKX-Plex-Protocol: 1.0Content-Type: text/xml;charset=utf-8Content-Length:",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><MediaContainer size=\"",
+        "Connection: closeCache-Control: no-cache",
+        "Date:",
+        "HTTP/1.",
+        "friendlyName=\"",
+        "platform=\"Linux\" platformVersion=\""
+      ],
+      "cpe": [
+        "cpe:/a:plex:plex_media_server/",
+        "cpe:/o:linux:linux_kernel:$3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 400 Bad Request\\r\\nContent-Type: text/html; charset=\\\"utf-8\\\"\\r\\nServer: Linux/((2\\.[46]\\.\\d+|\\d\\.\\d+)\\S*) DoaHTTP\\r\\nContent-Length: 0\\r\\nDate: .* GMT\\r\\n\\r\\n$",
+      "regex_literal_tokens": [
+        "DoaHTTPContent-Length: 0Date:",
+        "GMT",
+        "HTTP/1.1 400 Bad RequestContent-Type: text/html; charset=\"utf-8\"Server: Linux/"
+      ],
+      "cpe": [
+        "cpe:/o:google:android/",
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 401 Authorization Required\\r\\nDate: .*\\r\\nServer: \\r\\nExpires: 0\\r\\nSet-Cookie: SESSION=; path=/;\\r\\nExpires: 0\\r\\nVary: Accept-Encoding\\r\\nContent-Length: \\d\\d\\d\\d\\r\\nConnection: close\\r\\nContent-Type: text/html\\r\\n\\r\\n<html>\\n<head>\\n<meta http-equiv=\\\"Content-Type\\\" content=\\\"text/html; charset=iso-8859-1\\\"/>\\n<link rel=\\\"shortcut icon\\\" href=\\\"/images/favicon\\.ico\\\" type=\\\"image/x-icon\\\"/>\\n<title>Login</title>",
+      "regex_literal_tokens": [
+        "Connection: closeContent-Type: text/html<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\"/><link rel=\"shortcut icon\" href=\"/images/favicon.ico\" type=\"image/x-icon\"/><title>Login</title>",
+        "HTTP/1.1 401 Authorization RequiredDate:",
+        "Server: Expires: 0Set-Cookie: SESSION=; path=/;Expires: 0Vary: Accept-EncodingContent-Length:"
+      ],
+      "cpe": [
+        "cpe:/o:arubanetworks:arubaos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] 302 Hotspot redirect\\r\\nCache-Control: no-cache\\r\\nConnection: close\\r\\nContent-Length: \\d+\\r\\nContent-Type: text/html\\r\\nDate: .*\\r\\nExpires: 0\\r\\nLocation: .*\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "302 Hotspot redirectCache-Control: no-cacheConnection: closeContent-Length:",
+        "Content-Type: text/htmlDate:",
+        "Expires: 0Location:",
+        "HTTP/1."
+      ],
+      "cpe": [
+        "cpe:/a:mikrotik:hotspot/",
+        "cpe:/o:mikrotik:routeros/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nCache-control: no-cache\\r\\nConnection: Close\\r\\n\\r\\n(?:<!-T0004->\\r\\n)?<HTML>\\r\\n<HEAD>\\r\\n<META HTTP-EQUIV=\"CONTENT-TYPE\" CONTENT=\"TEXT/HTML\">\\r\\n<TITLE></TITLE>\\r\\n</HEAD>\\r\\n<BODY BGCOLOR=#FFFFFF>\\r\\n<SCRIPT LANGUAGE=JavaScript>\\r\\n\\tdocument\\.location\\.href=\"system30\\.htm\";\\r\\n</script>\\r\\n</BODY>\\r\\n</HTML>",
+      "regex_literal_tokens": [
+        "<!-T0004->",
+        "<HTML><HEAD><META HTTP-EQUIV=\"CONTENT-TYPE\" CONTENT=\"TEXT/HTML\"><TITLE></TITLE></HEAD><BODY BGCOLOR=#FFFFFF><SCRIPT LANGUAGE=JavaScript>document.location.href=\"system30.htm\";</script></BODY></HTML>",
+        "HTTP/1.0 200 OKCache-control: no-cacheConnection: Close"
+      ],
+      "cpe": [
+        "cpe:/o:kcodes:netusb/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 302 Moved Temporarily\\r\\nContent-Type: application/x-gzip\\r\\nLocation: https://idrac(?::\\d+)?/start\\.html\\r\\nDate: .* GMT\\r\\nETag: \\w{3} \\w{3} \\d\\d \\d\\d:\\d\\d:\\d\\d \\d\\d\\d\\d ([-A-Z]+)\\r\\n",
+      "regex_literal_tokens": [
+        "/start.htmlDate:",
+        "GMTETag:",
+        "HTTP/1.0 302 Moved TemporarilyContent-Type: application/x-gzipLocation: https://idrac"
+      ],
+      "cpe": [
+        "cpe:/o:dell:idrac8_firmware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nContent-Type: text/html\\r\\nContent-Length: \\d+\\r\\nCache-Control: private, no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0\\r\\nExpires: 0\\r\\nPragma: no-cache\\r\\n\\r\\n<!DOCTYPE html><html><head><title>ZentriOS Web App</title>",
+      "regex_literal_tokens": [
+        "Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0Expires: 0Pragma: no-cache<!DOCTYPE html><html><head><title>ZentriOS Web App</title>",
+        "HTTP/1.1 200 OKContent-Type: text/htmlContent-Length:"
+      ],
+      "cpe": [
+        "cpe:/o:zentri:zentrios/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:Connection: close\\r\\n)?Server: fec/1\\.0 \\(Funkwerk BOSS\\)\\r\\n",
+      "regex_literal_tokens": [
+        "Connection: close",
+        "HTTP/1.0 200 OK",
+        "Server: fec/1.0 (Funkwerk BOSS)"
+      ],
+      "cpe": [
+        "cpe:/o:funkwerk:boss/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:Connection: close\\r\\n)?Server: boss/1\\.0 \\(BOSS\\)\\r\\n",
+      "regex_literal_tokens": [
+        "Connection: close",
+        "HTTP/1.0 200 OK",
+        "Server: boss/1.0 (BOSS)"
+      ],
+      "cpe": [
+        "cpe:/o:funkwerk:boss/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 404 Not Found\\r\\nServer: Linux, HTTP/1\\.1, MyNet(N\\d+) Ver ([\\d.]+)\\r\\nDate:",
+      "regex_literal_tokens": [
+        "Date:",
+        "HTTP/1.1 404 Not FoundServer: Linux, HTTP/1.1, MyNetN",
+        "Ver"
+      ],
+      "cpe": [
+        "cpe:/h:wdc:my_net_$1/",
+        "cpe:/o:wdc:my_net_firmware:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nDate: .*\\r\\nConnection: close\\r\\nContent-Type: text/html\\r\\nX-Frame-Options: DENY\\r\\nContent-Length: \\d+\\r\\n\\r\\n<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4\\.01//EN\" \"http://www\\.w3\\.org/TR/html4/strict\\.dtd\">\\n\\n<html lang=\"en\">\\n<head>\\n    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf8\">\\n    <meta http-equiv=\"refresh\" content=\"0;URL='/ui'\"/>\\n</head>\\n</html>\\n",
+      "regex_literal_tokens": [
+        "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\"><html lang=\"en\"><head> <meta http-equiv=\"content-type\" content=\"text/html; charset=utf8\"> <meta http-equiv=\"refresh\" content=\"0;URL='/ui'\"/></head></html>",
+        "Connection: closeContent-Type: text/htmlX-Frame-Options: DENYContent-Length:",
+        "HTTP/1.1 200 OKDate:"
+      ],
+      "cpe": [
+        "cpe:/o:vmware:esxi/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\nServer: httpd/2\\.0\\r\\nx-frame-options: SAMEORIGIN\\r\\nx-xss-protection: 1; mode=block\\r\\nDate: .*\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\n\\r\\n<HTML><HEAD><script>top\\.location\\.href='/Main_Login\\.asp';</script>\\n</HEAD></HTML>\\n",
+      "regex_literal_tokens": [
+        "Content-Type: text/htmlConnection: close<HTML><HEAD><script>top.location.href='/Main_Login.asp';</script></HEAD></HTML>",
+        "HTTP/1.0 200 OKServer: httpd/2.0x-frame-options: SAMEORIGINx-xss-protection: 1; mode=blockDate:"
+      ],
+      "cpe": [
+        "cpe:/o:asus:wrt_firmware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d .*\\r\\nDate: .*\\r\\nServer: WatchGuard\\r\\n",
+      "regex_literal_tokens": [
+        "Date:",
+        "HTTP/1.1",
+        "Server: WatchGuard"
+      ],
+      "cpe": [
+        "cpe:/o:watchguard:fireware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)Server: ExtremeWare/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:extremenetworks:extremeware_xos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d (?s:.*?)Server: Linux/(([\\d.]+?)(?:\\.x)?) UPnP/([\\d.]+) Avtech/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d .*\\r\\nServer: MQX HTTPSRV/[\\d.]+ - Freescale Embedded Web Server v([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "- Freescale Embedded Web Server v",
+        "HTTP/1.1",
+        "Server: MQX HTTPSRV/"
+      ],
+      "cpe": [
+        "cpe:/o:freescale:mqx/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d .*\\nServer: MQX HTTP - Freescale Embedded Web Server\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1",
+        "Server: MQX HTTP - Freescale Embedded Web Server"
+      ],
+      "cpe": [
+        "cpe:/o:freescale:mqx/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http-proxy",
+      "regex": "^HTTP/1\\.1 407 Proxy Authentication Required\\r\\nProxy-Authenticate: NTLM\\r\\nProxy-Authenticate: BASIC realm=\\\"DOMBUD\\\"\\r\\nCache-Control: no-cache\\r\\nPragma: no-cache\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 407 Proxy Authentication RequiredProxy-Authenticate: NTLMProxy-Authenticate: BASIC realm=\"DOMBUD\"Cache-Control: no-cachePragma: no-cache"
+      ],
+      "cpe": [
+        "cpe:/o:bluecoat:cacheos/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http-proxy",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: PAW Server ([\\w._-]+-android) \\(Brazil/2\\.0\\)\\r\\n",
+      "regex_literal_tokens": [
+        "-android (Brazil/2.0)",
+        "HTTP/1.0 200 OK",
+        "Server: PAW Server"
+      ],
+      "cpe": [
+        "cpe:/o:google:android/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http-proxy",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nMime-Version: 1\\.0\\r\\nDate: .*\\r\\nVia: 1\\.0 ([\\w.-]+):\\d+ \\(Cisco-WSA/([\\w._-]+)\\)\\r\\n",
+      "regex_literal_tokens": [
+        "(Cisco-WSA/",
+        "HTTP/1.0",
+        "Mime-Version: 1.0Date:",
+        "Via: 1.0"
+      ],
+      "cpe": [
+        "cpe:/o:cisco:asyncos:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http-proxy",
+      "regex": "^HTTP/1\\.0 403 Forbidden\\r\\nConnection: close\\r\\nContent-Length: 51\\r\\nContent-type: text/html\\r\\n\\r\\nAccess denied: authentication configuration missing",
+      "regex_literal_tokens": [
+        "HTTP/1.0 403 ForbiddenConnection: closeContent-Length: 51Content-type: text/htmlAccess denied: authentication configuration missing"
+      ],
+      "cpe": [
+        "cpe:/o:smoothwall:smoothwall/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "smtp",
+      "regex": "^220 ([\\w._-]+)\\r\\n500 5\\.5\\.1 Unrecognized command\\r\\n",
+      "regex_literal_tokens": [
+        "220",
+        "500 5.5.1 Unrecognized command"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Linux-amd64-([\\w._-]+), UPnP/([\\d.]+), PMS/(.*?)\\r\\n",
+      "regex_literal_tokens": [
+        ", PMS/",
+        ", UPnP/",
+        "200 OK",
+        "HTTP/1.",
+        "Server: Linux-amd64-"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Linux-([\\w_.-]+), UPnP/([\\d.]+), PMS/(.*?)\\r\\n",
+      "regex_literal_tokens": [
+        ", PMS/",
+        ", UPnP/",
+        "200 OK",
+        "HTTP/1.",
+        "Server: Linux-"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Windows_XP-([\\w_.-]+), UPnP/([\\d.]+), PMS/(.*?)\\r\\n",
+      "regex_literal_tokens": [
+        ", PMS/",
+        ", UPnP/",
+        "200 OK",
+        "HTTP/1.",
+        "Server: Windows_XP-"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_xp:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Windows_Vista-x86-([\\w._-]+), UPnP/([\\d.]+), PMS/(.*?)\\r\\n",
+      "regex_literal_tokens": [
+        ", PMS/",
+        ", UPnP/",
+        "200 OK",
+        "HTTP/1.",
+        "Server: Windows_Vista-x86-"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_vista:$1::x32/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Windows_Vista-x86_64-([\\w._-]+), UPnP/([\\d.]+), PMS/(.*?)\\r\\n",
+      "regex_literal_tokens": [
+        ", PMS/",
+        ", UPnP/",
+        "200 OK",
+        "HTTP/1.",
+        "Server: Windows_Vista-x86_64-"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_vista:$1::x64/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Windows_7-x86-([\\w._-]+), UPnP/([\\d.]+), PMS/(.*?)\\r\\n",
+      "regex_literal_tokens": [
+        ", PMS/",
+        ", UPnP/",
+        "200 OK",
+        "HTTP/1.",
+        "Server: Windows_7-x86-"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_7:$1::x32/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Windows_7-x86_64-([\\w._-]+), UPnP/([\\d.]+), PMS/(.*?)\\r\\n",
+      "regex_literal_tokens": [
+        ", PMS/",
+        ", UPnP/",
+        "200 OK",
+        "HTTP/1.",
+        "Server: Windows_7-x86_64-"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_7:$1::x64/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 200 (?s:.*?)Server: Linux/([\\w_.-]+), UPnP/([\\w_.-]+), Free UPnP Entertainment Service/ReadyNAS\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: Linux/([\\w_.-]+), UPnP/([\\w_.-]+), Free UPnP Entertainment Service/([^\\r\\n]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", Free UPnP Entertainment Service/",
+        ", UPnP/",
+        "HTTP/1.0 200 OK",
+        "Server: Linux/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?Server: FreeBSD/([\\w_.-]+), UPnP/([\\w_.-]+), Free UPnP Entertainment Service/([^\\r\\n]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", Free UPnP Entertainment Service/",
+        ", UPnP/",
+        "HTTP/1.0 200 OK",
+        "Server: FreeBSD/"
+      ],
+      "cpe": [
+        "cpe:/o:freebsd:freebsd:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 400 Bad Request\\r\\nSERVER: ipOS/([\\d.]+) UPnP/([\\d.]+) ipGENADevice/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 400 Bad RequestSERVER: ipOS/",
+        "UPnP/",
+        "ipGENADevice/"
+      ],
+      "cpe": [
+        "cpe:/o:ubicom:ipos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nSERVER: ipos/([\\w._-]+) +UPnP/([\\d.]+) (?:ADSL2\\+ (?:Modem )?Router )?(T[DL]-\\w+)/([\\w._/-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "ADSL2+",
+        "HTTP/1.0",
+        "Modem",
+        "Router",
+        "SERVER: ipos/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:ubicom:ipos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nSERVER: ipos/([\\w._-]+) +UPnP/([\\d.]+) (RNX-\\w+)/([\\w._/-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0",
+        "RNX-",
+        "SERVER: ipos/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:ubicom:ipos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nSERVER: ipos/([\\w._-]+) UPnP/([\\d.]+) Archer[ _]([^/]+)/([\\w._/-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "Archer",
+        "HTTP/1.0",
+        "SERVER: ipos/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:ubicom:ipos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d .*\\r\\nSERVER: Linux/([\\w._+-]+), UPnP/([\\d.]+), Portable SDK for UPnP devices/([\\w._~-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", Portable SDK for UPnP devices/",
+        ", UPnP/",
+        "HTTP/1.",
+        "SERVER: Linux/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d .*\\r\\nSERVER: Linux, UPnP/([\\d.]+), Portable SDK for UPnP devices/([\\w._~-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", Portable SDK for UPnP devices/",
+        "HTTP/1.",
+        "SERVER: Linux, UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d .*\\r\\nSERVER: Linux/([\\w._+-]+) UPnP/([\\d.]+) DLNADOC/([\\d.]+) Portable SDK for UPnP devices/([\\w._~-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.",
+        "Portable SDK for UPnP devices/",
+        "SERVER: Linux/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d (?s:.*?)Server: Linux/([\\w._+-]+) DLNADOC/([\\d.]+) UPnP/([\\d.]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d (?s:.*?)SERVER: Linux/([-+\\w_.]+), UPnP/([\\d.]+), Intel SDK for UPnP devices ?/([\\w._~-]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d (?s:.*?)SERVER: Linux/([-+\\w_.]+) UPnP/([\\d.]+) DLNADOC/([\\w._-]+) Intel_SDK_for_UPnP_devices/([\\w._~-]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d .*\\r\\nDate: .*\\r\\nConnection: close\\r\\nServer: Microsoft-Windows-NT/(\\d[-.\\w]+) UPnP/(\\d[-.\\w]+) UPnP-Device-Host/(\\d[-.\\w]+)\\r\\n",
+      "regex_literal_tokens": [
+        "Connection: closeServer: Microsoft-Windows-NT/",
+        "Date:",
+        "HTTP/1.0",
+        "UPnP-Device-Host/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows_nt:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 .*\\r\\nSERVER: Linux/((2\\.[46]\\.\\d+|\\d\\.\\d+)\\S*), UPnP/([\\d.]+), MediaTomb/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", MediaTomb/",
+        ", UPnP/",
+        "HTTP/1.1 200",
+        "SERVER: Linux/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?SERVER: FreeBSD/([\\w._-]+), UPnP/([\\d.]+), MediaTomb/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", MediaTomb/",
+        ", UPnP/",
+        "HTTP/1.1 200 OK",
+        "SERVER: FreeBSD/"
+      ],
+      "cpe": [
+        "cpe:/o:freebsd:freebsd:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?SERVER: OpenBSD/([\\w._-]+), UPnP/([\\d.]+), MediaTomb/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", MediaTomb/",
+        ", UPnP/",
+        "HTTP/1.1 200 OK",
+        "SERVER: OpenBSD/"
+      ],
+      "cpe": [
+        "cpe:/o:openbsd:openbsd:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?SERVER: SunOS/([\\w._-]+), UPnP/([\\d.]+), MediaTomb/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", MediaTomb/",
+        ", UPnP/",
+        "HTTP/1.1 200 OK",
+        "SERVER: SunOS/"
+      ],
+      "cpe": [
+        "cpe:/o:sun:sunos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d (?s:.*?)Server: *Linux/([\\w._-]+), UPnP/([\\w._-]+), TwonkyVision UPnP SDK/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d (?s:.*?)Server: *Linux/2\\.x\\.x, UPnP/([\\w._-]+), pvConnect UPnP SDK/([\\w._-]+), Twonky UPnP SDK/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:linux:linux_kernel:2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d .*Server: *Linux/([\\w._-]+), UPnP/([\\w._-]+), pvConnect UPnP SDK/([\\w._-]+)\\r\\n.*<title>(?:TwonkyMedia|TwonkyMedia server media browser|TwonkyVision Configuration)</title>",
+      "regex_literal_tokens": [
+        ", UPnP/",
+        ", pvConnect UPnP SDK/",
+        "</title>",
+        "<title>",
+        "HTTP/1.1",
+        "Linux/",
+        "Server:",
+        "TwonkyMedia",
+        "TwonkyMedia server media browser",
+        "TwonkyVision Configuration"
+      ],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d (?s:.*?)Server: *Linux/([\\w._-]+), UPnP/([\\w._-]+), pvConnect UPnP SDK/([\\w._-]+)\\r\\n.*<title>MediaServer Restriced Access</title>",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d (?s:.*?)Server: *Linux/2\\.x\\.x, UPnP/([\\w._-]+), pvConnect UPnP SDK/([\\w._-]+), TwonkyMedia UPnP SDK/([\\w._-]+)\\r\\n\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:linux:linux_kernel:2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 401 Unauthorised\\r\\n(?:[^\\r\\n]+\\r\\n)*?WWW-Authenticate: Digest realm=\\\"([\\w._-]+)\\\", nonce=\\\"\\w+\\\", algorigthm=MD5, qop=\\\"auth\\\" \\n.*Server: *Linux/2\\.x\\.x, UPnP/([\\d.]+), pvConnect UPnP SDK/([\\w._-]+), Twonky UPnP SDK/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "\", algorigthm=MD5, qop=\"auth\"",
+        "\", nonce=\"",
+        ", Twonky UPnP SDK/",
+        ", pvConnect UPnP SDK/",
+        "HTTP/1.1 401 Unauthorised",
+        "Linux/2.x.x, UPnP/",
+        "Server:",
+        "WWW-Authenticate: Digest realm=\""
+      ],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:linux:linux_kernel:2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d (?s:.*?)Server: *Linux/2\\.x\\.x, UPnP/([\\w._-]+), pvConnect UPnP SDK/([\\w._-]+)\\r\\n\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:linux:linux_kernel:2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d (?s:.*?)Server: Windows NT/[\\w._-]+, UPnP/([\\w._-]+), pvConnect UPnP SDK/([\\w._-]+),  TwonkyMedia UPnP SDK/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:microsoft:windows_nt/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 401 Unauthorised\\r\\n(?:[^\\r\\n]+\\r\\n)*?WWW-Authenticate: Basic realm=\\\"([\\w._-]+)\\\"\\n.*Server: *Linux/2\\.x\\.x, UPnP/([\\w._-]+), pvConnect UPnP SDK/([\\w._-]+), Twonky UPnP SDK/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", Twonky UPnP SDK/",
+        ", pvConnect UPnP SDK/",
+        "HTTP/1.1 401 Unauthorised",
+        "Linux/2.x.x, UPnP/",
+        "Server:",
+        "WWW-Authenticate: Basic realm=\""
+      ],
+      "cpe": [
+        "cpe:/a:packetvideo:twonky/",
+        "cpe:/o:linux:linux_kernel:2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)SERVER: Linux/([\\w._-]+) UPnP/([\\w._-]+) myigd/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 \\d\\d\\d (?s:.*?)SERVER: Linux/([\\w._-]+), UPnP/([\\w._-]+), Everest/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 404 Bad Request\\r\\nCONTENT-LENGTH: 0\\r\\nCONTENT-TYPE: text/html\\r\\n\\r\\n$",
+      "regex_literal_tokens": [
+        "HTTP/1.1 404 Bad RequestCONTENT-LENGTH: 0CONTENT-TYPE: text/html"
+      ],
+      "cpe": [
+        "cpe:/o:supermicro:intelligent_platform_management_firmware/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n.*SERVER: EPSON_Linux UPnP/([\\d.]+) Epson UPnP SDK/([\\d.]+)\\r\\n.*<title>(?:Epson )?(Stylus (?:Office |Photo )?\\w+)</title>",
+      "regex_literal_tokens": [
+        "</title>",
+        "<title>",
+        "Epson",
+        "Epson UPnP SDK/",
+        "HTTP/1.1 200 OK",
+        "Office",
+        "Photo",
+        "SERVER: EPSON_Linux UPnP/",
+        "Stylus"
+      ],
+      "cpe": [
+        "cpe:/h:epson:$3/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?SERVER: EPSON_Linux UPnP/([\\d.]+) Epson UPnP SDK/([\\d.]+)\\r\\n.*<meta name=\\\"Author\\\" content=\\\"SEIKO EPSON\\\">.*path\\.indexOf\\(\\\"/PRESENTATION/HTML/TOP/INDEX\\.HTML\\\", 0\\);",
+      "regex_literal_tokens": [
+        "<meta name=\"Author\" content=\"SEIKO EPSON\">",
+        "Epson UPnP SDK/",
+        "HTTP/1.1 200 OK",
+        "SERVER: EPSON_Linux UPnP/",
+        "path.indexOf(\"/PRESENTATION/HTML/TOP/INDEX.HTML\", 0);"
+      ],
+      "cpe": [
+        "cpe:/h:epson:stylus_nx230/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\n(?:[^\\r\\n]+\\r\\n)*?SERVER: EPSON_Linux UPnP/([\\d.]+) Epson UPnP SDK/([\\d.]+)\\r\\n\\r\\n<!DOCTYPE HTML PUBLIC \\\"-//W3C//DTD HTML 4\\.01//EN \\\"\\r\\n\\\"http://www\\.w3\\.org/TR/html4/strict\\.dtd\\\">\\r\\n<html>\\r\\n<head>\\r\\n<meta http-equiv=\\\"Content-Type\\\" content=\\\"text/html; charset=utf-8\\\">\\r\\n<meta name=\\\"Author\\\" content=\\\"SEIKO EPSON\\\">",
+      "regex_literal_tokens": [
+        "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN \"\"http://www.w3.org/TR/html4/strict.dtd\"><html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><meta name=\"Author\" content=\"SEIKO EPSON\">",
+        "Epson UPnP SDK/",
+        "HTTP/1.1 200 OK",
+        "SERVER: EPSON_Linux UPnP/"
+      ],
+      "cpe": [
+        "cpe:/h:epson:wf-2540/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nDate: .*\\r\\nServer: Linux/2\\.x UPnP/([\\w._-]+) Avtech/([\\w._-]+)\\r\\nConnection: close\\r\\nLast-Modified: .*..\\xbe\\x40..\\xbe..\\x03\\r\\n",
+      "regex_literal_tokens": [
+        "Avtech/",
+        "Connection: closeLast-Modified:",
+        "HTTP/1.1 200 OKDate:",
+        "Server: Linux/2.x UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nDate: .*\\r\\nServer: Linux/2\\.x UPnP/([\\w._-]+) Avtech/([\\w._-]+)\\r\\nConnection: close\\r\\nLast-Modified: .*\\xb2\\xe8\\xbe\\x1c\\xb2\\xe8\\xbe\\x38\\x62\\x03\\r\\n",
+      "regex_literal_tokens": [
+        "Avtech/",
+        "Connection: closeLast-Modified:",
+        "HTTP/1.1 200 OKDate:",
+        "Server: Linux/2.x UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 404 Not Found\\r\\nConnection: close\\r\\nDate: .* GMT\\r\\nServer: RTOS/([\\w._-]+) UPnP/([\\w._]+) ([\\w._-]+)\\s*/([\\w._-]+)\\r\\nX-AV-Server-Info: av=5\\.0; cn=\\\"Sony Corporation\\\"; mn=\\\"BRAVIA ",
+      "regex_literal_tokens": [
+        "GMTServer: RTOS/",
+        "HTTP/1.1 404 Not FoundConnection: closeDate:",
+        "UPnP/",
+        "X-AV-Server-Info: av=5.0; cn=\"Sony Corporation\"; mn=\"BRAVIA"
+      ],
+      "cpe": [
+        "cpe:/h:sony:bravia_$3:$4/",
+        "cpe:/o:greenhills:rtos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 400 Bad Request\\r\\nContent-Type: \\r\\nContent-Length: 0\\r\\nConnection: close\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 400 Bad RequestContent-Type: Content-Length: 0Connection: close"
+      ],
+      "cpe": [
+        "cpe:/o:samsung:bada:1.2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 \\d\\d\\d .*\\r\\nSERVER: Linux/([\\w._-]+) UPnP/([\\w._-]+) DLNADOC/([\\w._-]+) INTEL_NMPR/([\\w._-]+) LGE_DLNA_SDK/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1",
+        "INTEL_NMPR/",
+        "LGE_DLNA_SDK/",
+        "SERVER: Linux/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/h:lg:lw5700/",
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 404 Not Found\\r\\nSERVER: PACKAGE_VERSION HUAWEI, UPnP, HUAWEI SDK for UPnP devices/  \\r\\nCONTENT-LENGTH: 48\\r\\nCONTENT-TYPE: text/html\\r\\n\\r\\n<html><body><h1>404 Not Found</h1></body></html>$",
+      "regex_literal_tokens": [
+        "HTTP/1.0 404 Not FoundSERVER: PACKAGE_VERSION HUAWEI, UPnP, HUAWEI SDK for UPnP devices/ CONTENT-LENGTH: 48CONTENT-TYPE: text/html<html><body><h1>404 Not Found</h1></body></html>"
+      ],
+      "cpe": [
+        "cpe:/o:huawei:vxworks/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 400 Bad Request\\r\\nContent-Type: text/html; charset=\\\"utf-8\\\"\\r\\nServer: Linux/([\\w._-]+) CyberHTTP/([\\d.]+)\\r\\nContent-Length: 0\\r\\nDate: .*\\r\\n\\r\\n",
+      "regex_literal_tokens": [
+        "Content-Length: 0Date:",
+        "CyberHTTP/",
+        "HTTP/1.1 400 Bad RequestContent-Type: text/html; charset=\"utf-8\"Server: Linux/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 404 Not Found\\r\\nDATE: .*\\r\\nConnection: Keep-Alive\\r\\nServer: LINUX/([\\w._-]+) UPnP/([\\d.]+) BRCM400-UPnP/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "BRCM400-UPnP/",
+        "Connection: Keep-AliveServer: LINUX/",
+        "HTTP/1.1 404 Not FoundDATE:",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 404 Not Found\\r\\nSERVER: Linux/([\\w._-]+) UPnP/([\\w._-]+) Motorola-DLNA-Stack-DLNADOC/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.1 404 Not FoundSERVER: Linux/",
+        "Motorola-DLNA-Stack-DLNADOC/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 404 Not Found\\r\\nSERVER: ipos/([\\w._-]+) UPnP/([\\w._-]+) (RNX-[\\w._-]+)/1\\.0\\r\\n",
+      "regex_literal_tokens": [
+        "/1.0",
+        "HTTP/1.0 404 Not FoundSERVER: ipos/",
+        "RNX-",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:ubicom:ipos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 404 Not Found\\r\\nSERVER: ipos/([\\w._-]+) UPnP/([\\w._-]+) (TL-[\\w._-]+)/1\\.0\\r\\n",
+      "regex_literal_tokens": [
+        "/1.0",
+        "HTTP/1.0 404 Not FoundSERVER: ipos/",
+        "TL-",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:ubicom:ipos:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: \\d+\\r\\nServer: Linux (([234]\\.[\\d.]+)[\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) ReadyDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 200 OKContent-Type: text/htmlConnection: closeContent-Length:",
+        "ReadyDLNA/",
+        "Server: Linux",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 404 Not Found\\r\\nSERVER: Linux/((2\\.[46]\\.\\d+|\\d\\.\\d+)\\S*) UPnP/([\\d.]+) DiXiM/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DiXiM/",
+        "HTTP/1.1 404 Not FoundSERVER: Linux/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/a:digion:dixim_media_player:$4/",
+        "cpe:/o:linux:linux_kernel:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r.*\\nS(?:erver|ERVER): (Windows_[^-]+)_(R\\d+)-([^-]+)-[\\d.]+, UPnP/([\\d.]+), UMS/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", UMS/",
+        ", UPnP/",
+        ": Windows_",
+        "ERVER",
+        "HTTP/1.1 200 OK",
+        "erver"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:$1:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r.*\\nS(?:erver|ERVER): (Windows_[^-]+)-([^-]+)-[\\d.]+, UPnP/([\\d.]+), UMS/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", UMS/",
+        ", UPnP/",
+        ": Windows_",
+        "ERVER",
+        "HTTP/1.1 200 OK",
+        "erver"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 200 OK\\r.*\\nS(?:erver|ERVER): Mac_OS_X-([^-]+)-(\\d.[\\w._-]+), UPnP/([\\d.]+), UMS/([\\d.]+)\\r\\n",
+      "regex_literal_tokens": [
+        ", UMS/",
+        ", UPnP/",
+        ": Mac_OS_X-",
+        "ERVER",
+        "HTTP/1.1 200 OK",
+        "erver"
+      ],
+      "cpe": [
+        "cpe:/a:universal_media_server:universal_media_server:$4/",
+        "cpe:/o:apple:mac_os_x:$2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "uucp",
+      "regex": "^login: Password: $",
+      "regex_literal_tokens": [
+        "login: Password:"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_options",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 501 Not Implemented\\r\\nConnection: close\\r\\nServer: Android Webcam Server v([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.0 501 Not ImplementedConnection: closeServer: Android Webcam Server v"
+      ],
+      "cpe": [
+        "cpe:/o:google:android/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_options",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nDate: .* GMT\\r\\nConnection: close\\r\\nContent-Type: text/html\\r\\nContent-Length: 54\\r\\n\\r\\n<HTML><BODY><H1>501 Not Implemented</H1></BODY></HTML>$",
+      "regex_literal_tokens": [
+        "GMTConnection: closeContent-Type: text/htmlContent-Length: 54<HTML><BODY><H1>501 Not Implemented</H1></BODY></HTML>",
+        "HTTP/1.1 501 Not ImplementedDate:"
+      ],
+      "cpe": [
+        "cpe:/o:vmware:esxi:4.1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_options",
+      "service": "http",
+      "regex": "^HTTP/1\\.0 404 Not Found\\r\\nContent-Type: text/html\\r\\nContent-Length: \\d+\\r\\nServer: \\r\\n\\r\\n<html><head><title>404 Not Found</title></head>\\n<body><h1>404 Not Found</h1>\\n/: <pre>This item has not been found</pre>\\n<hr><address><a href=\\\"http://(BLACKBERRY-[\\w._-]+):\\d+/\\\">[\\w._-]+:\\d+</a></address>\\n</body></html>\\n$",
+      "regex_literal_tokens": [
+        "/\">",
+        "</a></address></body></html>",
+        "HTTP/1.0 404 Not FoundContent-Type: text/htmlContent-Length:",
+        "Server: <html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1>/: <pre>This item has not been found</pre><hr><address><a href=\"http://BLACKBERRY-"
+      ],
+      "cpe": [
+        "cpe:/h:rim:blackberry_playbook_tablet/",
+        "cpe:/o:rim:blackberry_playbook_os:2.0/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_options",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.1 501 Not Implemented\\r\\nContent-Type: text/html\\r\\nConnection: close\\r\\nContent-Length: 149\\r\\nServer: Debian/([\\w._-]+) DLNADOC/([\\w._-]+) UPnP/([\\w._-]+) MiniDLNA/([\\w._-]+)\\r\\n",
+      "regex_literal_tokens": [
+        "DLNADOC/",
+        "HTTP/1.1 501 Not ImplementedContent-Type: text/htmlConnection: closeContent-Length: 149Server: Debian/",
+        "MiniDLNA/",
+        "UPnP/"
+      ],
+      "cpe": [
+        "cpe:/o:debian:debian_linux:$1/"
+      ]
+    },
+    {
+      "probe_id": "udp:dns_version_bind_req",
+      "service": "domain",
+      "regex": "\\x07version\\x04bind\\x00\\x00\\x10\\x00\\x03\\xc0\\x0c\\x00\\x10\\x00\\x03.{7}(\\d[-\\w.+]*?)-RedHat-[-\\w._+]+.fc(\\d+)",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:isc:bind:$1/",
+        "cpe:/o:fedoraproject:fedora_core:$2/"
+      ]
+    },
+    {
+      "probe_id": "udp:dns_version_bind_req",
+      "service": "domain",
+      "regex": "\\x07version\\x04bind\\x00\\x00\\x10\\x00\\x03\\xc0\\x0c\\x00\\x10\\x00\\x03.{7}(\\d[-\\w.+]*?)-RedHat-[-\\w._+]+.el(\\d+)",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:isc:bind:$1/",
+        "cpe:/o:redhat:enterprise_linux:$2/"
+      ]
+    },
+    {
+      "probe_id": "udp:dns_version_bind_req",
+      "service": "domain",
+      "regex": "^\\x00\\x06\\x81\\x80\\x00\\x01\\x00\\x01\\x00\\x00\\x00\\x00\\x07version\\x04bind\\x00\\x00\\x10\\x00\\x03\\xc0\\x0c\\x00\\x01\\x00\\x01\\x00\\x00\\x00\\x05\\x00\\x04\\xa3\\xc0\\x08\\x06$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:arubanetworks:arubaos:3.3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:dns_version_bind_req",
+      "service": "http",
+      "regex": "^HTTP/1\\.1 506 \\r\\nContent-Type: text/html\\r\\nServer: JavaWeb/0\\r\\n\\r\\n<html><body><h1>506 - IO Error</h1></body></html>$",
+      "regex_literal_tokens": [
+        "HTTP/1.1 506 Content-Type: text/htmlServer: JavaWeb/0<html><body><h1>506 - IO Error</h1></body></html>"
+      ],
+      "cpe": [
+        "cpe:/a:airdroid:airdroid/",
+        "cpe:/o:google:android/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:dns_version_bind_req",
+      "service": "login",
+      "regex": "^\\x00\\r\\nSorry, shell is locked\\.\\r\\n$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:brocade:fabric_os/"
+      ]
+    },
+    {
+      "probe_id": "tcp:dns_version_bind_req",
+      "service": "login",
+      "regex": "^\\x01rlogind: Host name for your address \\([\\d.]+\\) unknown\\.\\r\\n",
+      "regex_literal_tokens": [
+        ") unknown.",
+        "rlogind: Host name for your address ("
+      ],
+      "cpe": [
+        "cpe:/o:apple:a_ux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:dns_version_bind_req",
+      "service": "upnp",
+      "regex": "^HTTP/1\\.0 414 Request-URI Too Long\\r\\nServer: Linux/([\\w._-]+) UPnP/([\\w._-]+) fbxigdd/([\\w._-]+)\\r\\nConnection: close\\r\\n\\r\\n$",
+      "regex_literal_tokens": [
+        "Connection: close",
+        "HTTP/1.0 414 Request-URI Too LongServer: Linux/",
+        "UPnP/",
+        "fbxigdd/"
+      ],
+      "cpe": [
+        "cpe:/o:linux:linux_kernel:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:help",
+      "service": "ftp",
+      "regex": "^220 .*\\r\\n214-CesarFTP server ([\\w.]+) supports the following commands:\\r\\n",
+      "regex_literal_tokens": [
+        "214-CesarFTP server",
+        "220",
+        "supports the following commands:"
+      ],
+      "cpe": [
+        "cpe:/a:aclogic:cesarftpd:$1/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:help",
+      "service": "ftp",
+      "regex": "^220-Rival Group FTP Server\\r\\n220-Unauthorized access prohibited\\r\\n220 All activity is logged\\.\\r\\n214-CesarFTP server ([\\w._-]+) supports the following commands:\\r\\n214-ABOR ACCT ALLO APPE CDUP CWD  DELE HELP LIST\\r\\n214-MDTM MKD  MODE NLST NOOP PASS PASV PORT PWD \\r\\n214-QUIT REIN REST RETR RMD  RNFR RNTO SITE SMNT\\r\\n214-STAT STOR STOU STRU SYST TYPE\\r\\n214-\\r\\n214-CesarFTP server [\\w._-]+ supports specific commands\\r\\n214-invoked with the SITE command:\\r\\n214-\\r\\n214-SITE MSG\\r\\n214-\\r\\n214 \\r\\n",
+      "regex_literal_tokens": [
+        "220-Rival Group FTP Server220-Unauthorized access prohibited220 All activity is logged.214-CesarFTP server",
+        "supports specific commands214-invoked with the SITE command:214-214-SITE MSG214-214",
+        "supports the following commands:214-ABOR ACCT ALLO APPE CDUP CWD DELE HELP LIST214-MDTM MKD MODE NLST NOOP PASS PASV PORT PWD 214-QUIT REIN REST RETR RMD RNFR RNTO SITE SMNT214-STAT STOR STOU STRU SYST TYPE214-214-CesarFTP server"
+      ],
+      "cpe": [
+        "cpe:/a:aclogic:cesarftpd:$1/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:help",
+      "service": "smtp",
+      "regex": "^220 ([-\\w_.]+) ESMTP (?:[^(]+? )?\\(Ubuntu\\)\\r\\n502 5\\.5\\.2 Error: command not recognized\\r\\n",
+      "regex_literal_tokens": [
+        "(Ubuntu)502 5.5.2 Error: command not recognized",
+        "220",
+        "ESMTP"
+      ],
+      "cpe": [
+        "cpe:/o:canonical:ubuntu_linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:help",
+      "service": "smtp",
+      "regex": "^220 ([-\\w_.]+) ESMTP\\r\\n214-Gentoo Linux qmail-([-\\w.]+)\\r\\n214 qmail home page: http://pobox\\.com/~djb/qmail\\.html\\r\\n",
+      "regex_literal_tokens": [
+        "214 qmail home page: http://pobox.com/~djb/qmail.html",
+        "220",
+        "ESMTP214-Gentoo Linux qmail-"
+      ],
+      "cpe": [
+        "cpe:/a:djb:qmail/",
+        "cpe:/o:gentoo:linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:help",
+      "service": "smtp",
+      "regex": "^220 .* ESMTP\\r\\n214-Gentoo Linux qmail-([-\\w.]+)\\r\\n214 qmail home page: http://pobox\\.com/~djb/qmail\\.html\\r\\n",
+      "regex_literal_tokens": [
+        "214 qmail home page: http://pobox.com/~djb/qmail.html",
+        "220",
+        "ESMTP214-Gentoo Linux qmail-"
+      ],
+      "cpe": [
+        "cpe:/a:djb:qmail/",
+        "cpe:/o:gentoo:linux/"
+      ]
+    },
+    {
+      "probe_id": "tcp:help",
+      "service": "vulnserver",
+      "regex": "^Welcome to Vulnerable Server! Enter HELP for help\\.\\nValid Commands:\\nHELP\\nSTATS \\[stat_value\\]\\nRTIME \\[rtime_value\\]\\nLTIME \\[ltime_value\\]\\nSRUN \\[srun_value\\]\\nTRUN \\[trun_value\\]\\nGMON \\[gmon_value\\]\\nGDOG \\[gdog_value\\]\\nKSTET \\[kstet_value\\]\\nGTER \\[gter_value\\]\\nHTER \\[hter_value\\]\\nLTER \\[lter_value\\]\\nKSTAN \\[lstan_value\\]\\nEXIT\\n$",
+      "regex_literal_tokens": [
+        "Welcome to Vulnerable Server! Enter HELP for help.Valid Commands:HELPSTATS [stat_value]RTIME [rtime_value]LTIME [ltime_value]SRUN [srun_value]TRUN [trun_value]GMON [gmon_value]GDOG [gdog_value]KSTET [kstet_value]GTER [gter_value]HTER [hter_value]LTER [lter_value]KSTAN [lstan_value]EXIT"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "ssl",
+      "regex": "^\\x16\\x03\\x00\\x00\\*\\x02\\x00\\x00&\\x03.*vCenterServer_([\\w._-]+)",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:vmware:esxi:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x80\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh\\x05\\x06AFPX03\\x06AFP2\\.2\\x0eAFPVersion 2\\.1\\x0eAFPVersion 2\\.0\\x0eAFPVersion 1\\.1.\\tDHCAST128",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x83\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh\\x06\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2\\x0eAFPVersion 2\\.1\\x0eAFPVersion 2\\.0\\x0eAFPVersion 1\\.1.\\tDHCAST128.*[\\x04\\x05]([\\w.-]+)\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x83\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh\\x06\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2\\x0eAFPVersion 2\\.1\\x0eAFPVersion 2\\.0\\x0eAFPVersion 1\\.1.\\tDHCAST128",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x83\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh\\x03\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2.\\x06Recon1\\rClient Krb v20\\x00.*[\\x04\\x05]([\\w.-]+)\\x01.afpserver/([\\w.@-]+)\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.2/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x83\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh\\x03\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2.\\tDHCAST128.*[\\x04\\x05]([\\w.-]+)\\x01.afpserver/([\\w.@-]+)\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x83\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh\\x03\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2.\\tDHCAST128.*[\\x04\\x05]([\\w.-]+)\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x83\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh\\x03\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2.\\tDHCAST128",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.3/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x8f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh\\x04\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2.\\x06Recon1\\rClient Krb v2\\x0fNo User Authent\\x00.*[\\x04\\x05]([\\w.-]+)\\x01.afpserver/([-\\w_.@]+)\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x_server:10.5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x8f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh.\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2.\\tDHCAST128.*[\\x04\\x05]([\\w.-]+)\\x01.afpserver",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x8f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh.\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2.\\tDHCAST128",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x8f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*?(i?Mac(?:mini|Pro|Book(?:Air|Pro)?)?\\d+,\\d+)\\x04\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03.\\tDHCAST128.*[\\x04\\x05]([\\w.-]+)\\x01.afpserver",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.5/",
+        "cpe:/o:apple:mac_os_x:10.6/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x8f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*?(i?Mac(?:mini|Pro|Book(?:Air|Pro)?)?\\d+,\\d+)\\x04\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03.\\tDHCAST128.*[\\x04\\x05]([\\w.-]+)\\x00\\x00",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.6/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x80........\\x00\\x00\\x00\\x00........\\x8f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*?(i?Mac(?:mini|Pro|Book(?:Air|Pro)?)?\\d+,\\d+)\\x04\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03.\\tDHCAST128.*[\\x04\\x05]([\\w.-]+)\\x01.afpserver",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.5/",
+        "cpe:/o:apple:mac_os_x:10.6/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x80........\\x00\\x00\\x00\\x00........\\x8f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*\\tMacintosh.\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03\\x06AFP2\\.2.\\tDHCAST128.*[\\x04\\x05]([\\w.-]+)\\x01.afpserver",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.5/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x9f\\xf3.([^\\x00\\x01]+)[\\x00\\x01].*?(i?Mac(?:mini|Pro|Book(?:Air|Pro)?)?\\d+,\\d+)\\x05\\x06AFP3\\.4\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/a:apple:afp_server/",
+        "cpe:/o:apple:mac_os_x:10.10/",
+        "cpe:/o:apple:mac_os_x:10.11/",
+        "cpe:/o:apple:mac_os_x:10.9/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x9f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*?(i?Mac(?:mini|Pro|Book(?:Air|Pro)?)?\\d+,\\d+)\\x05\\x06AFP3\\.4\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03\\x06\\tDHCAST128\\x04DHX2\\x06Recon1\\rClient Krb v2\\x03GSS\\x0fNo User Authent.*\\x1b\\$not_defined_in_RFC4178@please_ignore$",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.6/",
+        "cpe:/o:apple:mac_os_x:10.7/",
+        "cpe:/o:apple:mac_os_x:10.8/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x9f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*?(i?Mac(?:mini|Pro|Book(?:Air|Pro)?)?\\d+,\\d+)\\x05\\x06AFP3\\.4\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03\\x05\\tDHCAST128\\x04DHX2\\x06Recon1\\rClient Krb v2\\x03GSS.*\\x1b\\$not_defined_in_RFC4178@please_ignore",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.6/",
+        "cpe:/o:apple:mac_os_x:10.7/",
+        "cpe:/o:apple:mac_os_x:10.8/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "afp",
+      "regex": "^\\x01\\x03\\x00\\x00........\\x00\\x00\\x00\\x00........\\x9f\\xfb.([^\\x00\\x01]+)[\\x00\\x01].*?(i?Mac(?:mini|Pro|Book(?:Air|Pro)?)?\\d+,\\d+)\\x05\\x06AFP3\\.4\\x06AFP3\\.3\\x06AFP3\\.2\\x06AFP3\\.1\\x06AFPX03\\x05\\tDHCAST128\\x04DHX2\\x06Recon1\\x03GSS\\x0fNo User Authent",
+      "regex_literal_tokens": [],
+      "cpe": [
+        "cpe:/o:apple:mac_os_x:10.8/"
+      ]
+    },
+    {
+      "probe_id": "tcp:tls_session",
+      "service": "pop3-proxy",
+      "regex": "^ERR concurrent connection limit in avast! exceeded\\(pass:\\d+, processes:([\\w._-]+)\\[\\d+\\]\\)\\r\\n",
+      "regex_literal_tokens": [
+        ", processes:",
+        "ERR concurrent connection limit in avast! exceeded(pass:"
+      ],
+      "cpe": [
+        "cpe:/a:avast:antivirus/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "^HTTP/1\\.[01] \\d\\d\\d[\\s\\S]*?\\r\\nServer: Microsoft-IIS/([-.\\w]+)\\r\\n",
+      "regex_literal_tokens": [
+        "HTTP/1.",
+        "Server: Microsoft-IIS/"
+      ],
+      "cpe": [
+        "cpe:/a:microsoft:internet_information_services:$1/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:http_get",
+      "service": "http",
+      "regex": "[\\s\\S]*?<title>IIS Windows Server</title>",
+      "regex_literal_tokens": [
+        "<title>IIS Windows Server</title>"
+      ],
+      "cpe": [
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:generic_lines",
+      "service": "ftp",
+      "regex": "^220 Microsoft FTP Service\\b",
+      "regex_literal_tokens": [
+        "220 Microsoft FTP Service"
+      ],
+      "cpe": [
+        "cpe:/a:microsoft:internet_information_services/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:help",
+      "service": "ftp",
+      "regex": "^220 Microsoft FTP Service\\b",
+      "regex_literal_tokens": [
+        "220 Microsoft FTP Service"
+      ],
+      "cpe": [
+        "cpe:/a:microsoft:internet_information_services/",
+        "cpe:/o:microsoft:windows/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "mysql",
+      "regex": "5\\.5\\.5-([0-9.]+)-MariaDB-0ubuntu[^\\s\\x00]*",
+      "regex_literal_tokens": [
+        "5.5.5-",
+        "MariaDB",
+        "0ubuntu"
+      ],
+      "cpe": [
+        "cpe:/a:mariadb:mariadb:$1/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "mysql",
+      "regex": "5\\.5\\.5-([0-9.]+)-MariaDB(?:-[^\\s\\x00]+)?",
+      "regex_literal_tokens": [
+        "5.5.5-",
+        "MariaDB"
+      ],
+      "cpe": [
+        "cpe:/a:mariadb:mariadb:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "mysql",
+      "regex": "([0-9]+\\.[0-9]+\\.[0-9]+)-0ubuntu[^\\s\\x00]*",
+      "regex_literal_tokens": [
+        "0ubuntu"
+      ],
+      "cpe": [
+        "cpe:/a:mysql:mysql:$1/",
+        "cpe:/o:canonical:ubuntu_linux/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "mysql",
+      "regex": "MySQL Community Server.*?([0-9]+\\.[0-9]+\\.[0-9]+)",
+      "regex_literal_tokens": [
+        "MySQL",
+        "Community",
+        "Server"
+      ],
+      "cpe": [
+        "cpe:/a:mysql:mysql_community_server:$1/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "mysql",
+      "regex": "(?is)blocked because of many connection errors;.*mariadb-admin\\s+flush-hosts",
+      "regex_literal_tokens": [
+        "blocked because of many connection errors",
+        "mariadb-admin",
+        "flush-hosts"
+      ],
+      "cpe": [
+        "cpe:/a:mariadb:mariadb/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "mysql",
+      "regex": "(?is)blocked because of many connection errors;.*mysqladmin\\s+flush-hosts",
+      "regex_literal_tokens": [
+        "blocked because of many connection errors",
+        "mysqladmin",
+        "flush-hosts"
+      ],
+      "cpe": [
+        "cpe:/a:mysql:mysql/",
+        "cpe:/o:linux:linux_kernel/"
+      ]
+    },
+    {
+      "probe_id": "tcp:null",
+      "service": "mysql",
+      "regex": "([0-9]+\\.[0-9]+\\.[0-9]+)(?:-log)?",
+      "regex_literal_tokens": [
+        "-log"
+      ],
+      "cpe": [
+        "cpe:/a:mysql:mysql:$1/"
+      ]
+    }
+  ]
+}

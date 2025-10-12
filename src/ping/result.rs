@@ -1,8 +1,8 @@
-use crate::probe::{ProbeResult, ProbeStatus};
-use crate::protocol::Protocol;
+use crate::{probe::{ProbeResult, ProbeStatus, ProbeStatusKind}, protocol::Protocol};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{net::{IpAddr, Ipv4Addr}, time::Duration};
 
+/// Statistics of ping results
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PingStat {
     /// Ping responses
@@ -14,11 +14,11 @@ pub struct PingStat {
     /// Received packets
     pub received_count: usize,
     /// Minimum RTT
-    pub min: Duration,
+    pub min: Option<Duration>,
     /// Avarage RTT
-    pub avg: Duration,
+    pub avg: Option<Duration>,
     /// Maximum RTT
-    pub max: Duration,
+    pub max: Option<Duration>,
 }
 
 impl PingStat {
@@ -28,23 +28,22 @@ impl PingStat {
             probe_time: Duration::from_millis(0),
             transmitted_count: 0,
             received_count: 0,
-            min: Duration::from_millis(0),
-            avg: Duration::from_millis(0),
-            max: Duration::from_millis(0),
+            min: None,
+            avg: None,
+            max: None,
         }
     }
 }
 
+/// Result of a ping operation
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PingResult {
     pub stat: PingStat,
     pub probe_status: ProbeStatus,
-    /// start-time in RFC 3339 and ISO 8601 date and time string
-    pub start_time: String,
-    /// end-time in RFC 3339 and ISO 8601 date and time string
-    pub end_time: String,
-    /// Elapsed time
     pub elapsed_time: Duration,
+    pub ip_addr: IpAddr,
+    pub hostname: Option<String>,
+    pub port_number: Option<u16>,
     pub protocol: Protocol,
 }
 
@@ -53,40 +52,20 @@ impl PingResult {
         PingResult {
             stat: PingStat::new(),
             probe_status: ProbeStatus::new(),
-            start_time: String::new(),
-            end_time: String::new(),
             elapsed_time: Duration::from_millis(0),
-            protocol: Protocol::ICMP,
+            ip_addr: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+            hostname: None,
+            port_number: None,
+            protocol: Protocol::Icmp,
         }
+    }
+    /// Return first successful response
+    pub fn first_response(&self) -> Option<&ProbeResult> {
+        self.stat.responses.iter().find(|r| r.probe_status.kind == ProbeStatusKind::Done)
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TracerouteResult {
-    pub nodes: Vec<ProbeResult>,
-    pub probe_status: ProbeStatus,
-    /// start-time in RFC 3339 and ISO 8601 date and time string
-    pub start_time: String,
-    /// end-time in RFC 3339 and ISO 8601 date and time string
-    pub end_time: String,
-    /// Elapsed time
-    pub elapsed_time: Duration,
-    pub protocol: Protocol,
-}
-
-impl TracerouteResult {
-    pub fn new() -> TracerouteResult {
-        TracerouteResult {
-            nodes: Vec::new(),
-            probe_status: ProbeStatus::new(),
-            start_time: String::new(),
-            end_time: String::new(),
-            elapsed_time: Duration::from_millis(0),
-            protocol: Protocol::UDP,
-        }
-    }
-}
-
+/// Result of device resolution (ARP/NDP)
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeviceResolveResult {
     pub results: Vec<ProbeResult>,
@@ -95,7 +74,6 @@ pub struct DeviceResolveResult {
     pub start_time: String,
     /// end-time in RFC 3339 and ISO 8601 date and time string
     pub end_time: String,
-    /// Elapsed time
     pub elapsed_time: Duration,
     pub protocol: Protocol,
 }
@@ -108,7 +86,7 @@ impl DeviceResolveResult {
             start_time: String::new(),
             end_time: String::new(),
             elapsed_time: Duration::from_millis(0),
-            protocol: Protocol::ARP,
+            protocol: Protocol::Arp,
         }
     }
 }
