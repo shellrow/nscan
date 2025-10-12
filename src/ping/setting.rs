@@ -1,16 +1,17 @@
 use std::net::Ipv4Addr;
 use std::{net::IpAddr, time::Duration};
-
+use anyhow::Result;
 use netdev::Interface;
 use serde::{Deserialize, Serialize};
-
-use crate::config::{DEFAULT_HOP_LIMIT, DEFAULT_PING_COUNT};
+use crate::config::default::{DEFAULT_BASE_TARGET_UDP_PORT, DEFAULT_HOP_LIMIT, DEFAULT_PING_COUNT};
+use crate::endpoint::Host;
 use crate::protocol::Protocol;
 
+/// Settings for a ping operation
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct PingSetting {
     pub if_index: u32,
-    pub dst_hostname: String,
+    pub dst_hostname: Option<String>,
     pub dst_ip: IpAddr,
     pub dst_port: Option<u16>,
     pub hop_limit: u8,
@@ -27,11 +28,11 @@ impl Default for PingSetting {
     fn default() -> Self {
         Self {
             if_index: 0,
-            dst_hostname: "localhost".to_string(),
+            dst_hostname: None,
             dst_ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
             dst_port: None,
             hop_limit: DEFAULT_HOP_LIMIT,
-            protocol: Protocol::ICMP,
+            protocol: Protocol::Icmp,
             count: DEFAULT_PING_COUNT,
             receive_timeout: Duration::from_secs(1),
             probe_timeout: Duration::from_secs(30),
@@ -43,22 +44,23 @@ impl Default for PingSetting {
 }
 
 impl PingSetting {
+    /// Create a new ICMP ping setting
     pub fn icmp_ping(
         interface: &Interface,
-        dst_ip_addr: IpAddr,
+        dst_host: Host,
         count: u32,
-    ) -> Result<PingSetting, String> {
+    ) -> Result<PingSetting> {
         let use_tun = interface.is_tun();
         let loopback = interface.is_loopback();
 
         let setting = PingSetting {
             if_index: interface.index,
-            dst_ip: dst_ip_addr,
-            dst_hostname: dst_ip_addr.to_string(),
+            dst_ip: dst_host.ip,
+            dst_hostname: dst_host.hostname,
             dst_port: None,
             hop_limit: 64,
             count: count,
-            protocol: Protocol::ICMP,
+            protocol: Protocol::Icmp,
             receive_timeout: Duration::from_secs(1),
             probe_timeout: Duration::from_secs(30),
             send_rate: Duration::from_secs(1),
@@ -67,23 +69,24 @@ impl PingSetting {
         };
         Ok(setting)
     }
+    /// Create a new TCP ping setting
     pub fn tcp_ping(
         interface: &Interface,
-        dst_ip_addr: IpAddr,
+        dst_host: Host,
         dst_port: u16,
         count: u32,
-    ) -> Result<PingSetting, String> {
+    ) -> Result<PingSetting> {
         let use_tun = interface.is_tun();
         let loopback = interface.is_loopback();
 
         let setting = PingSetting {
             if_index: interface.index,
-            dst_ip: dst_ip_addr,
-            dst_hostname: dst_ip_addr.to_string(),
+            dst_ip: dst_host.ip,
+            dst_hostname: dst_host.hostname,
             dst_port: Some(dst_port),
             hop_limit: 64,
             count: count,
-            protocol: Protocol::TCP,
+            protocol: Protocol::Tcp,
             receive_timeout: Duration::from_secs(1),
             probe_timeout: Duration::from_secs(30),
             send_rate: Duration::from_secs(1),
@@ -92,22 +95,23 @@ impl PingSetting {
         };
         Ok(setting)
     }
+    /// Create a new UDP ping setting
     pub fn udp_ping(
         interface: &Interface,
-        dst_ip_addr: IpAddr,
+        dst_host: Host,
         count: u32,
-    ) -> Result<PingSetting, String> {
+    ) -> Result<PingSetting> {
         let use_tun = interface.is_tun();
         let loopback = interface.is_loopback();
 
         let setting: PingSetting = PingSetting {
             if_index: interface.index,
-            dst_ip: dst_ip_addr,
-            dst_hostname: dst_ip_addr.to_string(),
-            dst_port: Some(crate::config::DEFAULT_BASE_TARGET_UDP_PORT),
+            dst_ip: dst_host.ip,
+            dst_hostname: dst_host.hostname,
+            dst_port: Some(DEFAULT_BASE_TARGET_UDP_PORT),
             hop_limit: 64,
             count: count,
-            protocol: Protocol::UDP,
+            protocol: Protocol::Udp,
             receive_timeout: Duration::from_secs(1),
             probe_timeout: Duration::from_secs(30),
             send_rate: Duration::from_secs(1),

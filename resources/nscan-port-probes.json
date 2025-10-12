@@ -1,0 +1,1032 @@
+{
+  "meta": {
+    "name": "Port Probe Database",
+    "version": "1.0"
+  },
+  "map": {
+    "1": [
+      "tcp:http_get",
+      "tcp:help"
+    ],
+    "7": [
+      "tcp:help"
+    ],
+    "21": [
+      "tcp:generic_lines",
+      "tcp:help"
+    ],
+    "23": [
+      "tcp:generic_lines"
+    ],
+    "25": [
+      "tcp:help"
+    ],
+    "35": [
+      "tcp:generic_lines"
+    ],
+    "43": [
+      "tcp:generic_lines"
+    ],
+    "53": [
+      "udp:dns_version_bind_req",
+      "tcp:dns_version_bind_req"
+    ],
+    "70": [
+      "tcp:http_get"
+    ],
+    "79": [
+      "tcp:generic_lines",
+      "tcp:http_get",
+      "tcp:help"
+    ],
+    "80": [
+      "tcp:http_get",
+      "tcp:http_options",
+      "udp:quic"
+    ],
+    "81": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "82": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "83": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "84": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "85": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "88": [
+      "tcp:http_get"
+    ],
+    "98": [
+      "tcp:generic_lines"
+    ],
+    "110": [
+      "tcp:generic_lines"
+    ],
+    "113": [
+      "tcp:generic_lines",
+      "tcp:http_get",
+      "tcp:help"
+    ],
+    "119": [
+      "tcp:generic_lines",
+      "tcp:help"
+    ],
+    "135": [
+      "tcp:dns_version_bind_req"
+    ],
+    "139": [
+      "tcp:http_get"
+    ],
+    "143": [
+      "tcp:http_get"
+    ],
+    "199": [
+      "tcp:generic_lines"
+    ],
+    "214": [
+      "tcp:generic_lines"
+    ],
+    "261": [
+      "tcp:tls_session"
+    ],
+    "264": [
+      "tcp:generic_lines"
+    ],
+    "271": [
+      "tcp:tls_session"
+    ],
+    "280": [
+      "tcp:http_get"
+    ],
+    "322": [
+      "tcp:tls_session"
+    ],
+    "324": [
+      "tcp:tls_session"
+    ],
+    "443": [
+      "tcp:tls_session",
+      "tcp:https_get",
+      "udp:quic"
+    ],
+    "444": [
+      "tcp:tls_session"
+    ],
+    "448": [
+      "tcp:tls_session"
+    ],
+    "449": [
+      "tcp:generic_lines"
+    ],
+    "465": [
+      "tcp:tls_session"
+    ],
+    "497": [
+      "tcp:http_get"
+    ],
+    "505": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "510": [
+      "tcp:generic_lines"
+    ],
+    "512": [
+      "tcp:dns_version_bind_req"
+    ],
+    "513": [
+      "tcp:dns_version_bind_req"
+    ],
+    "514": [
+      "tcp:http_get",
+      "tcp:dns_version_bind_req"
+    ],
+    "515": [
+      "tcp:http_get",
+      "tcp:help"
+    ],
+    "540": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "543": [
+      "tcp:dns_version_bind_req"
+    ],
+    "544": [
+      "tcp:dns_version_bind_req"
+    ],
+    "548": [
+      "tcp:tls_session"
+    ],
+    "554": [
+      "tcp:http_get"
+    ],
+    "563": [
+      "tcp:tls_session"
+    ],
+    "585": [
+      "tcp:tls_session"
+    ],
+    "587": [
+      "tcp:generic_lines",
+      "tcp:help"
+    ],
+    "591": [
+      "tcp:http_get"
+    ],
+    "616": [
+      "tcp:generic_lines"
+    ],
+    "620": [
+      "tcp:http_get"
+    ],
+    "628": [
+      "tcp:generic_lines",
+      "tcp:dns_version_bind_req"
+    ],
+    "631": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "636": [
+      "tcp:tls_session"
+    ],
+    "641": [
+      "tcp:http_options"
+    ],
+    "666": [
+      "tcp:generic_lines"
+    ],
+    "684": [
+      "tcp:tls_session"
+    ],
+    "731": [
+      "tcp:generic_lines"
+    ],
+    "771": [
+      "tcp:generic_lines"
+    ],
+    "782": [
+      "tcp:generic_lines"
+    ],
+    "783": [
+      "tcp:http_get"
+    ],
+    "853": [
+      "tcp:tls_session"
+    ],
+    "888": [
+      "tcp:http_get"
+    ],
+    "898": [
+      "tcp:http_get"
+    ],
+    "900": [
+      "tcp:http_get"
+    ],
+    "901": [
+      "tcp:http_get"
+    ],
+    "989": [
+      "tcp:tls_session"
+    ],
+    "990": [
+      "tcp:tls_session"
+    ],
+    "992": [
+      "tcp:tls_session"
+    ],
+    "993": [
+      "tcp:tls_session"
+    ],
+    "994": [
+      "tcp:tls_session"
+    ],
+    "995": [
+      "tcp:tls_session"
+    ],
+    "1000": [
+      "tcp:generic_lines"
+    ],
+    "1010": [
+      "tcp:generic_lines"
+    ],
+    "1026": [
+      "tcp:http_get"
+    ],
+    "1029": [
+      "tcp:dns_version_bind_req"
+    ],
+    "1040": [
+      "tcp:generic_lines"
+    ],
+    "1041": [
+      "tcp:generic_lines"
+    ],
+    "1042": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "1043": [
+      "tcp:generic_lines"
+    ],
+    "1080": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "1111": [
+      "tcp:help"
+    ],
+    "1212": [
+      "tcp:generic_lines"
+    ],
+    "1214": [
+      "tcp:http_get"
+    ],
+    "1220": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "1234": [
+      "tcp:http_get"
+    ],
+    "1241": [
+      "tcp:tls_session"
+    ],
+    "1248": [
+      "tcp:generic_lines"
+    ],
+    "1302": [
+      "tcp:generic_lines"
+    ],
+    "1311": [
+      "tcp:help",
+      "tcp:tls_session"
+    ],
+    "1314": [
+      "tcp:http_get"
+    ],
+    "1344": [
+      "tcp:http_get"
+    ],
+    "1400": [
+      "tcp:generic_lines"
+    ],
+    "1432": [
+      "tcp:generic_lines"
+    ],
+    "1443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "1467": [
+      "tcp:generic_lines"
+    ],
+    "1501": [
+      "tcp:generic_lines"
+    ],
+    "1503": [
+      "tcp:http_get"
+    ],
+    "1505": [
+      "tcp:generic_lines"
+    ],
+    "1610": [
+      "tcp:http_get"
+    ],
+    "1611": [
+      "tcp:http_get"
+    ],
+    "1666": [
+      "tcp:generic_lines"
+    ],
+    "1687": [
+      "tcp:generic_lines"
+    ],
+    "1688": [
+      "tcp:generic_lines"
+    ],
+    "1830": [
+      "tcp:http_get"
+    ],
+    "1900": [
+      "tcp:http_get"
+    ],
+    "1967": [
+      "udp:dns_version_bind_req"
+    ],
+    "2000": [
+      "tcp:tls_session"
+    ],
+    "2001": [
+      "tcp:http_get"
+    ],
+    "2002": [
+      "tcp:http_get"
+    ],
+    "2010": [
+      "tcp:generic_lines"
+    ],
+    "2024": [
+      "tcp:generic_lines"
+    ],
+    "2030": [
+      "tcp:http_get"
+    ],
+    "2064": [
+      "tcp:http_get"
+    ],
+    "2068": [
+      "tcp:dns_version_bind_req"
+    ],
+    "2105": [
+      "tcp:dns_version_bind_req"
+    ],
+    "2160": [
+      "tcp:http_get"
+    ],
+    "2221": [
+      "tcp:tls_session"
+    ],
+    "2252": [
+      "tcp:tls_session"
+    ],
+    "2301": [
+      "tcp:http_options"
+    ],
+    "2306": [
+      "tcp:http_get"
+    ],
+    "2376": [
+      "tcp:tls_session"
+    ],
+    "2396": [
+      "tcp:http_get"
+    ],
+    "2401": [
+      "tcp:help"
+    ],
+    "2443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "2525": [
+      "tcp:http_get"
+    ],
+    "2600": [
+      "tcp:generic_lines"
+    ],
+    "2627": [
+      "tcp:help"
+    ],
+    "2715": [
+      "tcp:http_get"
+    ],
+    "2869": [
+      "tcp:http_get"
+    ],
+    "2967": [
+      "udp:dns_version_bind_req",
+      "tcp:dns_version_bind_req"
+    ],
+    "3000": [
+      "tcp:generic_lines",
+      "tcp:http_get",
+      "tcp:help"
+    ],
+    "3002": [
+      "tcp:http_get"
+    ],
+    "3005": [
+      "tcp:generic_lines"
+    ],
+    "3052": [
+      "tcp:http_get"
+    ],
+    "3128": [
+      "tcp:generic_lines",
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "3280": [
+      "tcp:http_get"
+    ],
+    "3310": [
+      "tcp:generic_lines"
+    ],
+    "3333": [
+      "tcp:generic_lines"
+    ],
+    "3372": [
+      "tcp:http_get"
+    ],
+    "3388": [
+      "tcp:tls_session"
+    ],
+    "3389": [
+      "tcp:tls_session"
+    ],
+    "3443": [
+      "tcp:tls_session"
+    ],
+    "3493": [
+      "tcp:help"
+    ],
+    "3531": [
+      "tcp:http_get"
+    ],
+    "3689": [
+      "tcp:http_get"
+    ],
+    "3872": [
+      "tcp:http_get"
+    ],
+    "3940": [
+      "tcp:generic_lines"
+    ],
+    "4000": [
+      "tcp:http_get"
+    ],
+    "4155": [
+      "tcp:generic_lines"
+    ],
+    "4433": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "4443": [
+      "tcp:tls_session"
+    ],
+    "4444": [
+      "tcp:http_get",
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "4567": [
+      "tcp:http_get"
+    ],
+    "4660": [
+      "tcp:http_get"
+    ],
+    "4711": [
+      "tcp:http_get"
+    ],
+    "4911": [
+      "tcp:tls_session"
+    ],
+    "5000": [
+      "tcp:generic_lines",
+      "tcp:http_get",
+      "tcp:dns_version_bind_req"
+    ],
+    "5060": [
+      "tcp:http_get"
+    ],
+    "5061": [
+      "tcp:tls_session"
+    ],
+    "5222": [
+      "tcp:http_get"
+    ],
+    "5232": [
+      "tcp:http_options"
+    ],
+    "5269": [
+      "tcp:http_get"
+    ],
+    "5280": [
+      "tcp:http_get"
+    ],
+    "5323": [
+      "tcp:dns_version_bind_req"
+    ],
+    "5349": [
+      "tcp:tls_session"
+    ],
+    "5400": [
+      "tcp:generic_lines"
+    ],
+    "5427": [
+      "tcp:http_get"
+    ],
+    "5432": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "5443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "5520": [
+      "tcp:dns_version_bind_req"
+    ],
+    "5530": [
+      "tcp:dns_version_bind_req"
+    ],
+    "5550": [
+      "tcp:tls_session"
+    ],
+    "5555": [
+      "tcp:generic_lines",
+      "tcp:dns_version_bind_req"
+    ],
+    "5556": [
+      "tcp:dns_version_bind_req"
+    ],
+    "5570": [
+      "tcp:generic_lines"
+    ],
+    "5800": [
+      "tcp:http_get"
+    ],
+    "5801": [
+      "tcp:http_get"
+    ],
+    "5802": [
+      "tcp:http_get"
+    ],
+    "5803": [
+      "tcp:http_get"
+    ],
+    "5868": [
+      "tcp:tls_session"
+    ],
+    "5900": [
+      "tcp:http_get"
+    ],
+    "5985": [
+      "tcp:http_get"
+    ],
+    "5986": [
+      "tcp:tls_session"
+    ],
+    "6000": [
+      "tcp:http_options"
+    ],
+    "6103": [
+      "tcp:http_get"
+    ],
+    "6112": [
+      "tcp:generic_lines"
+    ],
+    "6251": [
+      "tcp:tls_session"
+    ],
+    "6346": [
+      "tcp:http_get"
+    ],
+    "6380": [
+      "tcp:tls_session"
+    ],
+    "6432": [
+      "tcp:generic_lines"
+    ],
+    "6443": [
+      "tcp:tls_session"
+    ],
+    "6543": [
+      "tcp:dns_version_bind_req"
+    ],
+    "6544": [
+      "tcp:http_get"
+    ],
+    "6560": [
+      "tcp:help"
+    ],
+    "6600": [
+      "tcp:http_get"
+    ],
+    "6666": [
+      "tcp:help"
+    ],
+    "6667": [
+      "tcp:generic_lines",
+      "tcp:help"
+    ],
+    "6668": [
+      "tcp:generic_lines",
+      "tcp:help"
+    ],
+    "6669": [
+      "tcp:generic_lines",
+      "tcp:help"
+    ],
+    "6670": [
+      "tcp:generic_lines",
+      "tcp:help"
+    ],
+    "6679": [
+      "tcp:tls_session"
+    ],
+    "6697": [
+      "tcp:tls_session"
+    ],
+    "6699": [
+      "tcp:http_get"
+    ],
+    "6969": [
+      "tcp:http_get"
+    ],
+    "7000": [
+      "tcp:dns_version_bind_req",
+      "tcp:tls_session"
+    ],
+    "7002": [
+      "tcp:http_get"
+    ],
+    "7007": [
+      "tcp:http_get"
+    ],
+    "7008": [
+      "tcp:dns_version_bind_req"
+    ],
+    "7070": [
+      "tcp:http_get"
+    ],
+    "7100": [
+      "tcp:http_get"
+    ],
+    "7144": [
+      "tcp:generic_lines"
+    ],
+    "7145": [
+      "tcp:generic_lines"
+    ],
+    "7200": [
+      "tcp:generic_lines"
+    ],
+    "7210": [
+      "tcp:tls_session"
+    ],
+    "7272": [
+      "tcp:tls_session"
+    ],
+    "7402": [
+      "tcp:http_get"
+    ],
+    "7443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "7776": [
+      "tcp:http_get"
+    ],
+    "7780": [
+      "tcp:generic_lines"
+    ],
+    "8000": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "8001": [
+      "tcp:http_get"
+    ],
+    "8002": [
+      "tcp:http_get"
+    ],
+    "8003": [
+      "tcp:http_get"
+    ],
+    "8004": [
+      "tcp:http_get"
+    ],
+    "8005": [
+      "tcp:http_get"
+    ],
+    "8006": [
+      "tcp:http_get"
+    ],
+    "8007": [
+      "tcp:http_get"
+    ],
+    "8008": [
+      "tcp:http_get"
+    ],
+    "8009": [
+      "tcp:http_get",
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "8010": [
+      "tcp:http_get",
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "8080": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "8081": [
+      "tcp:http_get"
+    ],
+    "8082": [
+      "tcp:http_get"
+    ],
+    "8083": [
+      "tcp:http_get"
+    ],
+    "8084": [
+      "tcp:http_get"
+    ],
+    "8085": [
+      "tcp:http_get"
+    ],
+    "8088": [
+      "tcp:http_get"
+    ],
+    "8118": [
+      "tcp:http_get"
+    ],
+    "8138": [
+      "tcp:generic_lines"
+    ],
+    "8181": [
+      "tcp:http_get",
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "8194": [
+      "tcp:tls_session"
+    ],
+    "8443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "8530": [
+      "tcp:http_get"
+    ],
+    "8531": [
+      "tcp:tls_session"
+    ],
+    "8880": [
+      "tcp:http_get"
+    ],
+    "8881": [
+      "tcp:http_get"
+    ],
+    "8882": [
+      "tcp:http_get"
+    ],
+    "8883": [
+      "tcp:http_get",
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "8884": [
+      "tcp:http_get"
+    ],
+    "8885": [
+      "tcp:http_get"
+    ],
+    "8886": [
+      "tcp:http_get"
+    ],
+    "8887": [
+      "tcp:http_get"
+    ],
+    "8888": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "9000": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "9001": [
+      "tcp:generic_lines",
+      "tcp:http_get",
+      "tcp:tls_session"
+    ],
+    "9002": [
+      "tcp:generic_lines"
+    ],
+    "9003": [
+      "tcp:generic_lines"
+    ],
+    "9030": [
+      "tcp:http_get"
+    ],
+    "9050": [
+      "tcp:http_get"
+    ],
+    "9080": [
+      "tcp:http_get"
+    ],
+    "9090": [
+      "tcp:http_get"
+    ],
+    "9443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "9801": [
+      "tcp:generic_lines"
+    ],
+    "9999": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "10000": [
+      "tcp:http_get",
+      "tcp:http_options"
+    ],
+    "10001": [
+      "tcp:http_get"
+    ],
+    "10005": [
+      "tcp:http_get"
+    ],
+    "10031": [
+      "tcp:http_options"
+    ],
+    "10443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "11371": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "11443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "11965": [
+      "tcp:generic_lines"
+    ],
+    "12345": [
+      "tcp:help"
+    ],
+    "12443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "13013": [
+      "tcp:http_get"
+    ],
+    "13666": [
+      "tcp:http_get"
+    ],
+    "13720": [
+      "tcp:generic_lines"
+    ],
+    "13722": [
+      "tcp:http_get"
+    ],
+    "13783": [
+      "tcp:dns_version_bind_req"
+    ],
+    "14443": [
+      "tcp:tls_session"
+    ],
+    "14534": [
+      "tcp:http_get"
+    ],
+    "14690": [
+      "tcp:help"
+    ],
+    "15000": [
+      "tcp:generic_lines",
+      "tcp:http_get"
+    ],
+    "15001": [
+      "tcp:generic_lines"
+    ],
+    "15002": [
+      "tcp:generic_lines",
+      "tcp:tls_session"
+    ],
+    "16379": [
+      "tcp:tls_session"
+    ],
+    "17988": [
+      "tcp:http_get"
+    ],
+    "18086": [
+      "tcp:generic_lines"
+    ],
+    "18264": [
+      "tcp:http_get"
+    ],
+    "19150": [
+      "tcp:generic_lines"
+    ],
+    "22490": [
+      "tcp:help"
+    ],
+    "26198": [
+      "udp:dns_version_bind_req"
+    ],
+    "26214": [
+      "tcp:generic_lines"
+    ],
+    "26470": [
+      "tcp:generic_lines"
+    ],
+    "30443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "30444": [
+      "tcp:generic_lines"
+    ],
+    "31337": [
+      "tcp:http_get"
+    ],
+    "31416": [
+      "tcp:generic_lines"
+    ],
+    "34012": [
+      "tcp:generic_lines"
+    ],
+    "37435": [
+      "tcp:http_options"
+    ],
+    "40193": [
+      "tcp:http_get"
+    ],
+    "40443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "44443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "49400": [
+      "tcp:http_options"
+    ],
+    "50000": [
+      "tcp:http_get"
+    ],
+    "50443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "55443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ],
+    "55555": [
+      "tcp:http_get"
+    ],
+    "56667": [
+      "tcp:generic_lines"
+    ],
+    "60443": [
+      "tcp:tls_session",
+      "tcp:https_get"
+    ]
+  }
+}
