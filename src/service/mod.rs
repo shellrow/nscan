@@ -198,8 +198,13 @@ where
             Ok(Ok(0)) => break,
             // Data read
             Ok(Ok(n)) => {
-                if out.len() > max_bytes {
-                    bail!("response exceeded max_bytes ({} > {})", out.len(), max_bytes);
+                if out.len().saturating_add(n) > max_bytes {
+                    bail!(
+                        "response exceeded max_bytes ({} + {} > {})",
+                        out.len(),
+                        n,
+                        max_bytes
+                    );
                 }
                 out.extend_from_slice(&buf[..n]);
 

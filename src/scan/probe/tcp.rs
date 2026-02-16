@@ -9,122 +9,103 @@ use nex::packet::tcp::TcpFlags;
 use nex::socket::tcp::{AsyncTcpSocket, TcpConfig};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::time::Duration;
 use tokio::io::AsyncWriteExt;
-use tokio::sync::mpsc;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 use crate::capture::pcap::PacketCaptureOptions;
 use crate::cli::PortScanMethod;
 use crate::endpoint::{
-    Endpoint, EndpointResult, OsGuess, Port, PortResult, PortState, ServiceInfo, TransportProtocol,
+    EndpointResult, OsGuess, Port, PortResult, PortState, ServiceInfo, TransportProtocol,
 };
 use crate::output::ScanResult;
 use crate::probe::ProbeSetting;
 
-/// Try to connect to the given ports on the target endpoint using TCP protocol.
-/// Concurrency specifies the number of concurrent connection attempts.
-pub async fn try_connect_ports(
-    target: Endpoint,
-    concurrency: usize,
-    timeout: Duration,
-) -> Result<EndpointResult> {
-    let (ch_tx, mut ch_rx) = mpsc::unbounded_channel::<PortResult>();
+/// Run a TCP connect scan based on the provided probe settings.
+pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
+    let concurrency = setting.port_concurrency.max(1);
+    let connect_timeout = setting.connect_timeout;
+    let start_time = std::time::Instant::now();
+    let mut endpoint_map: BTreeMap<IpAddr, EndpointResult> = BTreeMap::new();
+    let mut work_items: Vec<(IpAddr, Port)> = Vec::new();
+
+    for target in setting.target_endpoints {
+        endpoint_map.insert(
+            target.ip,
+            EndpointResult {
+                ip: target.ip,
+                hostname: target.hostname,
+                ports: BTreeMap::new(),
+                mac_addr: target.mac_addr,
+                vendor_name: None,
+                os: OsGuess::default(),
+                tags: target.tags,
+                cpes: Vec::new(),
+            },
+        );
+        for port in target.ports {
+            work_items.push((target.ip, port));
+        }
+    }
+
+    if work_items.is_empty() {
+        let mut result = ScanResult::new();
+        result.endpoints = endpoint_map.into_values().collect();
+        result.scan_time = start_time.elapsed();
+        result.fingerprints = Vec::new();
+        return Ok(result);
+    }
+
     let header_span = tracing::info_span!("tcp_connect_scan");
     header_span.pb_set_style(&crate::output::progress::get_progress_style());
-    header_span.pb_set_message(&format!("TCP PortScan ({})", target.ip));
-    header_span.pb_set_length(target.ports.len() as u64);
+    header_span.pb_set_message("TCP PortScan");
+    header_span.pb_set_length(work_items.len() as u64);
     header_span.pb_set_position(0);
     header_span.pb_start();
 
-    let span_rx = header_span.clone();
-    let recv_task = tokio::spawn(async move {
-        let mut open_ports: BTreeMap<Port, PortResult> = BTreeMap::new();
-        while let Some(port_result) = ch_rx.recv().await {
-            open_ports.insert(port_result.port.clone(), port_result);
-            // Update progress bar
-            span_rx.pb_inc(1);
-        }
-        open_ports
-    });
+    let mut connect_stream = stream::iter(work_items)
+        .map(move |(ip, port)| async move {
+            let socket_addr = SocketAddr::new(ip, port.number);
+            let cfg = if socket_addr.is_ipv4() {
+                TcpConfig::v4_stream()
+            } else {
+                TcpConfig::v6_stream()
+            };
 
-    let prod = stream::iter(target.socket_addrs(TransportProtocol::Tcp)).for_each_concurrent(
-        concurrency,
-        move |socket_addr| {
-            let ch_tx = ch_tx.clone();
-            async move {
-                let cfg = if socket_addr.is_ipv4() {
-                    TcpConfig::v4_stream()
-                } else {
-                    TcpConfig::v6_stream()
-                };
-                let socket = AsyncTcpSocket::from_config(&cfg).unwrap();
-                let mut port_result = PortResult {
-                    port: Port::new(socket_addr.port(), TransportProtocol::Tcp),
-                    state: PortState::Closed,
-                    service: ServiceInfo::default(),
-                    rtt_ms: None,
-                };
-                match socket.connect_timeout(socket_addr, timeout).await {
-                    Ok(mut stream) => {
+            let mut port_result = PortResult {
+                port,
+                state: PortState::Closed,
+                service: ServiceInfo::default(),
+                rtt_ms: None,
+            };
+
+            match AsyncTcpSocket::from_config(&cfg) {
+                Ok(socket) => {
+                    if let Ok(mut stream) = socket.connect_timeout(socket_addr, connect_timeout).await
+                    {
                         port_result.state = PortState::Open;
-                        match stream.shutdown().await {
-                            Ok(_) => {}
-                            Err(_) => {}
-                        }
+                        let _ = stream.shutdown().await;
                     }
-                    Err(_) => {}
-                }
-                let _ = ch_tx.send(port_result);
-            }
-        },
-    );
-    let prod_task = tokio::spawn(prod);
-    let (results_res, _prod_res) = tokio::join!(recv_task, prod_task);
-    let open_ports = results_res?;
-    // Finish header span
-    drop(header_span);
-    Ok(EndpointResult {
-        ip: target.ip,
-        hostname: target.hostname,
-        ports: open_ports,
-        mac_addr: target.mac_addr,
-        vendor_name: None,
-        os: OsGuess::default(),
-        tags: target.tags,
-        cpes: Vec::new(),
-    })
-}
-
-/// Run a TCP connect scan based on the provided probe settings.
-pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
-    let start_time = std::time::Instant::now();
-    let mut tasks = vec![];
-    for target in setting.target_endpoints {
-        tasks.push(tokio::spawn(async move {
-            let host =
-                try_connect_ports(target, setting.port_concurrency, setting.connect_timeout).await;
-            host
-        }));
-    }
-    let mut endpoints: Vec<EndpointResult> = vec![];
-    for task in tasks {
-        match task.await {
-            Ok(endpoint_result) => match endpoint_result {
-                Ok(endpoint) => {
-                    endpoints.push(endpoint);
                 }
                 Err(e) => {
-                    tracing::error!("error: {}", e);
+                    tracing::error!("Failed to create TCP socket: {}", e);
                 }
-            },
-            Err(e) => {
-                tracing::error!("error: {}", e);
             }
+
+            (ip, port_result)
+        })
+        .buffer_unordered(concurrency);
+
+    while let Some((ip, port_result)) = connect_stream.next().await {
+        if let Some(endpoint) = endpoint_map.get_mut(&ip) {
+            endpoint.upsert_port(port_result);
         }
+        header_span.pb_inc(1);
     }
+
+    drop(header_span);
+
     let mut result = ScanResult::new();
-    result.endpoints = endpoints;
+    result.endpoints = endpoint_map.into_values().collect();
     result.scan_time = start_time.elapsed();
     result.fingerprints = Vec::new();
     Ok(result)
