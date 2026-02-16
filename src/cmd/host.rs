@@ -1,4 +1,4 @@
-use crate::cmd::common::{build_endpoints, resolve_interface};
+use crate::cmd::common::{build_endpoints, normalize_concurrency, resolve_interface};
 use crate::probe::ProbeSetting;
 use crate::{
     cli::{HostScanArgs, HostScanProto},
@@ -36,12 +36,13 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     let target_endpoints = build_endpoints(target_hosts, &ports);
 
     let interface = resolve_interface(args.interface.as_deref())?;
+    let concurrency = normalize_concurrency(args.concurrency);
 
     let probe_setting = ProbeSetting {
         if_index: interface.index,
         target_endpoints: target_endpoints,
-        host_concurrency: args.concurrency,
-        port_concurrency: args.concurrency,
+        host_concurrency: concurrency,
+        port_concurrency: concurrency,
         task_timeout: Duration::from_secs(30),
         connect_timeout: Duration::from_millis(args.timeout_ms),
         wait_time: Duration::from_millis(args.wait_ms),

@@ -1,5 +1,6 @@
 use crate::cmd::common::{
-    build_endpoints, derive_connect_timeout, derive_wait_time, resolve_interface,
+    build_endpoints, derive_connect_timeout, derive_wait_time, merge_endpoints,
+    normalize_concurrency, resolve_interface,
 };
 use crate::{
     cli::PortScanArgs,
@@ -45,6 +46,7 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
 
     // Get network interface
     let interface = resolve_interface(args.interface.as_deref())?;
+    let concurrency = normalize_concurrency(args.concurrency);
 
     // Initial ping to check reachability and measure latency
     let initial_rtt = if args.no_ping {
@@ -66,8 +68,8 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     let probe_setting = ProbeSetting {
         if_index: interface.index,
         target_endpoints: target_endpoints,
-        host_concurrency: args.concurrency,
-        port_concurrency: args.concurrency,
+        host_concurrency: concurrency,
+        port_concurrency: concurrency,
         task_timeout: Duration::from_millis(args.task_timeout_ms),
         connect_timeout: conn_timeout,
         wait_time: wait_time,
@@ -109,6 +111,7 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         let active_quic_endpoints = quic_portscan_result.get_active_endpoints();
         // Merge active QUIC endpoints with active TCP endpoints
         active_endpoints.extend(active_quic_endpoints);
+        active_endpoints = merge_endpoints(active_endpoints);
 
         rep.apply_port_scan(quic_portscan_result);
     }
@@ -155,25 +158,34 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     if args.service_detect {
         // service detection
         let service_probe_setting = ServiceProbeConfig {
-            timeout: Duration::from_secs(2),
-            max_concurrency: args.concurrency,
+            timeout: Duration::from_millis(args.read_timeout_ms.unwrap_or(2_000)),
+            max_concurrency: concurrency,
             max_read_size: 1024 * 1024,
             sni: true,
             skip_cert_verify: true,
         };
 
         let service_detector = ServiceDetector::new(service_probe_setting);
-        if !active_endpoints.is_empty() {
+        let service_targets = if let Some(sni_hostname) = &args.sni {
+            active_endpoints
+                .into_iter()
+                .map(|mut ep| {
+                    ep.hostname = Some(sni_hostname.clone());
+                    ep
+                })
+                .collect()
+        } else {
+            active_endpoints
+        };
+        if !service_targets.is_empty() {
             tracing::info!(
                 "Starting service detection on {} host(s), {} port(s)",
-                active_endpoints.len(),
-                active_endpoints[0].ports.len()
+                service_targets.len(),
+                service_targets[0].ports.len()
             );
         }
 
-        let service_result = service_detector
-            .run_service_detection(active_endpoints)
-            .await?;
+        let service_result = service_detector.run_service_detection(service_targets).await?;
         tracing::info!(
             "Service detection completed in {:?}",
             service_result.scan_time

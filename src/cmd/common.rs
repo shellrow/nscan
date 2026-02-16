@@ -4,6 +4,7 @@ use anyhow::Result;
 use netdev::Interface;
 
 use crate::endpoint::{Endpoint, Host, Port};
+use std::collections::BTreeMap;
 
 /// Resolve the interface from CLI option. Falls back to default interface.
 pub fn resolve_interface(interface_name: Option<&str>) -> Result<Interface> {
@@ -29,6 +30,23 @@ pub fn build_endpoints(hosts: Vec<Host>, ports: &[Port]) -> Vec<Endpoint> {
             endpoint
         })
         .collect()
+}
+
+/// Merge duplicate endpoints by IP and de-duplicate ports.
+pub fn merge_endpoints(endpoints: Vec<Endpoint>) -> Vec<Endpoint> {
+    let mut by_ip: BTreeMap<std::net::IpAddr, Endpoint> = BTreeMap::new();
+    for endpoint in endpoints {
+        by_ip
+            .entry(endpoint.ip)
+            .and_modify(|existing| existing.merge(endpoint.clone()))
+            .or_insert(endpoint);
+    }
+    by_ip.into_values().collect()
+}
+
+/// Ensure concurrency is always at least 1.
+pub fn normalize_concurrency(v: usize) -> usize {
+    v.max(1)
 }
 
 /// Derive connect timeout from initial RTT unless explicitly configured.
