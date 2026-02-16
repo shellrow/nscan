@@ -6,7 +6,7 @@ use crate::{dns::{Domain, DomainScanResult}, output::tree_label};
 pub fn print_domain_tree(base_domain: &Domain, res: &DomainScanResult) {
     // Create the root of the tree
     let mut root = Tree::new(format!(
-        "Subdomains of {} — found: {} (elapsed: {:?})",
+        "Subdomains of {} - found: {} (elapsed: {:?})",
         base_domain.name,
         res.domains.len(),
         res.scan_time

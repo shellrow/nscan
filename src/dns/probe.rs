@@ -1,10 +1,10 @@
-use futures::stream::{self, StreamExt};
-use rand::{distributions::Alphanumeric, Rng};
-use tokio::time::timeout;
-use std::sync::Arc;
-use std::{net::IpAddr, time::Instant};
-use std::time::Duration;
 use anyhow::Result;
+use futures::stream::{self, StreamExt};
+use rand::{distr::Alphanumeric, Rng};
+use std::sync::Arc;
+use std::time::Duration;
+use std::{net::IpAddr, time::Instant};
+use tokio::time::timeout;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 use crate::dns::{Domain, DomainScanResult};
@@ -58,9 +58,16 @@ fn normalize_label(s: &str) -> String {
 }
 
 /// Check if the base domain has wildcard DNS records.
-async fn is_wildcard_domain(resolver: &hickory_resolver::TokioResolver, base: &str, rt: Duration) -> bool {
-    let rand_label: String = rand::thread_rng()
-        .sample_iter(&Alphanumeric).take(10).map(char::from).collect();
+async fn is_wildcard_domain(
+    resolver: &hickory_resolver::TokioResolver,
+    base: &str,
+    rt: Duration,
+) -> bool {
+    let rand_label: String = rand::rng()
+        .sample_iter(&Alphanumeric)
+        .take(10)
+        .map(char::from)
+        .collect();
     let test = format!("{}.{}", rand_label, base);
     match timeout(rt, resolver.lookup_ip(test)).await {
         Ok(Ok(lip)) => !lip.as_lookup().is_empty(),
@@ -72,7 +79,8 @@ async fn is_wildcard_domain(resolver: &hickory_resolver::TokioResolver, base: &s
 pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanResult> {
     let base = normalize_label(&setting.base_domain);
 
-    let target_domains: Vec<String> = setting.word_list
+    let target_domains: Vec<String> = setting
+        .word_list
         .iter()
         .map(|w| format!("{}.{}", normalize_label(w), base))
         .collect();
@@ -96,7 +104,10 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
             let resolver = resolver.clone();
             let rt = setting.resolve_timeout;
             async move {
-                let mut d = Domain { name: domain_name.clone(), ips: Vec::new() };
+                let mut d = Domain {
+                    name: domain_name.clone(),
+                    ips: Vec::new(),
+                };
                 match timeout(rt, resolver.lookup_ip(domain_name)).await {
                     Ok(Ok(lip)) => {
                         let mut uniq: Vec<IpAddr> = lip.iter().collect();
@@ -118,7 +129,9 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
 
     loop {
         let now = Instant::now();
-        if now >= deadline { break; }
+        if now >= deadline {
+            break;
+        }
         let remaining = deadline - now;
 
         tokio::select! {
@@ -145,7 +158,9 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
     if wildcard {
         if let Some(first) = domains.first().map(|d| d.ips.clone()) {
             let all_same = domains.iter().all(|d| d.ips == first);
-            if all_same { domains.clear(); }
+            if all_same {
+                domains.clear();
+            }
         }
     }
 

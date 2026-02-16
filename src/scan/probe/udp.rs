@@ -1,16 +1,18 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use crate::capture::pcap::PacketCaptureOptions;
+use crate::endpoint::{EndpointResult, OsGuess};
+use crate::{
+    config::default::DEFAULT_BASE_TARGET_UDP_PORT, output::ScanResult, probe::ProbeSetting,
+};
+use anyhow::Result;
 use futures::future::poll_fn;
 use netdev::{Interface, MacAddr};
 use nex::datalink::async_io::{async_channel, AsyncChannel, AsyncRawSender};
 use nex::packet::frame::Frame;
 use nex::packet::ip::IpNextProtocol;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
-use anyhow::Result;
-use crate::{config::default::DEFAULT_BASE_TARGET_UDP_PORT, output::ScanResult, probe::ProbeSetting};
-use crate::capture::pcap::PacketCaptureOptions;
-use crate::endpoint::{EndpointResult, OsGuess};
 
 /// Send UDP packets for host scanning.
 pub async fn send_hostscan_packets(
@@ -26,14 +28,19 @@ pub async fn send_hostscan_packets(
     header_span.pb_start();
 
     for target in &scan_setting.target_endpoints {
-        let packet = crate::packet::udp::build_udp_packet(&interface, target.ip, DEFAULT_BASE_TARGET_UDP_PORT, false);
+        let packet = crate::packet::udp::build_udp_packet(
+            &interface,
+            target.ip,
+            DEFAULT_BASE_TARGET_UDP_PORT,
+            false,
+        );
         // Send a packet using poll_fn.
         match poll_fn(|cx| tx.poll_send(cx, &packet)).await {
             Ok(_) => {
                 if !scan_setting.send_rate.is_zero() {
                     tokio::time::sleep(scan_setting.send_rate).await;
                 }
-            },
+            }
             Err(e) => eprintln!("Failed to send packet: {}", e),
         }
         header_span.pb_inc(1);
@@ -59,8 +66,7 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
         promiscuous: false,
     };
 
-    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)?
-    else {
+    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)? else {
         unreachable!();
     };
 
@@ -91,13 +97,7 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
     let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel();
 
     let capture_handle: tokio::task::JoinHandle<_> = tokio::spawn(async move {
-        crate::capture::pcap::start_capture(
-            &mut rx,
-            capture_options,
-            ready_tx,
-            &mut stop_rx,
-        )
-        .await
+        crate::capture::pcap::start_capture(&mut rx, capture_options, ready_tx, &mut stop_rx).await
     });
 
     // Wait for listener to start
@@ -121,7 +121,6 @@ fn parse_hostscan_result(
     iface: &Interface,
     dns_map: &HashMap<IpAddr, String>,
 ) -> ScanResult {
-    let oui_db = crate::db::oui::oui_db();
     let if_ipv4_set: HashSet<Ipv4Addr> = iface.ipv4_addrs().into_iter().collect();
     let if_ipv6_set: HashSet<Ipv6Addr> = iface.ipv6_addrs().into_iter().collect();
     let mut result: ScanResult = ScanResult::new();
@@ -154,7 +153,7 @@ fn parse_hostscan_result(
                 if if_ipv4_set.contains(&ipv4_packet.source) {
                     mac_addr = iface.mac_addr.unwrap_or(MacAddr::zero());
                     ttl = crate::util::ip::initial_ttl(ipv4_packet.ttl);
-                }else{
+                } else {
                     ttl = ipv4_packet.ttl;
                 }
                 ip_addr = IpAddr::V4(ipv4_packet.source);
@@ -162,7 +161,7 @@ fn parse_hostscan_result(
                 if if_ipv6_set.contains(&ipv6_packet.source) {
                     mac_addr = iface.mac_addr.unwrap_or(MacAddr::zero());
                     ttl = crate::util::ip::initial_ttl(ipv6_packet.hop_limit);
-                }else {
+                } else {
                     ttl = ipv6_packet.hop_limit;
                 }
                 ip_addr = IpAddr::V6(ipv6_packet.source);
@@ -173,32 +172,20 @@ fn parse_hostscan_result(
             continue;
         }
 
-        let vendor_name_opt: Option<String>;
-        if let Some(oui) = oui_db.lookup_mac(&mac_addr) {
-            if let Some(vendor_detail) = &oui.vendor_detail {
-                vendor_name_opt = Some(vendor_detail.clone());
-            } else {
-                vendor_name_opt = Some(oui.vendor.clone());
-            }
-        } else {
-            vendor_name_opt = None;
-        }
+        let vendor_name_opt = crate::db::oui::lookup_vendor_name(&mac_addr);
 
-        endpoint_map
-            .entry(ip_addr)
-            .or_insert(EndpointResult {
-                ip: ip_addr,
-                hostname: dns_map.get(&ip_addr).cloned(),
-                ports: BTreeMap::new(),
-                mac_addr: Some(mac_addr),
-                vendor_name: vendor_name_opt,
-                os: OsGuess::default().with_ttl_observed(ttl),
-                tags: Vec::new(),
-                cpes: Vec::new(),
-            });
+        endpoint_map.entry(ip_addr).or_insert(EndpointResult {
+            ip: ip_addr,
+            hostname: dns_map.get(&ip_addr).cloned(),
+            ports: BTreeMap::new(),
+            mac_addr: Some(mac_addr),
+            vendor_name: vendor_name_opt,
+            os: OsGuess::default().with_ttl_observed(ttl),
+            tags: Vec::new(),
+            cpes: Vec::new(),
+        });
 
         result.fingerprints.push(p.clone());
-
     }
     for (_ip, endpoint) in endpoint_map {
         result.endpoints.push(endpoint);

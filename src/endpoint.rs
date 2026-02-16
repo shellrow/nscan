@@ -1,27 +1,24 @@
-use std::net::{IpAddr, SocketAddr};
-use std::collections::BTreeMap;
 use netdev::MacAddr;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::net::{IpAddr, SocketAddr};
 
 mod ports_vec {
     use super::*;
-    use serde::{Serializer, Deserializer};
-
-    #[derive(Serialize, Deserialize)]
-    struct Item {
-        pub port: Port,
-        #[serde(flatten)]
-        pub rest: PortResult,
-    }
+    use serde::{Deserializer, Serializer};
 
     pub fn serialize<S>(map: &BTreeMap<Port, PortResult>, s: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
+    where
+        S: Serializer,
+    {
         let vec: Vec<&PortResult> = map.values().collect();
         vec.serialize(s)
     }
 
     pub fn deserialize<'de, D>(d: D) -> Result<BTreeMap<Port, PortResult>, D::Error>
-    where D: Deserializer<'de> {
+    where
+        D: Deserializer<'de>,
+    {
         let vec = <Vec<PortResult>>::deserialize(d)?;
         Ok(vec.into_iter().map(|pr| (pr.port, pr)).collect())
     }
@@ -75,11 +72,25 @@ impl Port {
 }
 
 impl From<(u16, TransportProtocol)> for Port {
-    fn from(t: (u16, TransportProtocol)) -> Self { Self { number: t.0, transport: t.1 } }
+    fn from(t: (u16, TransportProtocol)) -> Self {
+        Self {
+            number: t.0,
+            transport: t.1,
+        }
+    }
 }
 impl std::fmt::Display for Port {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", match self.transport { TransportProtocol::Tcp=>"tcp", TransportProtocol::Udp=>"udp", TransportProtocol::Quic=>"quic" }, self.number)
+        write!(
+            f,
+            "{}:{}",
+            match self.transport {
+                TransportProtocol::Tcp => "tcp",
+                TransportProtocol::Udp => "udp",
+                TransportProtocol::Quic => "quic",
+            },
+            self.number
+        )
     }
 }
 
@@ -243,11 +254,18 @@ impl Default for Host {
 impl Host {
     /// Create a new Host instance.
     pub fn new(ip: IpAddr) -> Self {
-        Self { ip, ..Default::default() }
+        Self {
+            ip,
+            ..Default::default()
+        }
     }
     /// Create a new Host instance with the specified hostname.
     pub fn with_hostname(ip: IpAddr, hostname: String) -> Self {
-        Self { ip, hostname: Some(hostname), ..Default::default() }
+        Self {
+            ip,
+            hostname: Some(hostname),
+            ..Default::default()
+        }
     }
 }
 
@@ -276,11 +294,18 @@ impl Default for Endpoint {
 impl Endpoint {
     /// Create a new Endpoint instance.
     pub fn new(ip: IpAddr) -> Self {
-        Self { ip, ..Default::default() }
+        Self {
+            ip,
+            ..Default::default()
+        }
     }
     /// Create a new Endpoint instance with the specified hostname.
     pub fn with_hostname(ip: IpAddr, hostname: String) -> Self {
-        Self { ip, hostname: Some(hostname), ..Default::default() }
+        Self {
+            ip,
+            hostname: Some(hostname),
+            ..Default::default()
+        }
     }
     /// Add a port to the endpoint if it does not already exist.
     pub fn upsert_port(&mut self, port: Port) {
@@ -290,8 +315,12 @@ impl Endpoint {
     }
     /// Merge another Endpoint into this one, combining tags and ports.
     pub fn merge(&mut self, other: Endpoint) {
-        if self.hostname.is_none() { self.hostname = other.hostname; }
-        if self.mac_addr.is_none() { self.mac_addr = other.mac_addr; }
+        if self.hostname.is_none() {
+            self.hostname = other.hostname;
+        }
+        if self.mac_addr.is_none() {
+            self.mac_addr = other.mac_addr;
+        }
 
         for t in other.tags {
             if !self.tags.contains(&t) {
@@ -348,11 +377,18 @@ impl Default for EndpointResult {
 impl EndpointResult {
     /// Create a new EndpointResult instance.
     pub fn new(ip: IpAddr) -> Self {
-        Self { ip, ..Default::default() }
+        Self {
+            ip,
+            ..Default::default()
+        }
     }
     /// Create a new EndpointResult instance with the specified hostname.
     pub fn with_hostname(ip: IpAddr, hostname: String) -> Self {
-        Self { ip, hostname: Some(hostname), ..Default::default() }
+        Self {
+            ip,
+            hostname: Some(hostname),
+            ..Default::default()
+        }
     }
     /// Add or update a PortResult in the endpoint's ports map.
     pub fn upsert_port(&mut self, pr: PortResult) {
@@ -360,9 +396,15 @@ impl EndpointResult {
     }
     /// Merge another EndpointResult into this one, combining tags, ports, and OS guess.
     pub fn merge(&mut self, other: EndpointResult) {
-        if self.hostname.is_none() { self.hostname = other.hostname; }
-        if self.mac_addr.is_none() { self.mac_addr = other.mac_addr; }
-        if self.vendor_name.is_none() { self.vendor_name = other.vendor_name; }
+        if self.hostname.is_none() {
+            self.hostname = other.hostname;
+        }
+        if self.mac_addr.is_none() {
+            self.mac_addr = other.mac_addr;
+        }
+        if self.vendor_name.is_none() {
+            self.vendor_name = other.vendor_name;
+        }
 
         //self.cpes = other.cpes;
         let incoming: Vec<String> = other
@@ -440,13 +482,15 @@ impl EndpointResult {
 }
 
 impl From<IpAddr> for EndpointResult {
-    fn from(ip: IpAddr) -> Self { EndpointResult::new(ip) }
+    fn from(ip: IpAddr) -> Self {
+        EndpointResult::new(ip)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::{to_string_pretty, from_str};
+    use serde_json::{from_str, to_string_pretty};
 
     #[test]
     fn ports_roundtrip() {
@@ -485,12 +529,16 @@ mod tests {
         });
 
         let json = to_string_pretty(&ep).unwrap();
-        
+
         assert!(json.contains("\"ports\": ["));
 
         let back: EndpointResult = from_str(&json).unwrap();
         assert_eq!(back.ports.len(), 2);
-        assert!(back.ports.contains_key(&Port::new(80, TransportProtocol::Tcp)));
-        assert!(back.ports.contains_key(&Port::new(443, TransportProtocol::Tcp)));
+        assert!(back
+            .ports
+            .contains_key(&Port::new(80, TransportProtocol::Tcp)));
+        assert!(back
+            .ports
+            .contains_key(&Port::new(443, TransportProtocol::Tcp)));
     }
 }
