@@ -26,15 +26,15 @@ pub struct Cli {
     #[arg(long, value_name = "FILE", value_parser = value_parser!(PathBuf))]
     pub log_file_path: Option<PathBuf>,
 
-    /// Suppress all log output (only errors are shown)
+    /// Suppress non-error logs
     #[arg(long, action = ArgAction::SetTrue, default_value_t = false)]
     pub quiet: bool,
 
-    /// Save output to file (JSON format)
+    /// Save result to a JSON file
     #[arg(short, long, value_name = "FILE", value_parser = value_parser!(PathBuf))]
     pub output: Option<PathBuf>,
 
-    /// Suppress stdout console output (only save to file if -o is set)
+    /// Suppress stdout output (use with --output)
     #[arg(long, action = ArgAction::SetTrue, default_value_t = false)]
     pub no_stdout: bool,
 
@@ -69,20 +69,20 @@ impl LogLevel {
 /// Subcommands
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Scan ports on the target(s) (TCP/QUIC)
+    /// Scan ports on target host(s) (TCP/UDP/QUIC)
     Port(PortScanArgs),
 
-    /// Discover alive hosts (ICMP/UDP/TCP etc.)
+    /// Discover alive hosts (ICMP/UDP/TCP)
     Host(HostScanArgs),
 
     /// Subdomain enumeration
     Domain(DomainScanArgs),
 
-    /// Show network interface(s)
+    /// Show network interface information
     Interface(InterfaceArgs),
 }
 
-/// Port scan methods. Default: Connect
+/// Port scan methods. Default: connect
 #[derive(Copy, Clone, Debug, ValueEnum, Eq, PartialEq)]
 pub enum PortScanMethod {
     Connect,
@@ -187,8 +187,7 @@ pub struct PortScanArgs {
     #[arg(short='s', long, default_value_t = false, action=ArgAction::SetTrue)]
     pub service_detect: bool,
 
-    /// Enable OS fingerprinting
-    /// for open ports, send one SYN to collect OS-fingerprint features
+    /// Enable OS fingerprinting (sends one SYN on open ports to collect fingerprint features)
     #[arg(short='o', long, default_value_t = false, action=ArgAction::SetTrue)]
     pub os_detect: bool,
 
@@ -212,11 +211,11 @@ pub struct PortScanArgs {
     #[arg(long, value_parser = value_parser!(u64).range(1..=10_000))]
     pub connect_timeout_ms: Option<u64>,
 
-    /// Read timeout in ms (auto-adapted by RTT)
+    /// Service probe timeout in ms (used with --service-detect)
     #[arg(long, value_parser = value_parser!(u64).range(1..=10_000))]
     pub read_timeout_ms: Option<u64>,
 
-    /// Wait time after last send (ms)
+    /// Wait after sending probes (ms)
     #[arg(short='w', long, value_parser = value_parser!(u64).range(10..=5000))]
     pub wait_ms: Option<u64>,
 
@@ -228,7 +227,7 @@ pub struct PortScanArgs {
     #[arg(long, action=ArgAction::SetTrue)]
     pub ordered: bool,
 
-    /// Skip initial ping
+    /// Skip initial reachability/RTT ping
     #[arg(long, action=ArgAction::SetTrue)]
     pub no_ping: bool,
 }
@@ -248,7 +247,7 @@ pub struct HostScanArgs {
     #[arg(short, long, default_value = "80")]
     pub ports: String,
 
-    /// Wait time after last send (ms)
+    /// Wait after sending probes (ms)
     #[arg(short='w', long, default_value_t = 300, value_parser = value_parser!(u64).range(10..=5000))]
     pub wait_ms: u64,
 
@@ -296,7 +295,7 @@ pub struct DomainScanArgs {
     #[arg(short, long)]
     pub wordlist: Option<PathBuf>,
 
-    /// Concurrency
+    /// DNS lookup concurrency
     #[arg(long, default_value_t = 256)]
     pub concurrency: usize,
 
