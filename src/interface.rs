@@ -84,13 +84,14 @@ pub fn get_interface_ips(iface: &Interface) -> Vec<String> {
 
 /// Get all local IP addresses on the specified interface.
 pub fn get_local_ips(if_index: u32) -> HashSet<IpAddr> {
-    let interface = get_interface_by_index(if_index).unwrap();
     let mut ips: HashSet<IpAddr> = HashSet::new();
-    for ip in interface.ipv4.clone() {
-        ips.insert(IpAddr::V4(ip.addr()));
-    }
-    for ip in interface.ipv6.clone() {
-        ips.insert(IpAddr::V6(ip.addr()));
+    if let Some(interface) = get_interface_by_index(if_index) {
+        for ip in interface.ipv4.clone() {
+            ips.insert(IpAddr::V4(ip.addr()));
+        }
+        for ip in interface.ipv6.clone() {
+            ips.insert(IpAddr::V6(ip.addr()));
+        }
     }
     // localhost IP addresses
     ips.insert(IpAddr::V4(Ipv4Addr::LOCALHOST));
@@ -100,14 +101,14 @@ pub fn get_local_ips(if_index: u32) -> HashSet<IpAddr> {
 
 /// Get all local IP addresses on the default interface.
 pub fn get_default_local_ips() -> HashSet<IpAddr> {
-    // Default interface IP addresses
-    let default_interface = netdev::get_default_interface().unwrap();
     let mut ips: HashSet<IpAddr> = HashSet::new();
-    for ip in default_interface.ipv4.clone() {
-        ips.insert(IpAddr::V4(ip.addr()));
-    }
-    for ip in default_interface.ipv6.clone() {
-        ips.insert(IpAddr::V6(ip.addr()));
+    if let Ok(default_interface) = netdev::get_default_interface() {
+        for ip in default_interface.ipv4.clone() {
+            ips.insert(IpAddr::V4(ip.addr()));
+        }
+        for ip in default_interface.ipv6.clone() {
+            ips.insert(IpAddr::V6(ip.addr()));
+        }
     }
     // localhost IP addresses
     ips.insert(IpAddr::V4(Ipv4Addr::LOCALHOST));

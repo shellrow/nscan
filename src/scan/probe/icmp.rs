@@ -100,7 +100,9 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
     tokio::time::sleep(setting.wait_time).await;
     // Stop pcap
     let _ = stop_tx.send(());
-    let frames = capture_handle.await.unwrap();
+    let frames = capture_handle
+        .await
+        .map_err(|e| anyhow::anyhow!("capture task join error: {}", e))?;
     let dns_map = setting.get_dns_map();
     let mut result = parse_hostscan_result(frames, &interface, &dns_map);
     result.scan_time = start_time.elapsed();

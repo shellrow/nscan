@@ -38,6 +38,13 @@ impl QuicProbe {
     pub async fn run(ctx: ProbeContext) -> Result<PortProbeResult> {
         let addr = SocketAddr::new(ctx.ip, ctx.probe.port);
         let hostname = ctx.hostname.clone().unwrap_or_else(|| ctx.ip.to_string());
+        let bind_addr: SocketAddr = if ctx.ip.is_ipv6() {
+            "[::]:0"
+        } else {
+            "0.0.0.0:0"
+        }
+        .parse()
+        .map_err(|e| anyhow::anyhow!("invalid QUIC bind address: {}", e))?;
 
         // Set ALPN protocols
         let alpn = [
@@ -46,7 +53,7 @@ impl QuicProbe {
             b"hq-29".as_slice(),
         ];
         let client_cfg = quic_client_config(ctx.skip_cert_verify, &alpn)?;
-        let mut endpoint = Endpoint::client((if ctx.ip.is_ipv6() { "[::]:0" } else { "0.0.0.0:0" }).parse().unwrap())?;
+        let mut endpoint = Endpoint::client(bind_addr)?;
         endpoint.set_default_client_config(client_cfg);
 
         // Connect to the server (SNI is hostname or "localhost")
@@ -134,7 +141,7 @@ impl QuicProbe {
                         .header("Host", server_name)
                         .header("User-Agent", "nscan/0.1 (probe)")
                         .body(())
-                        .unwrap();
+                        .map_err(|e| anyhow::anyhow!("failed to build HTTP/3 request: {}", e))?;
 
                     tracing::debug!("HTTP/3 Probe: {}:{} - Sending request", ctx.ip, ctx.probe.port);
                     // Send request
@@ -169,7 +176,7 @@ impl QuicProbe {
 
                     svc.raw = Some(format!("alpn=h3; status={}", res.status()));
 
-                    Ok::<ServiceInfo, h3::error::StreamError>(svc)
+                    Ok::<ServiceInfo, anyhow::Error>(svc)
                 };
 
                 let (req_res, _drive_res) = tokio::join!(request, drive);
