@@ -1,11 +1,14 @@
+use anyhow::{Result, bail};
 use std::net::SocketAddr;
-use anyhow::{bail, Result};
-use tokio::{io::{AsyncWriteExt}, net::TcpStream, time::timeout};
+use tokio::{io::AsyncWriteExt, net::TcpStream, time::timeout};
 
 use crate::{
     endpoint::ServiceInfo,
     service::{
-        build_regex, expand_cpe_templates, payload::{PayloadBuilder, PayloadContext}, probe::{PortProbeResult, ProbeContext, ServiceProbe}, read_timeout
+        build_regex, expand_cpe_templates,
+        payload::{PayloadBuilder, PayloadContext},
+        probe::{PortProbeResult, ProbeContext, ServiceProbe},
+        read_timeout,
     },
 };
 
@@ -23,7 +26,10 @@ fn looks_like_text_line(s: &str) -> bool {
         return false;
     }
     // ASCII printable characters and whitespace ratio
-    let printable = t.chars().filter(|&c| c.is_ascii_graphic() || c.is_ascii_whitespace()).count();
+    let printable = t
+        .chars()
+        .filter(|&c| c.is_ascii_graphic() || c.is_ascii_whitespace())
+        .count();
     let ratio = printable as f32 / t.len() as f32;
     ratio >= 0.6
 }
@@ -42,7 +48,10 @@ fn parse_banner(bytes: &[u8], max_preview: usize) -> BannerLite {
         raw.to_string()
     };
 
-    let mut lines = out.raw_text.split(|c| c == '\n').map(|l| l.trim_end_matches('\r'));
+    let mut lines = out
+        .raw_text
+        .split(|c| c == '\n')
+        .map(|l| l.trim_end_matches('\r'));
 
     let first = lines.next().unwrap_or("");
     let second = lines.next().unwrap_or("");
@@ -87,7 +96,10 @@ impl NullProbe {
     pub async fn run(ctx: ProbeContext) -> Result<PortProbeResult> {
         // Pre-check
         if ctx.probe.probe_id != ServiceProbe::TcpNull {
-            bail!("NullProbe invoked with non-tcp:null probe_id: {:?}", ctx.probe.probe_id);
+            bail!(
+                "NullProbe invoked with non-tcp:null probe_id: {:?}",
+                ctx.probe.probe_id
+            );
         }
 
         tracing::debug!("Null Probe: {}:{} - Connecting", ctx.ip, ctx.probe.port);
@@ -98,7 +110,7 @@ impl NullProbe {
 
         // if payload is present, send it (should not happen for tcp:null, but just in case)
         let payload = PayloadBuilder::new(ctx.probe.clone())
-            .payload(PayloadContext::default()) 
+            .payload(PayloadContext::default())
             .unwrap_or_default();
         if !payload.is_empty() {
             timeout(ctx.timeout, stream.write_all(&payload)).await??;
@@ -108,16 +120,26 @@ impl NullProbe {
         // Apply idle/total timeout and max byte limit for reading
         let idle = ctx.timeout;
         let total = ctx.timeout;
-        tracing::debug!("Null Probe: {}:{} - Reading response(timeout: {})", ctx.ip, ctx.probe.port, total.as_millis());
+        tracing::debug!(
+            "Null Probe: {}:{} - Reading response(timeout: {})",
+            ctx.ip,
+            ctx.probe.port,
+            total.as_millis()
+        );
         let bytes = read_timeout(&mut stream, idle, total, ctx.max_read_size).await?;
 
         // Parse banner from response
         let banner = parse_banner(&bytes, 64 * 1024);
 
-        tracing::debug!("TCP NULL Probe: {}:{} - Banner: {:?}", ctx.ip, ctx.probe.port, banner.first_line);
+        tracing::debug!(
+            "TCP NULL Probe: {}:{} - Banner: {:?}",
+            ctx.ip,
+            ctx.probe.port,
+            banner.first_line
+        );
 
         // Match signatures (tcp:NULL)
-        let hit = match_null_signatures( "tcp:NULL", &banner.raw_text)?;
+        let hit = match_null_signatures("tcp:NULL", &banner.raw_text)?;
 
         // Construct service info
         let mut svc = ServiceInfo::default();

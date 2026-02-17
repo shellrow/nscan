@@ -2,12 +2,23 @@ use std::{collections::HashMap, net::SocketAddr};
 
 use anyhow::Result;
 use rustls_pki_types::ServerName;
-use tokio::{io::{AsyncWriteExt}, net::TcpStream, time::timeout};
-use tokio_rustls::{TlsConnector, rustls::{ClientConfig, RootCertStore}};
 use std::sync::Arc;
+use tokio::{io::AsyncWriteExt, net::TcpStream, time::timeout};
+use tokio_rustls::{
+    TlsConnector,
+    rustls::{ClientConfig, RootCertStore},
+};
 
-use crate::{endpoint::ServiceInfo, service::{build_http_regex, expand_cpe_templates, payload::{PayloadBuilder, PayloadContext}, probe::{PortProbeResult, ProbeContext, ServiceProbe}, read_timeout}};
 use super::tls::SkipServerVerification;
+use crate::{
+    endpoint::ServiceInfo,
+    service::{
+        build_http_regex, expand_cpe_templates,
+        payload::{PayloadBuilder, PayloadContext},
+        probe::{PortProbeResult, ProbeContext, ServiceProbe},
+        read_timeout,
+    },
+};
 
 /// A lightweight representation of an HTTP response for analysis.
 #[derive(Debug, Default, Clone)]
@@ -34,7 +45,11 @@ fn parse_http_response(bytes: &[u8], body_limit: usize) -> HttpResponseLite {
         .unwrap_or_else(|| bytes.len().min(HDR_MAX));
 
     let header_bytes = &bytes[..hdr_end.min(bytes.len())];
-    let body_bytes   = if hdr_end < bytes.len() { &bytes[hdr_end..] } else { &[][..] };
+    let body_bytes = if hdr_end < bytes.len() {
+        &bytes[hdr_end..]
+    } else {
+        &[][..]
+    };
 
     // Convert header bytes to a lossy UTF-8 string
     let header_text = String::from_utf8_lossy(header_bytes);
@@ -49,13 +64,18 @@ fn parse_http_response(bytes: &[u8], body_limit: usize) -> HttpResponseLite {
     if let Some(first) = lines.next() {
         let line = first.trim().to_string();
         res.status_line = Some(line.clone());
-        if let Some(code) = line.split_whitespace().nth(1).and_then(|s| s.parse::<u16>().ok()) {
+        if let Some(code) = line
+            .split_whitespace()
+            .nth(1)
+            .and_then(|s| s.parse::<u16>().ok())
+        {
             res.status_code = Some(code);
         }
     }
     for line in lines {
         if let Some((k, v)) = line.split_once(':') {
-            res.headers.insert(k.trim().to_ascii_lowercase(), v.trim().to_string());
+            res.headers
+                .insert(k.trim().to_ascii_lowercase(), v.trim().to_string());
         }
     }
 
@@ -84,10 +104,13 @@ fn match_http_signatures(
     let mut hits = Vec::new();
 
     'outer: for sig in sigdb {
-        if !service_keys.iter().any(|k| sig.service.eq_ignore_ascii_case(k)) {
+        if !service_keys
+            .iter()
+            .any(|k| sig.service.eq_ignore_ascii_case(k))
+        {
             continue;
         }
-        
+
         /* if !sig.probe_id.is_empty() && !sig.probe_id.eq_ignore_ascii_case(probe_id) {
             continue;
         } */
@@ -118,134 +141,40 @@ impl HttpProbe {
         let tcp_svc_db = crate::db::service::tcp_service_db();
         match ctx.probe.probe_id {
             ServiceProbe::TcpHTTPGet => {
-                tracing::debug!("HTTP Probe: {}:{} - Sending HTTP GET", ctx.ip, ctx.probe.port);
+                tracing::debug!(
+                    "HTTP Probe: {}:{} - Sending HTTP GET",
+                    ctx.ip,
+                    ctx.probe.port
+                );
                 let payload: Vec<u8> = payload_builder.payload(PayloadContext::default())?;
                 timeout(ctx.timeout, tcp_stream.write_all(&payload)).await??;
                 tcp_stream.flush().await?;
-                let res: Vec<u8> = read_timeout(&mut tcp_stream, ctx.timeout, ctx.timeout, ctx.max_read_size).await?;
+                let res: Vec<u8> =
+                    read_timeout(&mut tcp_stream, ctx.timeout, ctx.timeout, ctx.max_read_size)
+                        .await?;
                 let http_res = parse_http_response(&res, 64 * 1024);
-                tracing::debug!("HTTP Probe: {}:{} - Header: {:?}", ctx.ip, ctx.probe.port, http_res.header_text);
+                tracing::debug!(
+                    "HTTP Probe: {}:{} - Header: {:?}",
+                    ctx.ip,
+                    ctx.probe.port,
+                    http_res.header_text
+                );
                 let mut svc = ServiceInfo::default();
                 svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
                 svc.banner = http_res.status_line.clone();
                 svc.product = http_res.headers.get("server").cloned();
                 svc.raw = Some(http_res.raw_text.clone());
 
-                tracing::debug!("HTTP Probe: {}:{} - Banner: {:?}, Server {:?}", ctx.ip, ctx.probe.port, svc.banner, svc.product);
+                tracing::debug!(
+                    "HTTP Probe: {}:{} - Banner: {:?}, Server {:?}",
+                    ctx.ip,
+                    ctx.probe.port,
+                    svc.banner,
+                    svc.product
+                );
 
                 // Match signatures
-                let cpes = match_http_signatures(
-                    &["http"],
-                    "tcp:http_get",
-                    &http_res,
-                )?;
-                if !cpes.is_empty() {
-                    svc.cpes = cpes;
-                }
-                let probe_result: PortProbeResult = PortProbeResult {
-                    ip: ctx.ip,
-                    hostname: ctx.hostname,
-                    port: ctx.probe.port,
-                    transport: ctx.probe.transport,
-                    probe_id: ctx.probe.probe_id,
-                    service_info: svc,
-                };
-                tracing::debug!("HTTP Probe Result: {:?}", probe_result);
-                return Ok(probe_result);
-            },
-            ServiceProbe::TcpHTTPSGet => {
-                tracing::debug!("HTTP Probe: {}:{} - Sending HTTPS GET", ctx.ip, ctx.probe.port);
-                let payload_ctx = PayloadContext {
-                    hostname: ctx.hostname.as_deref(),
-                    path: Some("/".into()),
-                };
-                let payload: Vec<u8> = payload_builder.payload(payload_ctx)?;
-
-                // rustls config
-                let mut roots = RootCertStore::empty();
-                for cert in rustls_native_certs::load_native_certs()? { let _ = roots.add(cert); }
-                let mut config = ClientConfig::builder()
-                    .with_root_certificates(roots)
-                    .with_no_client_auth();
-
-                // Set ALPN protocols
-                //config.alpn_protocols = vec!["h2".into(), "http/1.1".into()];
-                config.alpn_protocols = vec!["http/1.1".into()];
-
-                if ctx.skip_cert_verify {
-                    config.dangerous().set_certificate_verifier(SkipServerVerification::new());
-                }
-
-                let connector = TlsConnector::from(Arc::new(config));
-                let sni_name = if ctx.sni {
-                    ServerName::try_from(hostname)?
-                } else {
-                    ServerName::try_from("localhost")?
-                };
-
-                let mut tls_stream = timeout(ctx.timeout, connector.connect(sni_name, tcp_stream)).await??;
-                // server connection
-                let conn = tls_stream.get_ref().1;
-
-                let mut svc = ServiceInfo::default();
-                svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
-
-                svc.tls_info = super::tls::extract_tls_info(&ctx, &conn);
-
-                tls_stream.write_all(&payload).await?;
-                tls_stream.flush().await?;
-                let res: Vec<u8> = read_timeout(&mut tls_stream, ctx.timeout, ctx.timeout, ctx.max_read_size).await?;
-                let http_res = parse_http_response(&res, 64 * 1024);
-                tracing::debug!("HTTP Probe: {}:{} - Header: {:?}", ctx.ip, ctx.probe.port, http_res.header_text);
-                svc.banner = http_res.status_line.clone();
-                svc.product = http_res.headers.get("server").cloned();
-                svc.raw = Some(http_res.raw_text.clone());
-
-                tracing::debug!("HTTPS Probe: {}:{} - Banner: {:?}, Server {:?}", ctx.ip, ctx.probe.port, svc.banner, svc.product);
-                tracing::debug!("RAW: {:?}", svc.raw);
-
-                // Match signatures
-                let cpes = match_http_signatures(
-                    &["http"],
-                    "tcp:https_get",
-                    &http_res,
-                )?;
-                if !cpes.is_empty() {
-                    svc.cpes = cpes;
-                }
-                let probe_result: PortProbeResult = PortProbeResult {
-                    ip: ctx.ip,
-                    hostname: ctx.hostname,
-                    port: ctx.probe.port,
-                    transport: ctx.probe.transport,
-                    probe_id: ctx.probe.probe_id,
-                    service_info: svc,
-                };
-                tracing::debug!("HTTP Probe Result: {:?}", probe_result);
-                return Ok(probe_result);
-            },
-            ServiceProbe::TcpHTTPOptions => {
-                tracing::debug!("HTTP Probe: {}:{} - Sending HTTP OPTIONS", ctx.ip, ctx.probe.port);
-                let payload: Vec<u8> = payload_builder.payload(PayloadContext::default())?;
-                timeout(ctx.timeout, tcp_stream.write_all(&payload)).await??;
-                tcp_stream.flush().await?;
-                let res: Vec<u8> = read_timeout(&mut tcp_stream, ctx.timeout, ctx.timeout, ctx.max_read_size).await?;
-                let http_res = parse_http_response(&res, 64 * 1024);
-                tracing::debug!("HTTP Probe: {}:{} - Header: {:?}", ctx.ip, ctx.probe.port, http_res.header_text);
-                let mut svc = ServiceInfo::default();
-                svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
-                svc.banner = http_res.status_line.clone();
-                svc.product = http_res.headers.get("server").cloned();
-                svc.raw = Some(http_res.raw_text.clone());
-
-                tracing::debug!("HTTP Probe: {}:{} - Banner: {:?}, Server {:?}", ctx.ip, ctx.probe.port, svc.banner, svc.product);
-
-                // Match signatures
-                let cpes = match_http_signatures(
-                    &["http"],
-                    "tcp:http_options",
-                    &http_res,
-                )?;
+                let cpes = match_http_signatures(&["http"], "tcp:http_get", &http_res)?;
                 if !cpes.is_empty() {
                     svc.cpes = cpes;
                 }
@@ -260,7 +189,145 @@ impl HttpProbe {
                 tracing::debug!("HTTP Probe Result: {:?}", probe_result);
                 return Ok(probe_result);
             }
-            _ => {},
+            ServiceProbe::TcpHTTPSGet => {
+                tracing::debug!(
+                    "HTTP Probe: {}:{} - Sending HTTPS GET",
+                    ctx.ip,
+                    ctx.probe.port
+                );
+                let payload_ctx = PayloadContext {
+                    hostname: ctx.hostname.as_deref(),
+                    path: Some("/".into()),
+                };
+                let payload: Vec<u8> = payload_builder.payload(payload_ctx)?;
+
+                // rustls config
+                let mut roots = RootCertStore::empty();
+                for cert in rustls_native_certs::load_native_certs()? {
+                    let _ = roots.add(cert);
+                }
+                let mut config = ClientConfig::builder()
+                    .with_root_certificates(roots)
+                    .with_no_client_auth();
+
+                // Set ALPN protocols
+                //config.alpn_protocols = vec!["h2".into(), "http/1.1".into()];
+                config.alpn_protocols = vec!["http/1.1".into()];
+
+                if ctx.skip_cert_verify {
+                    config
+                        .dangerous()
+                        .set_certificate_verifier(SkipServerVerification::new());
+                }
+
+                let connector = TlsConnector::from(Arc::new(config));
+                let sni_name = if ctx.sni {
+                    ServerName::try_from(hostname)?
+                } else {
+                    ServerName::try_from("localhost")?
+                };
+
+                let mut tls_stream =
+                    timeout(ctx.timeout, connector.connect(sni_name, tcp_stream)).await??;
+                // server connection
+                let conn = tls_stream.get_ref().1;
+
+                let mut svc = ServiceInfo::default();
+                svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
+
+                svc.tls_info = super::tls::extract_tls_info(&ctx, &conn);
+
+                tls_stream.write_all(&payload).await?;
+                tls_stream.flush().await?;
+                let res: Vec<u8> =
+                    read_timeout(&mut tls_stream, ctx.timeout, ctx.timeout, ctx.max_read_size)
+                        .await?;
+                let http_res = parse_http_response(&res, 64 * 1024);
+                tracing::debug!(
+                    "HTTP Probe: {}:{} - Header: {:?}",
+                    ctx.ip,
+                    ctx.probe.port,
+                    http_res.header_text
+                );
+                svc.banner = http_res.status_line.clone();
+                svc.product = http_res.headers.get("server").cloned();
+                svc.raw = Some(http_res.raw_text.clone());
+
+                tracing::debug!(
+                    "HTTPS Probe: {}:{} - Banner: {:?}, Server {:?}",
+                    ctx.ip,
+                    ctx.probe.port,
+                    svc.banner,
+                    svc.product
+                );
+                tracing::debug!("RAW: {:?}", svc.raw);
+
+                // Match signatures
+                let cpes = match_http_signatures(&["http"], "tcp:https_get", &http_res)?;
+                if !cpes.is_empty() {
+                    svc.cpes = cpes;
+                }
+                let probe_result: PortProbeResult = PortProbeResult {
+                    ip: ctx.ip,
+                    hostname: ctx.hostname,
+                    port: ctx.probe.port,
+                    transport: ctx.probe.transport,
+                    probe_id: ctx.probe.probe_id,
+                    service_info: svc,
+                };
+                tracing::debug!("HTTP Probe Result: {:?}", probe_result);
+                return Ok(probe_result);
+            }
+            ServiceProbe::TcpHTTPOptions => {
+                tracing::debug!(
+                    "HTTP Probe: {}:{} - Sending HTTP OPTIONS",
+                    ctx.ip,
+                    ctx.probe.port
+                );
+                let payload: Vec<u8> = payload_builder.payload(PayloadContext::default())?;
+                timeout(ctx.timeout, tcp_stream.write_all(&payload)).await??;
+                tcp_stream.flush().await?;
+                let res: Vec<u8> =
+                    read_timeout(&mut tcp_stream, ctx.timeout, ctx.timeout, ctx.max_read_size)
+                        .await?;
+                let http_res = parse_http_response(&res, 64 * 1024);
+                tracing::debug!(
+                    "HTTP Probe: {}:{} - Header: {:?}",
+                    ctx.ip,
+                    ctx.probe.port,
+                    http_res.header_text
+                );
+                let mut svc = ServiceInfo::default();
+                svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
+                svc.banner = http_res.status_line.clone();
+                svc.product = http_res.headers.get("server").cloned();
+                svc.raw = Some(http_res.raw_text.clone());
+
+                tracing::debug!(
+                    "HTTP Probe: {}:{} - Banner: {:?}, Server {:?}",
+                    ctx.ip,
+                    ctx.probe.port,
+                    svc.banner,
+                    svc.product
+                );
+
+                // Match signatures
+                let cpes = match_http_signatures(&["http"], "tcp:http_options", &http_res)?;
+                if !cpes.is_empty() {
+                    svc.cpes = cpes;
+                }
+                let probe_result: PortProbeResult = PortProbeResult {
+                    ip: ctx.ip,
+                    hostname: ctx.hostname,
+                    port: ctx.probe.port,
+                    transport: ctx.probe.transport,
+                    probe_id: ctx.probe.probe_id,
+                    service_info: svc,
+                };
+                tracing::debug!("HTTP Probe Result: {:?}", probe_result);
+                return Ok(probe_result);
+            }
+            _ => {}
         }
         Err(anyhow::anyhow!("Failed to probe HTTP service at {}", addr))
     }

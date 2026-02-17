@@ -15,4 +15,5 @@ pub const PORT_PROBES_JSON: &str = include_str!("../../resources/nscan-port-prob
 /// TLS OID mappings
 pub const TLS_OID_MAP_JSON: &str = include_str!("../../resources/nscan-tls-oid-map.json");
 /// Top subdomain words for subdomain scanning
-pub const TOP_SUBDOMAIN_WORDS_JSON: &str = include_str!("../../resources/nscan-top-subdomains.json");
+pub const TOP_SUBDOMAIN_WORDS_JSON: &str =
+    include_str!("../../resources/nscan-top-subdomains.json");

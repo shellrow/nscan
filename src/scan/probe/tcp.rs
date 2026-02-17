@@ -1,133 +1,112 @@
-use futures::stream::{self, StreamExt};
+use anyhow::Result;
 use futures::future::poll_fn;
+use futures::stream::{self, StreamExt};
 use netdev::{Interface, MacAddr};
-use nex::datalink::async_io::{async_channel, AsyncChannel, AsyncRawSender};
+use nex::datalink::async_io::{AsyncChannel, AsyncRawSender, async_channel};
 use nex::packet::frame::Frame;
 use nex::packet::ip::IpNextProtocol;
 use nex::packet::tcp::TcpFlags;
 use nex::socket::tcp::{AsyncTcpSocket, TcpConfig};
-use tracing_indicatif::span_ext::IndicatifSpanExt;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::time::Duration;
-use tokio::io::AsyncWriteExt;
 use std::collections::{BTreeMap, HashMap, HashSet};
-use anyhow::Result;
-use tokio::sync::mpsc;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use tokio::io::AsyncWriteExt;
+use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 use crate::capture::pcap::PacketCaptureOptions;
-use crate::cli::{PortScanMethod};
-use crate::endpoint::{Endpoint, EndpointResult, OsGuess, Port, PortResult, PortState, ServiceInfo, TransportProtocol};
+use crate::cli::PortScanMethod;
+use crate::endpoint::{
+    EndpointResult, OsGuess, Port, PortResult, PortState, ServiceInfo, TransportProtocol,
+};
 use crate::output::ScanResult;
 use crate::probe::ProbeSetting;
 
-/// Try to connect to the given ports on the target endpoint using TCP protocol.
-/// Concurrency specifies the number of concurrent connection attempts.
-pub async fn try_connect_ports(
-    target: Endpoint,
-    concurrency: usize,
-    timeout: Duration,
-) -> Result<EndpointResult> {
-    let (ch_tx, mut ch_rx) = mpsc::unbounded_channel::<PortResult>();
+/// Run a TCP connect scan based on the provided probe settings.
+pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
+    let concurrency = setting.port_concurrency.max(1);
+    let connect_timeout = setting.connect_timeout;
+    let start_time = std::time::Instant::now();
+    let mut endpoint_map: BTreeMap<IpAddr, EndpointResult> = BTreeMap::new();
+    let mut work_items: Vec<(IpAddr, Port)> = Vec::new();
+
+    for target in setting.target_endpoints {
+        endpoint_map.insert(
+            target.ip,
+            EndpointResult {
+                ip: target.ip,
+                hostname: target.hostname,
+                ports: BTreeMap::new(),
+                mac_addr: target.mac_addr,
+                vendor_name: None,
+                os: OsGuess::default(),
+                tags: target.tags,
+                cpes: Vec::new(),
+            },
+        );
+        for port in target.ports {
+            work_items.push((target.ip, port));
+        }
+    }
+
+    if work_items.is_empty() {
+        let mut result = ScanResult::new();
+        result.endpoints = endpoint_map.into_values().collect();
+        result.scan_time = start_time.elapsed();
+        result.fingerprints = Vec::new();
+        return Ok(result);
+    }
+
     let header_span = tracing::info_span!("tcp_connect_scan");
     header_span.pb_set_style(&crate::output::progress::get_progress_style());
-    header_span.pb_set_message(&format!("TCP PortScan ({})", target.ip));
-    header_span.pb_set_length(target.ports.len() as u64);
+    header_span.pb_set_message("TCP PortScan");
+    header_span.pb_set_length(work_items.len() as u64);
     header_span.pb_set_position(0);
     header_span.pb_start();
 
-    let span_rx = header_span.clone();
-    let recv_task = tokio::spawn(async move {
-        let mut open_ports: BTreeMap<Port, PortResult> = BTreeMap::new();
-        while let Some(port_result) = ch_rx.recv().await {
-            open_ports.insert(port_result.port.clone(), port_result);
-            // Update progress bar
-            span_rx.pb_inc(1);
-        }
-        open_ports
-    });
-
-    let prod = stream::iter(target.socket_addrs(TransportProtocol::Tcp)).for_each_concurrent(concurrency, move |socket_addr| {
-        let ch_tx = ch_tx.clone();
-        async move {
+    let mut connect_stream = stream::iter(work_items)
+        .map(move |(ip, port)| async move {
+            let socket_addr = SocketAddr::new(ip, port.number);
             let cfg = if socket_addr.is_ipv4() {
                 TcpConfig::v4_stream()
             } else {
                 TcpConfig::v6_stream()
             };
-            let socket = AsyncTcpSocket::from_config(&cfg).unwrap();
+
             let mut port_result = PortResult {
-                port: Port::new(socket_addr.port(), TransportProtocol::Tcp),
+                port,
                 state: PortState::Closed,
                 service: ServiceInfo::default(),
                 rtt_ms: None,
             };
-            match socket.connect_timeout(socket_addr, timeout).await {
-                Ok(mut stream) => {
-                    port_result.state = PortState::Open;
-                    match stream.shutdown().await {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    }
-                }
-                Err(_) => {}
-            }
-            let _ = ch_tx.send(port_result);
-        }
-    });
-    let prod_task = tokio::spawn(prod);
-    let (results_res, _prod_res) = tokio::join!(recv_task, prod_task);
-    let open_ports = results_res?;
-    // Finish header span
-    drop(header_span);
-    Ok(EndpointResult {
-        ip: target.ip,
-        hostname: target.hostname,
-        ports: open_ports,
-        mac_addr: target.mac_addr,
-        vendor_name: None,
-        os: OsGuess::default(),
-        tags: target.tags,
-        cpes: Vec::new(),
-    })
-}
 
-/// Run a TCP connect scan based on the provided probe settings.
-pub async fn run_connect_scan(
-    setting: ProbeSetting,
-) -> Result<ScanResult> {
-    let start_time = std::time::Instant::now();
-    let mut tasks = vec![];
-    for target in setting.target_endpoints {
-        tasks.push(tokio::spawn(async move {
-            let host = try_connect_ports(
-                target,
-                setting.port_concurrency,
-                setting.connect_timeout,
-            )
-            .await;
-            host
-        }));
-    }
-    let mut endpoints: Vec<EndpointResult> = vec![];
-    for task in tasks {
-        match task.await {
-            Ok(endpoint_result) => {
-                match endpoint_result {
-                    Ok(endpoint) => {
-                        endpoints.push(endpoint);
-                    }
-                    Err(e) => {
-                        tracing::error!("error: {}", e);
+            match AsyncTcpSocket::from_config(&cfg) {
+                Ok(socket) => {
+                    if let Ok(mut stream) =
+                        socket.connect_timeout(socket_addr, connect_timeout).await
+                    {
+                        port_result.state = PortState::Open;
+                        let _ = stream.shutdown().await;
                     }
                 }
+                Err(e) => {
+                    tracing::error!("Failed to create TCP socket: {}", e);
+                }
             }
-            Err(e) => {
-                tracing::error!("error: {}", e);
-            }
+
+            (ip, port_result)
+        })
+        .buffer_unordered(concurrency);
+
+    while let Some((ip, port_result)) = connect_stream.next().await {
+        if let Some(endpoint) = endpoint_map.get_mut(&ip) {
+            endpoint.upsert_port(port_result);
         }
+        header_span.pb_inc(1);
     }
+
+    drop(header_span);
+
     let mut result = ScanResult::new();
-    result.endpoints = endpoints;
+    result.endpoints = endpoint_map.into_values().collect();
     result.scan_time = start_time.elapsed();
     result.fingerprints = Vec::new();
     Ok(result)
@@ -147,10 +126,26 @@ pub async fn send_portscan_packets(
         header_span.pb_set_length(target.ports.len() as u64);
         header_span.pb_set_position(0);
         header_span.pb_start();
-        
+
         for port in &target.ports {
-            let packet =
-                crate::packet::tcp::build_tcp_syn_packet(&interface, target.ip, port.number, false);
+            let packet = match crate::packet::tcp::build_tcp_syn_packet(
+                &interface,
+                target.ip,
+                port.number,
+                false,
+            ) {
+                Ok(packet) => packet,
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to build TCP SYN packet for {}:{}: {}",
+                        target.ip,
+                        port.number,
+                        e
+                    );
+                    header_span.pb_inc(1);
+                    continue;
+                }
+            };
 
             // Send a packet using poll_fn.
             match poll_fn(|cx| tx.poll_send(cx, &packet)).await {
@@ -180,11 +175,26 @@ pub async fn send_hostscan_packets(
     header_span.pb_set_length(scan_setting.target_endpoints.len() as u64);
     header_span.pb_set_position(0);
     header_span.pb_start();
-    
+
     for target in &scan_setting.target_endpoints {
         for port in &target.ports {
-            let packet =
-                crate::packet::tcp::build_tcp_syn_packet(&interface, target.ip, port.number, false);
+            let packet = match crate::packet::tcp::build_tcp_syn_packet(
+                &interface,
+                target.ip,
+                port.number,
+                false,
+            ) {
+                Ok(packet) => packet,
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to build TCP SYN packet for {}:{}: {}",
+                        target.ip,
+                        port.number,
+                        e
+                    );
+                    continue;
+                }
+            };
 
             // Send a packet using poll_fn.
             match poll_fn(|cx| tx.poll_send(cx, &packet)).await {
@@ -202,9 +212,7 @@ pub async fn send_hostscan_packets(
 }
 
 /// Run a TCP SYN scan based on the provided probe settings.
-pub async fn run_syn_scan(
-    setting: ProbeSetting,
-) -> Result<ScanResult> {
+pub async fn run_syn_scan(setting: ProbeSetting) -> Result<ScanResult> {
     let interface = match crate::interface::get_interface_by_index(setting.if_index) {
         Some(interface) => interface,
         None => return Err(anyhow::anyhow!("Interface not found")),
@@ -221,8 +229,7 @@ pub async fn run_syn_scan(
         promiscuous: false,
     };
 
-    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)?
-    else {
+    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)? else {
         unreachable!();
     };
 
@@ -244,7 +251,9 @@ pub async fn run_syn_scan(
     };
     for endpoint in setting.target_endpoints.clone() {
         capture_options.src_ips.insert(endpoint.ip);
-        capture_options.src_ports.extend(endpoint.ports.iter().map(|p| p.number));
+        capture_options
+            .src_ports
+            .extend(endpoint.ports.iter().map(|p| p.number));
     }
     capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
 
@@ -252,13 +261,7 @@ pub async fn run_syn_scan(
     let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel();
 
     let capture_handle: tokio::task::JoinHandle<_> = tokio::spawn(async move {
-        crate::capture::pcap::start_capture(
-            &mut rx,
-            capture_options,
-            ready_tx,
-            &mut stop_rx,
-        )
-        .await
+        crate::capture::pcap::start_capture(&mut rx, capture_options, ready_tx, &mut stop_rx).await
     });
 
     // Wait for listener to start
@@ -269,7 +272,9 @@ pub async fn run_syn_scan(
     tokio::time::sleep(setting.wait_time).await;
     // Stop pcap
     let _ = stop_tx.send(());
-    let frames = capture_handle.await.unwrap();
+    let frames = capture_handle
+        .await
+        .map_err(|e| anyhow::anyhow!("capture task join error: {}", e))?;
     let dns_map = setting.get_dns_map();
     let mut result = parse_portscan_result(frames, &interface, &dns_map);
     result.scan_time = start_time.elapsed();
@@ -277,10 +282,7 @@ pub async fn run_syn_scan(
 }
 
 /// Run a TCP port scan using the specified probe settings and method.
-pub async fn run_port_scan(
-    setting: ProbeSetting,
-    method: PortScanMethod
-) -> Result<ScanResult> {
+pub async fn run_port_scan(setting: ProbeSetting, method: PortScanMethod) -> Result<ScanResult> {
     match method {
         PortScanMethod::Connect => {
             return run_connect_scan(setting).await;
@@ -309,8 +311,7 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
         promiscuous: false,
     };
 
-    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)?
-    else {
+    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)? else {
         unreachable!();
     };
 
@@ -332,7 +333,9 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
     };
     for endpoint in &setting.target_endpoints {
         capture_options.src_ips.insert(endpoint.ip);
-        capture_options.src_ports.extend(endpoint.ports.iter().map(|p| p.number));
+        capture_options
+            .src_ports
+            .extend(endpoint.ports.iter().map(|p| p.number));
     }
     capture_options.ip_protocols.insert(IpNextProtocol::Tcp);
 
@@ -340,13 +343,7 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
     let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel();
 
     let capture_handle: tokio::task::JoinHandle<_> = tokio::spawn(async move {
-        crate::capture::pcap::start_capture(
-            &mut rx,
-            capture_options,
-            ready_tx,
-            &mut stop_rx,
-        )
-        .await
+        crate::capture::pcap::start_capture(&mut rx, capture_options, ready_tx, &mut stop_rx).await
     });
 
     // Wait for listener to start
@@ -357,7 +354,9 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
     tokio::time::sleep(setting.wait_time).await;
     // Stop pcap
     let _ = stop_tx.send(());
-    let frames = capture_handle.await.unwrap();
+    let frames = capture_handle
+        .await
+        .map_err(|e| anyhow::anyhow!("capture task join error: {}", e))?;
     let dns_map = setting.get_dns_map();
     let mut result = parse_hostscan_result(frames, &interface, &dns_map);
     result.scan_time = start_time.elapsed();
@@ -408,7 +407,7 @@ fn parse_portscan_result(
         }
         if let Some(transport) = &p.transport {
             if let Some(tcp_packet) = &transport.tcp {
-                if socket_set.contains(&SocketAddr::new(ip_addr,tcp_packet.source)) {
+                if socket_set.contains(&SocketAddr::new(ip_addr, tcp_packet.source)) {
                     continue;
                 }
                 let f = tcp_packet.flags;
@@ -452,7 +451,6 @@ fn parse_portscan_result(
 
         result.fingerprints.push(p.clone());
         socket_set.insert(SocketAddr::new(ip_addr, port.port.number));
-
     }
     for (ip, endpoint) in endpoint_map {
         let mut ep = EndpointResult::new(ip);
@@ -475,7 +473,6 @@ fn parse_hostscan_result(
     iface: &Interface,
     dns_map: &HashMap<IpAddr, String>,
 ) -> ScanResult {
-    let oui_db = crate::db::oui::oui_db();
     let if_ipv4_set: HashSet<Ipv4Addr> = iface.ipv4_addrs().into_iter().collect();
     let if_ipv6_set: HashSet<Ipv6Addr> = iface.ipv6_addrs().into_iter().collect();
     let mut result: ScanResult = ScanResult::new();
@@ -506,7 +503,7 @@ fn parse_hostscan_result(
                 if if_ipv4_set.contains(&ipv4_packet.source) {
                     mac_addr = iface.mac_addr.unwrap_or(MacAddr::zero());
                     ttl = crate::util::ip::initial_ttl(ipv4_packet.ttl);
-                }else{
+                } else {
                     ttl = ipv4_packet.ttl;
                 }
                 ip_addr = IpAddr::V4(ipv4_packet.source);
@@ -514,7 +511,7 @@ fn parse_hostscan_result(
                 if if_ipv6_set.contains(&ipv6_packet.source) {
                     mac_addr = iface.mac_addr.unwrap_or(MacAddr::zero());
                     ttl = crate::util::ip::initial_ttl(ipv6_packet.hop_limit);
-                }else {
+                } else {
                     ttl = ipv6_packet.hop_limit;
                 }
                 ip_addr = IpAddr::V6(ipv6_packet.source);
@@ -526,7 +523,7 @@ fn parse_hostscan_result(
         }
         if let Some(transport) = &p.transport {
             if let Some(tcp_packet) = &transport.tcp {
-                if socket_set.contains(&SocketAddr::new(ip_addr,tcp_packet.source)) {
+                if socket_set.contains(&SocketAddr::new(ip_addr, tcp_packet.source)) {
                     continue;
                 }
                 let f = tcp_packet.flags;
@@ -547,16 +544,7 @@ fn parse_hostscan_result(
             continue;
         }
 
-        let vendor_name_opt: Option<String>;
-        if let Some(oui) = oui_db.lookup_mac(&mac_addr) {
-            if let Some(vendor_detail) = &oui.vendor_detail {
-                vendor_name_opt = Some(vendor_detail.clone());
-            } else {
-                vendor_name_opt = Some(oui.vendor.clone());
-            }
-        } else {
-            vendor_name_opt = None;
-        }
+        let vendor_name_opt = crate::db::oui::lookup_vendor_name(&mac_addr);
 
         let mut os_guess = OsGuess::default().with_ttl_observed(ttl);
         let mut cpes: Vec<String> = Vec::new();
@@ -590,7 +578,6 @@ fn parse_hostscan_result(
 
         result.fingerprints.push(p.clone());
         socket_set.insert(SocketAddr::new(ip_addr, port.port.number));
-
     }
     for (ip, endpoint) in endpoint_map {
         let mut ep = EndpointResult::new(ip);

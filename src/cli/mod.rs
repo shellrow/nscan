@@ -1,12 +1,12 @@
-pub mod port;
 pub mod host;
 pub mod ping;
+pub mod port;
 
 use std::path::PathBuf;
 
-use clap::{command, value_parser, ArgAction, Args, Parser, Subcommand, ValueEnum};
+use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum, value_parser};
 
-use crate::{config::default::DEFAULT_PORTS_CONCURRENCY, endpoint::TransportProtocol, protocol::Protocol};
+use crate::{config::default::DEFAULT_PORTS_CONCURRENCY, endpoint::TransportProtocol};
 
 /// nscan - Network scan tool for host and service discovery
 #[derive(Parser, Debug)]
@@ -24,15 +24,15 @@ pub struct Cli {
     #[arg(long, value_name = "FILE", value_parser = value_parser!(PathBuf))]
     pub log_file_path: Option<PathBuf>,
 
-    /// Suppress all log output (only errors are shown)
+    /// Suppress non-error logs
     #[arg(long, action = ArgAction::SetTrue, default_value_t = false)]
     pub quiet: bool,
 
-    /// Save output to file (JSON format)
+    /// Save result to a JSON file
     #[arg(short, long, value_name = "FILE", value_parser = value_parser!(PathBuf))]
     pub output: Option<PathBuf>,
 
-    /// Suppress stdout console output (only save to file if -o is set)
+    /// Suppress stdout output (use with --output)
     #[arg(long, action = ArgAction::SetTrue, default_value_t = false)]
     pub no_stdout: bool,
 
@@ -67,61 +67,68 @@ impl LogLevel {
 /// Subcommands
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Scan ports on the target(s) (TCP/QUIC)
+    /// Scan ports on target host(s) (TCP/UDP/QUIC)
     Port(PortScanArgs),
 
-    /// Discover alive hosts (ICMP/UDP/TCP etc.)
+    /// Discover alive hosts (ICMP/UDP/TCP)
     Host(HostScanArgs),
 
     /// Subdomain enumeration
     Domain(DomainScanArgs),
 
-    /// Show network interface(s)
+    /// Show network interface information
     Interface(InterfaceArgs),
 }
 
-/// Port scan methods. Default: Connect
+/// Port scan methods. Default: connect
 #[derive(Copy, Clone, Debug, ValueEnum, Eq, PartialEq)]
-pub enum PortScanMethod { Connect, Syn }
+pub enum PortScanMethod {
+    Connect,
+    Syn,
+}
+
+/// Port scan transport.
+#[derive(Copy, Clone, Debug, ValueEnum, Eq, PartialEq)]
+pub enum PortScanTransport {
+    Tcp,
+    Udp,
+    Quic,
+}
+
+impl PortScanTransport {
+    /// Convert to TransportProtocol.
+    pub fn to_transport(self) -> TransportProtocol {
+        match self {
+            PortScanTransport::Tcp => TransportProtocol::Tcp,
+            PortScanTransport::Udp => TransportProtocol::Udp,
+            PortScanTransport::Quic => TransportProtocol::Quic,
+        }
+    }
+    /// Convert to lowercase name.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            PortScanTransport::Tcp => "tcp",
+            PortScanTransport::Udp => "udp",
+            PortScanTransport::Quic => "quic",
+        }
+    }
+}
 
 /// Host scan protocols. Default: ICMP
 #[derive(Copy, Clone, Debug, ValueEnum, Eq, PartialEq)]
-pub enum HostScanProto { Icmp, Udp, Tcp }
+pub enum HostScanProto {
+    Icmp,
+    Udp,
+    Tcp,
+}
 
 impl HostScanProto {
-    /// Convert to TransportProtocol (if applicable)
-    pub fn to_transport(&self) -> Option<TransportProtocol> {
-        match self {
-            HostScanProto::Icmp => None,
-            HostScanProto::Udp => Some(TransportProtocol::Udp),
-            HostScanProto::Tcp => Some(TransportProtocol::Tcp),
-        }
-    }
     /// Convert to &str
     pub fn as_str(&self) -> &str {
         match self {
             HostScanProto::Icmp => "icmp",
             HostScanProto::Udp => "udp",
             HostScanProto::Tcp => "tcp",
-        }
-    }
-}
-
-/// Traceroute protocol (currently only UDP is supported)
-#[derive(Copy, Clone, Debug, ValueEnum, Eq, PartialEq)]
-pub enum TraceProto { Udp }
-
-impl TraceProto {
-    /// Convert to &str
-    pub fn as_str(&self) -> &str {
-        match self {
-            TraceProto::Udp => "udp",
-        }
-    }
-    /// Convert to Protocol
-    pub fn to_protocol(&self) -> Protocol {
-        match self {
-            TraceProto::Udp => Protocol::Udp,
         }
     }
 }
@@ -137,21 +144,20 @@ pub struct PortScanArgs {
     #[arg(short, long, default_value = "top-1000")]
     pub ports: String,
 
-    /// Transport to scan (now tcp only; udp/quic later)
-    #[arg(long, default_value = "tcp", value_parser = ["tcp","udp","quic"])]
-    pub proto: String,
+    /// Transport to scan
+    #[arg(long, value_enum, default_value_t = PortScanTransport::Tcp)]
+    pub proto: PortScanTransport,
 
     /// Scanning method (default: connect)
     #[arg(long, value_enum, default_value_t = PortScanMethod::Connect)]
     pub method: PortScanMethod,
 
     /// Enable service detection (banner/TLS/etc.)
-    #[arg(short='s', long, default_value_t = false, action=ArgAction::SetTrue)]
+    #[arg(short='S', long, default_value_t = false, action=ArgAction::SetTrue)]
     pub service_detect: bool,
 
-    /// Enable OS fingerprinting
-    /// for open ports, send one SYN to collect OS-fingerprint features
-    #[arg(short='o', long, default_value_t = false, action=ArgAction::SetTrue)]
+    /// Enable OS fingerprinting (sends one SYN on open ports to collect fingerprint features)
+    #[arg(short = 'O', long, default_value_t = false, action = ArgAction::SetTrue)]
     pub os_detect: bool,
 
     /// Enable QUIC probing on UDP ports (e.g., 443/udp)
@@ -174,11 +180,11 @@ pub struct PortScanArgs {
     #[arg(long, value_parser = value_parser!(u64).range(1..=10_000))]
     pub connect_timeout_ms: Option<u64>,
 
-    /// Read timeout in ms (auto-adapted by RTT)
+    /// Service probe timeout in ms (used with --service-detect)
     #[arg(long, value_parser = value_parser!(u64).range(1..=10_000))]
     pub read_timeout_ms: Option<u64>,
 
-    /// Wait time after last send (ms)
+    /// Wait after sending probes (ms)
     #[arg(short='w', long, value_parser = value_parser!(u64).range(10..=5000))]
     pub wait_ms: Option<u64>,
 
@@ -190,7 +196,7 @@ pub struct PortScanArgs {
     #[arg(long, action=ArgAction::SetTrue)]
     pub ordered: bool,
 
-    /// Skip initial ping
+    /// Skip initial reachability/RTT ping
     #[arg(long, action=ArgAction::SetTrue)]
     pub no_ping: bool,
 }
@@ -210,7 +216,7 @@ pub struct HostScanArgs {
     #[arg(short, long, default_value = "80")]
     pub ports: String,
 
-    /// Wait time after last send (ms)
+    /// Wait after sending probes (ms)
     #[arg(short='w', long, default_value_t = 300, value_parser = value_parser!(u64).range(10..=5000))]
     pub wait_ms: u64,
 
@@ -231,22 +237,6 @@ pub struct HostScanArgs {
     pub ordered: bool,
 }
 
-/// Neighbor discovery arguments
-#[derive(Args, Debug)]
-pub struct NeighborArgs {
-    /// Target IP (IPv4 -> ARP, IPv6 -> NDP).
-    #[arg(required = true)]
-    pub target: String,
-
-    /// Network interface name to bind
-    #[arg(short='i', long)]
-    pub interface: Option<String>,
-
-    /// Timeout waiting for replies (ms)
-    #[arg(long, default_value_t = 500)]
-    pub timeout_ms: u64,
-}
-
 /// Subdomain scan arguments
 #[derive(Args, Debug)]
 pub struct DomainScanArgs {
@@ -258,7 +248,7 @@ pub struct DomainScanArgs {
     #[arg(short, long)]
     pub wordlist: Option<PathBuf>,
 
-    /// Concurrency
+    /// DNS lookup concurrency
     #[arg(long, default_value_t = 256)]
     pub concurrency: usize,
 

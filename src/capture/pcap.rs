@@ -1,4 +1,5 @@
-use std::net::IpAddr;
+use crate::interface;
+use futures::stream::StreamExt;
 use nex::datalink::async_io::AsyncRawReceiver;
 use nex::net::interface::Interface;
 use nex::packet::frame::Frame;
@@ -6,11 +7,10 @@ use nex::packet::frame::ParseOption;
 use nex::packet::{ethernet::EtherType, ip::IpNextProtocol};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::net::IpAddr;
 use std::time::Duration;
 use std::time::Instant;
-use futures::stream::StreamExt;
 use tokio::sync::oneshot;
-use crate::interface;
 
 /// Packet capture options
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -87,8 +87,8 @@ impl PacketCaptureOptions {
         };
         Some(options)
     }
-    pub fn from_interface_name(if_name: String) -> PacketCaptureOptions {
-        let iface = interface::get_interface_by_name(if_name).unwrap();
+    pub fn from_interface_name(if_name: String) -> Option<PacketCaptureOptions> {
+        let iface = interface::get_interface_by_name(if_name)?;
         let options = PacketCaptureOptions {
             interface_index: iface.index,
             interface_name: iface.name.clone(),
@@ -105,7 +105,7 @@ impl PacketCaptureOptions {
             tunnel: iface.is_tun(),
             loopback: iface.is_loopback(),
         };
-        options
+        Some(options)
     }
     pub fn from_interface(iface: &Interface) -> PacketCaptureOptions {
         let options = PacketCaptureOptions {
@@ -137,7 +137,7 @@ pub async fn start_capture(
 ) -> Vec<Frame> {
     let mut frames = Vec::new();
     let start_time = Instant::now();
-    ready_tx.send(()).unwrap();
+    let _ = ready_tx.send(());
     loop {
         tokio::select! {
             _ = &mut *stop_rx => break,
@@ -152,13 +152,13 @@ pub async fn start_capture(
                             parse_option.from_ip_packet = true;
                             parse_option.offset = payload_offset;
                         }
-                        if let Some(frame) = Frame::from_buf(&packet, parse_option) {
+                        match Frame::from_buf(&packet, parse_option) { Some(frame) => {
                             if filter_packet(&frame, &capture_options) {
                                 frames.push(frame);
                             }
-                        } else {
+                        } _ => {
                             eprintln!("Error parsing packet");
-                        }
+                        }}
                     }
                     Some(Err(e)) => {
                         eprintln!("Error reading packet: {}", e);

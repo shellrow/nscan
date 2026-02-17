@@ -1,3 +1,4 @@
+use anyhow::Result;
 use bytes::Bytes;
 use netdev::{Interface, MacAddr};
 use nex::packet::builder::{
@@ -13,7 +14,12 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use crate::config::default::DEFAULT_LOCAL_UDP_PORT;
 
 /// Build UDP packet
-pub fn build_udp_packet(interface: &Interface, dst_ip: IpAddr, dst_port: u16, is_ip_packet: bool) -> Vec<u8> {
+pub fn build_udp_packet(
+    interface: &Interface,
+    dst_ip: IpAddr,
+    dst_port: u16,
+    is_ip_packet: bool,
+) -> Result<Vec<u8>> {
     let src_mac = interface.mac_addr.unwrap_or(MacAddr::zero());
     let dst_mac = match &interface.gateway {
         Some(gateway) => gateway.mac_addr,
@@ -26,16 +32,14 @@ pub fn build_udp_packet(interface: &Interface, dst_ip: IpAddr, dst_port: u16, is
         crate::interface::get_interface_local_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
 
     let src_ip: IpAddr = match dst_ip {
-        IpAddr::V4(_) => {
-            IpAddr::V4(src_ipv4)
-        },
+        IpAddr::V4(_) => IpAddr::V4(src_ipv4),
         IpAddr::V6(_) => {
             if nex::net::ip::is_global_ip(&dst_ip) {
                 IpAddr::V6(src_global_ipv6)
             } else {
                 IpAddr::V6(src_local_ipv6)
             }
-        },
+        }
     };
 
     let udp_packet = UdpPacketBuilder::new(src_ip, dst_ip)
@@ -59,7 +63,7 @@ pub fn build_udp_packet(interface: &Interface, dst_ip: IpAddr, dst_port: u16, is
             .payload(udp_packet.to_bytes())
             .build()
             .to_bytes(),
-        _ => panic!("Source and destination IP version mismatch"),
+        _ => anyhow::bail!("source and destination IP version mismatch"),
     };
 
     let ethernet_packet = EthernetPacketBuilder::new()
@@ -81,10 +85,12 @@ pub fn build_udp_packet(interface: &Interface, dst_ip: IpAddr, dst_port: u16, is
         .build();
 
     let packet: Bytes = if is_ip_packet {
-        ethernet_packet.ip_packet().unwrap()
+        ethernet_packet
+            .ip_packet()
+            .ok_or_else(|| anyhow::anyhow!("failed to extract IP packet payload"))?
     } else {
         ethernet_packet.to_bytes()
     };
 
-    packet.to_vec()
+    Ok(packet.to_vec())
 }

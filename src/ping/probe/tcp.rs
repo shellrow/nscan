@@ -1,17 +1,21 @@
-use std::collections::HashSet;
-use std::net::IpAddr;
-use std::time::{Duration, Instant};
-use futures::stream::StreamExt;
-use futures::future::poll_fn;
-use netdev::MacAddr;
-use nex::packet::frame::{Frame, ParseOption};
-use nex::packet::tcp::TcpFlags;
 use crate::endpoint::{NodeType, PortState};
 use crate::ping::result::PingStat;
 use crate::probe::{ProbeStatus, ProbeStatusKind};
-use crate::{ping::{result::PingResult, setting::PingSetting}, probe::ProbeResult, protocol::Protocol};
+use crate::{
+    ping::{result::PingResult, setting::PingSetting},
+    probe::ProbeResult,
+    protocol::Protocol,
+};
 use anyhow::Result;
-use nex::datalink::async_io::{async_channel, AsyncChannel};
+use futures::future::poll_fn;
+use futures::stream::StreamExt;
+use netdev::MacAddr;
+use nex::datalink::async_io::{AsyncChannel, async_channel};
+use nex::packet::frame::{Frame, ParseOption};
+use nex::packet::tcp::TcpFlags;
+use std::collections::HashSet;
+use std::net::IpAddr;
+use std::time::{Duration, Instant};
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 /// Run TCP Ping and return the results.
@@ -37,15 +41,16 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
         promiscuous: false,
     };
 
-    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)?
-    else {
+    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)? else {
         unreachable!();
     };
 
     let mut responses: Vec<ProbeResult> = Vec::new();
 
     let mut parse_option: ParseOption = ParseOption::default();
-    if interface.is_tun() || (cfg!(any(target_os = "macos", target_os = "ios")) && interface.is_loopback()) {
+    if interface.is_tun()
+        || (cfg!(any(target_os = "macos", target_os = "ios")) && interface.is_loopback())
+    {
         let payload_offset = if interface.is_loopback() { 14 } else { 0 };
         parse_option.from_ip_packet = true;
         parse_option.offset = payload_offset;
@@ -57,14 +62,14 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
     header_span.pb_set_length(setting.count as u64);
     header_span.pb_set_position(0);
     header_span.pb_start();
-    
+
     let start_time = Instant::now();
-    let tcp_packet = crate::packet::tcp::build_tcp_syn_packet(&interface, setting.dst_ip, dst_port, false);
+    let tcp_packet =
+        crate::packet::tcp::build_tcp_syn_packet(&interface, setting.dst_ip, dst_port, false)?;
     for seq in 1..setting.count + 1 {
         let send_time = Instant::now();
         match poll_fn(|cx| tx.poll_send(cx, &tcp_packet)).await {
-            Ok(_) => {
-            },
+            Ok(_) => {}
             Err(e) => eprintln!("Failed to send packet: {}", e),
         }
         loop {
@@ -93,7 +98,10 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                             {
                                 if let Some(transport) = &frame.transport {
                                     if let Some(tcp) = &transport.tcp {
-                                        let port_state: PortState = if (tcp.flags & (TcpFlags::SYN | TcpFlags::ACK)) == (TcpFlags::SYN | TcpFlags::ACK) {
+                                        let port_state: PortState = if (tcp.flags
+                                            & (TcpFlags::SYN | TcpFlags::ACK))
+                                            == (TcpFlags::SYN | TcpFlags::ACK)
+                                        {
                                             PortState::Open
                                         } else if (tcp.flags & TcpFlags::RST) != 0 {
                                             PortState::Closed
@@ -117,7 +125,15 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                                             sent_packet_size: tcp_packet.len(),
                                             received_packet_size: packet.len(),
                                         };
-                                        tracing::info!("Reply from {}:{}, State={} bytes={} RTT={:?} TTL={}", setting.dst_ip, dst_port, port_state.as_str(), packet.len(), rtt, ipv4_header.ttl);
+                                        tracing::info!(
+                                            "Reply from {}:{}, State={} bytes={} RTT={:?} TTL={}",
+                                            setting.dst_ip,
+                                            dst_port,
+                                            port_state.as_str(),
+                                            packet.len(),
+                                            rtt,
+                                            ipv4_header.ttl
+                                        );
                                         responses.push(probe_result);
                                         header_span.pb_inc(1);
                                         break;
@@ -132,7 +148,10 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                             {
                                 if let Some(transport) = &frame.transport {
                                     if let Some(tcp) = &transport.tcp {
-                                        let port_state: PortState = if (tcp.flags & (TcpFlags::SYN | TcpFlags::ACK)) == (TcpFlags::SYN | TcpFlags::ACK) {
+                                        let port_state: PortState = if (tcp.flags
+                                            & (TcpFlags::SYN | TcpFlags::ACK))
+                                            == (TcpFlags::SYN | TcpFlags::ACK)
+                                        {
                                             PortState::Open
                                         } else if (tcp.flags & TcpFlags::RST) != 0 {
                                             PortState::Closed
@@ -147,8 +166,9 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                                             port_number: Some(dst_port),
                                             port_status: Some(port_state),
                                             ttl: ipv6_header.hop_limit,
-                                            hop: crate::util::ip::initial_ttl(ipv6_header.hop_limit)
-                                                - ipv6_header.hop_limit,
+                                            hop: crate::util::ip::initial_ttl(
+                                                ipv6_header.hop_limit,
+                                            ) - ipv6_header.hop_limit,
                                             rtt: rtt,
                                             probe_status: ProbeStatus::new(),
                                             protocol: Protocol::Tcp,
@@ -156,7 +176,15 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                                             sent_packet_size: tcp_packet.len(),
                                             received_packet_size: packet.len(),
                                         };
-                                        tracing::info!("Reply from {}:{}, State={} bytes={} RTT={:?} TTL={}", setting.dst_ip, dst_port, port_state.as_str(), packet.len(), rtt, ipv6_header.hop_limit);
+                                        tracing::info!(
+                                            "Reply from {}:{}, State={} bytes={} RTT={:?} TTL={}",
+                                            setting.dst_ip,
+                                            dst_port,
+                                            port_state.as_str(),
+                                            packet.len(),
+                                            rtt,
+                                            ipv6_header.hop_limit
+                                        );
                                         responses.push(probe_result);
                                         header_span.pb_inc(1);
                                         break;
@@ -165,17 +193,17 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                             }
                         }
                     }
-                },
+                }
                 Ok(Some(Err(e))) => {
                     tracing::error!("Failed to receive packet: {}", e);
                     header_span.pb_inc(1);
                     break;
-                },
+                }
                 Ok(None) => {
                     tracing::error!("Channel closed");
                     header_span.pb_inc(1);
                     break;
-                },
+                }
                 Err(_) => {
                     tracing::error!("Request timeout for seq {}", seq);
                     let probe_result = ProbeResult::timeout(

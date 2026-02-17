@@ -1,15 +1,18 @@
+use crate::endpoint::ServiceInfo;
+use crate::endpoint::TlsInfo;
+use crate::service::probe::{PortProbeResult, ProbeContext};
 use anyhow::Result;
+use rustls::ClientConnection;
 use rustls::client::danger::ServerCertVerifier;
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
-use rustls::ClientConnection;
-use tokio::{net::TcpStream, time::timeout};
-use tokio_rustls::{TlsConnector, rustls::{ClientConfig, RootCertStore}};
-use std::sync::Arc;
-use x509_parser::prelude::{FromDer, ParsedExtension, X509Certificate};
 use std::net::SocketAddr;
-use crate::endpoint::TlsInfo;
-use crate::{endpoint::ServiceInfo};
-use crate::service::probe::{PortProbeResult, ProbeContext};
+use std::sync::Arc;
+use tokio::{net::TcpStream, time::timeout};
+use tokio_rustls::{
+    TlsConnector,
+    rustls::{ClientConfig, RootCertStore},
+};
+use x509_parser::prelude::{FromDer, ParsedExtension, X509Certificate};
 
 /// Dummy certificate verifier that treats any certificate as valid.
 /// NOTE, such verification is vulnerable to MITM attacks, but convenient for testing.
@@ -68,7 +71,10 @@ impl ServerCertVerifier for SkipServerVerification {
 }
 
 /// Extract TLS info from a ClientConnection
-pub fn extract_tls_info(probe_ctx: &ProbeContext, client_conn: &ClientConnection) -> Option<TlsInfo> {
+pub fn extract_tls_info(
+    probe_ctx: &ProbeContext,
+    client_conn: &ClientConnection,
+) -> Option<TlsInfo> {
     let mut tls_info = TlsInfo::default();
     if let Some(version) = client_conn.protocol_version() {
         if let Some(version) = version.as_str() {
@@ -83,19 +89,27 @@ pub fn extract_tls_info(probe_ctx: &ProbeContext, client_conn: &ClientConnection
     if let Some(alpn) = client_conn.alpn_protocol() {
         tls_info.alpn = Some(String::from_utf8_lossy(alpn).to_string());
     }
-    
-    if let Some(cert) = client_conn.peer_certificates().and_then(|v| v.first()).cloned() {
+
+    if let Some(cert) = client_conn
+        .peer_certificates()
+        .and_then(|v| v.first())
+        .cloned()
+    {
         tls_info.sni = probe_ctx.hostname.clone();
         match X509Certificate::from_der(&cert) {
             Ok((_, x509)) => {
                 // Subject
-                let subject = x509.subject().iter_common_name()
+                let subject = x509
+                    .subject()
+                    .iter_common_name()
                     .next()
                     .and_then(|cn| cn.as_str().ok())
                     .map(|s| s.to_string());
 
                 // Issuer
-                let issuer = x509.issuer().iter_common_name()
+                let issuer = x509
+                    .issuer()
+                    .iter_common_name()
                     .next()
                     .and_then(|cn| cn.as_str().ok())
                     .map(|s| s.to_string());
@@ -116,11 +130,14 @@ pub fn extract_tls_info(probe_ctx: &ProbeContext, client_conn: &ClientConnection
                 tls_info.not_before = Some(x509.validity().not_before.to_string());
                 tls_info.not_after = Some(x509.validity().not_after.to_string());
                 tls_info.serial_hex = Some(x509.raw_serial_as_string());
-                let sig_alg_name = crate::db::tls::oid_sig_name(x509.signature_algorithm.oid().to_id_string().as_str());
+                let sig_alg_name = crate::db::tls::oid_sig_name(
+                    x509.signature_algorithm.oid().to_id_string().as_str(),
+                );
                 tls_info.sig_algorithm = Some(sig_alg_name);
-                let pubkey_alg_name = crate::db::tls::oid_pubkey_name(x509.public_key().algorithm.oid().to_id_string().as_str());
+                let pubkey_alg_name = crate::db::tls::oid_pubkey_name(
+                    x509.public_key().algorithm.oid().to_id_string().as_str(),
+                );
                 tls_info.pubkey_algorithm = Some(pubkey_alg_name);
-
             }
             Err(e) => {
                 tracing::warn!("Failed to parse certificate: {}", e);
@@ -142,13 +159,17 @@ impl TlsProbe {
 
         // rustls config
         let mut roots = RootCertStore::empty();
-        for cert in rustls_native_certs::load_native_certs()? { let _ = roots.add(cert); }
+        for cert in rustls_native_certs::load_native_certs()? {
+            let _ = roots.add(cert);
+        }
         let mut config = ClientConfig::builder()
             .with_root_certificates(roots)
             .with_no_client_auth();
 
         if ctx.skip_cert_verify {
-            config.dangerous().set_certificate_verifier(SkipServerVerification::new());
+            config
+                .dangerous()
+                .set_certificate_verifier(SkipServerVerification::new());
         }
 
         let connector = TlsConnector::from(Arc::new(config));

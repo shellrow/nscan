@@ -1,19 +1,23 @@
-use std::collections::HashSet;
-use std::net::IpAddr;
-use std::time::{Duration, Instant};
-use futures::stream::StreamExt;
-use futures::future::poll_fn;
-use netdev::MacAddr;
-use nex::packet::frame::{Frame, ParseOption};
-use nex::packet::icmp::IcmpType;
-use nex::packet::icmpv6::Icmpv6Type;
 use crate::config::default::DEFAULT_BASE_TARGET_UDP_PORT;
 use crate::endpoint::NodeType;
 use crate::ping::result::PingStat;
 use crate::probe::{ProbeStatus, ProbeStatusKind};
-use crate::{ping::{result::PingResult, setting::PingSetting}, probe::ProbeResult, protocol::Protocol};
+use crate::{
+    ping::{result::PingResult, setting::PingSetting},
+    probe::ProbeResult,
+    protocol::Protocol,
+};
 use anyhow::Result;
-use nex::datalink::async_io::{async_channel, AsyncChannel};
+use futures::future::poll_fn;
+use futures::stream::StreamExt;
+use netdev::MacAddr;
+use nex::datalink::async_io::{AsyncChannel, async_channel};
+use nex::packet::frame::{Frame, ParseOption};
+use nex::packet::icmp::IcmpType;
+use nex::packet::icmpv6::Icmpv6Type;
+use std::collections::HashSet;
+use std::net::IpAddr;
+use std::time::{Duration, Instant};
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 /// Run UDP Ping and return the results.
@@ -38,15 +42,16 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
         promiscuous: false,
     };
 
-    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)?
-    else {
+    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)? else {
         unreachable!();
     };
 
     let mut responses: Vec<ProbeResult> = Vec::new();
 
     let mut parse_option: ParseOption = ParseOption::default();
-    if interface.is_tun() || (cfg!(any(target_os = "macos", target_os = "ios")) && interface.is_loopback()) {
+    if interface.is_tun()
+        || (cfg!(any(target_os = "macos", target_os = "ios")) && interface.is_loopback())
+    {
         let payload_offset = if interface.is_loopback() { 14 } else { 0 };
         parse_option.from_ip_packet = true;
         parse_option.offset = payload_offset;
@@ -58,14 +63,18 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
     header_span.pb_set_length(setting.count as u64);
     header_span.pb_set_position(0);
     header_span.pb_start();
-    
+
     let start_time = Instant::now();
-    let udp_packet = crate::packet::udp::build_udp_packet(&interface, setting.dst_ip, DEFAULT_BASE_TARGET_UDP_PORT, false);
+    let udp_packet = crate::packet::udp::build_udp_packet(
+        &interface,
+        setting.dst_ip,
+        DEFAULT_BASE_TARGET_UDP_PORT,
+        false,
+    )?;
     for seq in 1..setting.count + 1 {
         let send_time = Instant::now();
         match poll_fn(|cx| tx.poll_send(cx, &udp_packet)).await {
-            Ok(_) => {
-            },
+            Ok(_) => {}
             Err(e) => eprintln!("Failed to send packet: {}", e),
         }
         loop {
@@ -112,7 +121,13 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
                                             sent_packet_size: udp_packet.len(),
                                             received_packet_size: packet.len(),
                                         };
-                                        tracing::info!("Reply from {}, bytes={} RTT={:?} TTL={}", setting.dst_ip, packet.len(), rtt, ipv4_header.ttl);
+                                        tracing::info!(
+                                            "Reply from {}, bytes={} RTT={:?} TTL={}",
+                                            setting.dst_ip,
+                                            packet.len(),
+                                            rtt,
+                                            ipv4_header.ttl
+                                        );
                                         responses.push(probe_result);
                                         header_span.pb_inc(1);
                                         break;
@@ -127,7 +142,9 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
                             {
                                 // ICMPv6
                                 if let Some(icmpv6_header) = &ip_layer.icmpv6 {
-                                    if icmpv6_header.icmpv6_type == Icmpv6Type::DestinationUnreachable {
+                                    if icmpv6_header.icmpv6_type
+                                        == Icmpv6Type::DestinationUnreachable
+                                    {
                                         let probe_result: ProbeResult = ProbeResult {
                                             seq: seq,
                                             mac_addr: mac_addr,
@@ -136,8 +153,9 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
                                             port_number: None,
                                             port_status: None,
                                             ttl: ipv6_header.hop_limit,
-                                            hop: crate::util::ip::initial_ttl(ipv6_header.hop_limit)
-                                                - ipv6_header.hop_limit,
+                                            hop: crate::util::ip::initial_ttl(
+                                                ipv6_header.hop_limit,
+                                            ) - ipv6_header.hop_limit,
                                             rtt: rtt,
                                             probe_status: ProbeStatus::new(),
                                             protocol: Protocol::Udp,
@@ -145,7 +163,13 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
                                             sent_packet_size: udp_packet.len(),
                                             received_packet_size: packet.len(),
                                         };
-                                        tracing::info!("Reply from {}, bytes={} RTT={:?} TTL={}", setting.dst_ip, packet.len(), rtt, ipv6_header.hop_limit);
+                                        tracing::info!(
+                                            "Reply from {}, bytes={} RTT={:?} TTL={}",
+                                            setting.dst_ip,
+                                            packet.len(),
+                                            rtt,
+                                            ipv6_header.hop_limit
+                                        );
                                         responses.push(probe_result);
                                         header_span.pb_inc(1);
                                         break;
@@ -154,17 +178,17 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
                             }
                         }
                     }
-                },
+                }
                 Ok(Some(Err(e))) => {
                     tracing::error!("Failed to receive packet: {}", e);
                     header_span.pb_inc(1);
                     break;
-                },
+                }
                 Ok(None) => {
                     tracing::error!("Channel closed");
                     header_span.pb_inc(1);
                     break;
-                },
+                }
                 Err(_) => {
                     tracing::error!("Request timeout for seq {}", seq);
                     let probe_result = ProbeResult::timeout(

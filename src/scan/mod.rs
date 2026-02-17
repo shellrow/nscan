@@ -1,6 +1,11 @@
 use anyhow::Result;
 
-use crate::{cli::{HostScanProto, PortScanMethod}, endpoint::TransportProtocol, output::ScanResult, probe::ProbeSetting};
+use crate::{
+    cli::{HostScanProto, PortScanMethod},
+    endpoint::TransportProtocol,
+    output::ScanResult,
+    probe::ProbeSetting,
+};
 
 pub mod probe;
 
@@ -13,7 +18,11 @@ pub struct PortScanner {
 
 impl PortScanner {
     /// Create a new PortScanner instance.
-    pub fn new(settings: ProbeSetting, transport: TransportProtocol, scan_method: PortScanMethod) -> Self {
+    pub fn new(
+        settings: ProbeSetting,
+        transport: TransportProtocol,
+        scan_method: PortScanMethod,
+    ) -> Self {
         Self {
             settings,
             scan_method,
@@ -23,8 +32,12 @@ impl PortScanner {
     /// Run the port scan based on the specified transport protocol and method.
     pub async fn run(&self) -> Result<ScanResult> {
         match self.transport {
-            TransportProtocol::Tcp => probe::tcp::run_port_scan(self.settings.clone(), self.scan_method).await,
-            TransportProtocol::Quic => probe::quic::run_port_scan(self.settings.clone(), self.scan_method).await,
+            TransportProtocol::Tcp => {
+                probe::tcp::run_port_scan(self.settings.clone(), self.scan_method).await
+            }
+            TransportProtocol::Quic => {
+                probe::quic::run_port_scan(self.settings.clone(), self.scan_method).await
+            }
             _ => anyhow::bail!("Unsupported transport protocol: {:?}", self.transport),
         }
     }

@@ -1,6 +1,6 @@
-use tracing_subscriber::fmt::time::FormatTime;
-use std::fmt;
 use chrono::Local;
+use std::fmt;
+use tracing_subscriber::fmt::time::FormatTime;
 
 /// DateTime format for logging that includes date, time, and timezone (YYYY-MM-DD HH:MM:SS.mmmmmm+00:00)
 /// Same as `ChronoLocal::rfc_3339()` but with a custom format

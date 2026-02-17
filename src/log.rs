@@ -1,9 +1,9 @@
 use anyhow::Result;
-use tracing::level_filters::LevelFilter;
 use std::fs::File;
+use tracing::level_filters::LevelFilter;
 use tracing_indicatif::IndicatifLayer;
+use tracing_subscriber::{filter::Targets, fmt, prelude::*, registry};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tracing_subscriber::{fmt, prelude::*, registry, filter::Targets};
 
 use crate::cli::Cli;
 use crate::time::LocalTimeOnly;
@@ -46,11 +46,16 @@ pub fn init_logger(cli_args: &Cli) -> Result<()> {
     }
 
     // Determine log file path
-    let log_file_path = cli_args.log_file_path.clone()
+    let log_file_path = cli_args
+        .log_file_path
+        .clone()
         .unwrap_or_else(|| crate::config::get_user_file_path("nscan.log").unwrap());
-    
+
     // Open log file in append mode
-    let file = File::options().create(true).append(true).open(&log_file_path)?;
+    let file = File::options()
+        .create(true)
+        .append(true)
+        .open(&log_file_path)?;
 
     // File-specific fmt layer
     let file_fmt = fmt::layer()
@@ -66,8 +71,8 @@ pub fn init_logger(cli_args: &Cli) -> Result<()> {
 
         registry()
             .with(indicatif_layer)
-            .with(console_fmt.with_filter(console_filter)) 
-            .with(file_fmt.with_filter(file_filter))       
+            .with(console_fmt.with_filter(console_filter))
+            .with(file_fmt.with_filter(file_filter))
             .init();
     }
 
@@ -76,9 +81,7 @@ pub fn init_logger(cli_args: &Cli) -> Result<()> {
         // release: no output to screen, ERROR only for file
         let file_filter = LevelFilter::ERROR;
 
-        registry()
-            .with(file_fmt.with_filter(file_filter))
-            .init();
+        registry().with(file_fmt.with_filter(file_filter)).init();
     }
 
     Ok(())

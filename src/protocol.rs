@@ -1,15 +1,15 @@
-use serde::{Deserialize, Serialize};
 use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
 
 /// Supported protocols for probing
 #[derive(Deserialize, Serialize, Copy, Clone, Debug, ValueEnum, Eq, PartialEq)]
-pub enum Protocol { 
-    Icmp, 
-    Udp, 
+pub enum Protocol {
+    Icmp,
+    Udp,
     Tcp,
     Quic,
     Arp,
-    Ndp
+    Ndp,
 }
 
 impl Protocol {

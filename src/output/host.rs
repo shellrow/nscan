@@ -1,5 +1,5 @@
+use crate::output::{ScanResult, tree_label};
 use termtree::Tree;
-use crate::output::{tree_label, ScanResult};
 
 /// Print the scan report results in a tree structure.
 pub fn print_report_tree(result: &ScanResult) {
@@ -52,7 +52,11 @@ pub fn print_report_tree(result: &ScanResult) {
         // Port information
         if !ep.ports.is_empty() {
             for (port, pr) in &ep.ports {
-                let mut pnode = Tree::new(tree_label(format!("{}/{}", port.number, port.transport.as_str().to_uppercase())));
+                let mut pnode = Tree::new(tree_label(format!(
+                    "{}/{}",
+                    port.number,
+                    port.transport.as_str().to_uppercase()
+                )));
                 pnode.push(Tree::new(tree_label(format!("state: {:?}", pr.state))));
                 if let Some(name) = &pr.service.name {
                     pnode.push(Tree::new(tree_label(format!("service: {}", name))));

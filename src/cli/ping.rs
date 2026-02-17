@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
-use anyhow::{Result, Context};
 use crate::endpoint::Host;
+use anyhow::{Context, Result};
 
 /// Parse a single target host (IP or hostname)
 pub async fn parse_target_host(host_str: &str) -> Result<Host> {
@@ -9,7 +9,9 @@ pub async fn parse_target_host(host_str: &str) -> Result<Host> {
     match host_str.parse::<IpAddr>() {
         Ok(ip) => Ok(Host::new(ip)),
         Err(_) => {
-            let ips = resolver.lookup_ip(host_str).await
+            let ips = resolver
+                .lookup_ip(host_str)
+                .await
                 .with_context(|| format!("resolve {host_str}"))?;
             // If multiple IPs are returned, use the first one (ips: LookupIp)
             for ip in ips {
