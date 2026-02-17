@@ -60,7 +60,12 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
     header_span.pb_start();
     
     let start_time = Instant::now();
-    let udp_packet = crate::packet::udp::build_udp_packet(&interface, setting.dst_ip, DEFAULT_BASE_TARGET_UDP_PORT, false);
+    let udp_packet = crate::packet::udp::build_udp_packet(
+        &interface,
+        setting.dst_ip,
+        DEFAULT_BASE_TARGET_UDP_PORT,
+        false,
+    )?;
     for seq in 1..setting.count + 1 {
         let send_time = Instant::now();
         match poll_fn(|cx| tx.poll_send(cx, &udp_packet)).await {

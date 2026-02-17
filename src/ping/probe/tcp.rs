@@ -59,7 +59,8 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
     header_span.pb_start();
     
     let start_time = Instant::now();
-    let tcp_packet = crate::packet::tcp::build_tcp_syn_packet(&interface, setting.dst_ip, dst_port, false);
+    let tcp_packet =
+        crate::packet::tcp::build_tcp_syn_packet(&interface, setting.dst_ip, dst_port, false)?;
     for seq in 1..setting.count + 1 {
         let send_time = Instant::now();
         match poll_fn(|cx| tx.poll_send(cx, &tcp_packet)).await {

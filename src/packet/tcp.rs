@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use anyhow::Result;
 use netdev::{Interface, MacAddr};
 use nex::packet::builder::{
     ethernet::EthernetPacketBuilder, ipv4::Ipv4PacketBuilder, ipv6::Ipv6PacketBuilder,
@@ -19,7 +20,7 @@ pub fn build_tcp_syn_packet(
     dst_ip: IpAddr,
     dst_port: u16,
     is_ip_packet: bool
-) -> Vec<u8> {
+) -> Result<Vec<u8>> {
     let src_mac = interface.mac_addr.unwrap_or(MacAddr::zero());
     let dst_mac = match &interface.gateway {
         Some(gateway) => gateway.mac_addr,
@@ -99,9 +100,11 @@ pub fn build_tcp_syn_packet(
         .build();
 
     let packet: Bytes = if is_ip_packet {
-        ethernet_packet.ip_packet().unwrap()
+        ethernet_packet
+            .ip_packet()
+            .ok_or_else(|| anyhow::anyhow!("failed to extract IP packet payload"))?
     } else {
         ethernet_packet.to_bytes()
     };
-    packet.to_vec()
+    Ok(packet.to_vec())
 }

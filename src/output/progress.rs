@@ -2,11 +2,16 @@ use indicatif::{ProgressState, ProgressStyle};
 
 /// Get a progress bar style with a custom elapsed time formatter.
 pub fn get_progress_style() -> ProgressStyle {
-    ProgressStyle::default_bar()
-        .template(
-            "{spinner:.green} {msg} [{elapsed_precise_subsec}] [{bar:40.cyan/blue}] {pos}/{len}",
-        )
-        .unwrap()
+    let style = ProgressStyle::default_bar().template(
+        "{spinner:.green} {msg} [{elapsed_precise_subsec}] [{bar:40.cyan/blue}] {pos}/{len}",
+    );
+
+    let style = match style {
+        Ok(s) => s,
+        Err(_) => ProgressStyle::default_bar(),
+    };
+
+    style
         .with_key("elapsed_precise_subsec", elapsed_precise_subsec)
         .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏", "✓"])
         .progress_chars("#>-")

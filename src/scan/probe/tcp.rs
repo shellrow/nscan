@@ -127,8 +127,24 @@ pub async fn send_portscan_packets(
         header_span.pb_start();
 
         for port in &target.ports {
-            let packet =
-                crate::packet::tcp::build_tcp_syn_packet(&interface, target.ip, port.number, false);
+            let packet = match crate::packet::tcp::build_tcp_syn_packet(
+                &interface,
+                target.ip,
+                port.number,
+                false,
+            ) {
+                Ok(packet) => packet,
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to build TCP SYN packet for {}:{}: {}",
+                        target.ip,
+                        port.number,
+                        e
+                    );
+                    header_span.pb_inc(1);
+                    continue;
+                }
+            };
 
             // Send a packet using poll_fn.
             match poll_fn(|cx| tx.poll_send(cx, &packet)).await {
@@ -161,8 +177,23 @@ pub async fn send_hostscan_packets(
 
     for target in &scan_setting.target_endpoints {
         for port in &target.ports {
-            let packet =
-                crate::packet::tcp::build_tcp_syn_packet(&interface, target.ip, port.number, false);
+            let packet = match crate::packet::tcp::build_tcp_syn_packet(
+                &interface,
+                target.ip,
+                port.number,
+                false,
+            ) {
+                Ok(packet) => packet,
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to build TCP SYN packet for {}:{}: {}",
+                        target.ip,
+                        port.number,
+                        e
+                    );
+                    continue;
+                }
+            };
 
             // Send a packet using poll_fn.
             match poll_fn(|cx| tx.poll_send(cx, &packet)).await {

@@ -28,12 +28,19 @@ pub async fn send_hostscan_packets(
     header_span.pb_start();
 
     for target in &scan_setting.target_endpoints {
-        let packet = crate::packet::udp::build_udp_packet(
+        let packet = match crate::packet::udp::build_udp_packet(
             &interface,
             target.ip,
             DEFAULT_BASE_TARGET_UDP_PORT,
             false,
-        );
+        ) {
+            Ok(packet) => packet,
+            Err(e) => {
+                tracing::error!("Failed to build UDP packet for {}: {}", target.ip, e);
+                header_span.pb_inc(1);
+                continue;
+            }
+        };
         // Send a packet using poll_fn.
         match poll_fn(|cx| tx.poll_send(cx, &packet)).await {
             Ok(_) => {

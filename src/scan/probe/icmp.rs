@@ -26,7 +26,14 @@ pub async fn send_hostscan_packets(
     header_span.pb_start();
 
     for target in &scan_setting.target_endpoints {
-        let packet = crate::packet::icmp::build_icmp_packet(&interface, target.ip, false);
+        let packet = match crate::packet::icmp::build_icmp_packet(&interface, target.ip, false) {
+            Ok(packet) => packet,
+            Err(e) => {
+                tracing::error!("Failed to build ICMP packet for {}: {}", target.ip, e);
+                header_span.pb_inc(1);
+                continue;
+            }
+        };
         // Send a packet using poll_fn.
         match poll_fn(|cx| tx.poll_send(cx, &packet)).await {
             Ok(_) => {

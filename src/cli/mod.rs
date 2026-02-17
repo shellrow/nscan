@@ -6,9 +6,7 @@ use std::path::PathBuf;
 
 use clap::{value_parser, ArgAction, Args, Parser, Subcommand, ValueEnum};
 
-use crate::{
-    config::default::DEFAULT_PORTS_CONCURRENCY, endpoint::TransportProtocol, protocol::Protocol,
-};
+use crate::{config::default::DEFAULT_PORTS_CONCURRENCY, endpoint::TransportProtocol};
 
 /// nscan - Network scan tool for host and service discovery
 #[derive(Parser, Debug)]
@@ -125,41 +123,12 @@ pub enum HostScanProto {
 }
 
 impl HostScanProto {
-    /// Convert to TransportProtocol (if applicable)
-    pub fn to_transport(&self) -> Option<TransportProtocol> {
-        match self {
-            HostScanProto::Icmp => None,
-            HostScanProto::Udp => Some(TransportProtocol::Udp),
-            HostScanProto::Tcp => Some(TransportProtocol::Tcp),
-        }
-    }
     /// Convert to &str
     pub fn as_str(&self) -> &str {
         match self {
             HostScanProto::Icmp => "icmp",
             HostScanProto::Udp => "udp",
             HostScanProto::Tcp => "tcp",
-        }
-    }
-}
-
-/// Traceroute protocol (currently only UDP is supported)
-#[derive(Copy, Clone, Debug, ValueEnum, Eq, PartialEq)]
-pub enum TraceProto {
-    Udp,
-}
-
-impl TraceProto {
-    /// Convert to &str
-    pub fn as_str(&self) -> &str {
-        match self {
-            TraceProto::Udp => "udp",
-        }
-    }
-    /// Convert to Protocol
-    pub fn to_protocol(&self) -> Protocol {
-        match self {
-            TraceProto::Udp => Protocol::Udp,
         }
     }
 }
@@ -184,11 +153,11 @@ pub struct PortScanArgs {
     pub method: PortScanMethod,
 
     /// Enable service detection (banner/TLS/etc.)
-    #[arg(short='s', long, default_value_t = false, action=ArgAction::SetTrue)]
+    #[arg(short='S', long, default_value_t = false, action=ArgAction::SetTrue)]
     pub service_detect: bool,
 
     /// Enable OS fingerprinting (sends one SYN on open ports to collect fingerprint features)
-    #[arg(short='o', long, default_value_t = false, action=ArgAction::SetTrue)]
+    #[arg(short = 'O', long, default_value_t = false, action = ArgAction::SetTrue)]
     pub os_detect: bool,
 
     /// Enable QUIC probing on UDP ports (e.g., 443/udp)
@@ -266,22 +235,6 @@ pub struct HostScanArgs {
     /// Scan hosts in user-specified order (default is randomized)
     #[arg(long, action=ArgAction::SetTrue)]
     pub ordered: bool,
-}
-
-/// Neighbor discovery arguments
-#[derive(Args, Debug)]
-pub struct NeighborArgs {
-    /// Target IP (IPv4 -> ARP, IPv6 -> NDP).
-    #[arg(required = true)]
-    pub target: String,
-
-    /// Network interface name to bind
-    #[arg(short = 'i', long)]
-    pub interface: Option<String>,
-
-    /// Timeout waiting for replies (ms)
-    #[arg(long, default_value_t = 500)]
-    pub timeout_ms: u64,
 }
 
 /// Subdomain scan arguments
