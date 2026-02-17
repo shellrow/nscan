@@ -1,17 +1,24 @@
-use std::{collections::HashMap, net::IpAddr, time::Duration};
-use regex::{Regex, RegexBuilder};
 use anyhow::{Result, bail};
 use futures::stream::{self, StreamExt};
-use tokio::{io::{AsyncRead, AsyncReadExt}, net::TcpStream, time::{timeout, Instant}};
+use regex::{Regex, RegexBuilder};
+use std::{collections::HashMap, net::IpAddr, time::Duration};
+use tokio::{
+    io::{AsyncRead, AsyncReadExt},
+    net::TcpStream,
+    time::{Instant, timeout},
+};
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
-use crate::{endpoint::{Endpoint, Port}, service::probe::{PortProbe, PortProbeResult, ProbeContext, ProbePayload, ServiceProbe}};
+use crate::{
+    endpoint::{Endpoint, Port},
+    service::probe::{PortProbe, PortProbeResult, ProbeContext, ProbePayload, ServiceProbe},
+};
 
-pub mod probe;
 mod payload;
+pub mod probe;
 
 /// Configuration for service probing
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct ServiceProbeConfig {
     pub timeout: Duration,
     pub max_concurrency: usize,
@@ -34,11 +41,12 @@ pub struct ServiceDetector {
 impl ServiceDetector {
     /// Create a new ServiceDetector with the given configuration
     pub fn new(config: ServiceProbeConfig) -> Self {
-        ServiceDetector {
-            config
-        }
+        ServiceDetector { config }
     }
-    pub async fn run_service_detection(&self, targets: Vec<Endpoint>) -> Result<ServiceDetectionResult> {
+    pub async fn run_service_detection(
+        &self,
+        targets: Vec<Endpoint>,
+    ) -> Result<ServiceDetectionResult> {
         let max_concurrency = self.config.max_concurrency.max(1);
         let start_time = Instant::now();
         let mut work_items: Vec<(IpAddr, Option<String>, Port)> = Vec::new();
@@ -98,8 +106,10 @@ async fn run_probes_for_target_port(
     hostname: Option<String>,
     port: Port,
 ) -> Vec<Result<PortProbeResult>> {
-    let port_probe_db: &'static HashMap<Port, Vec<ServiceProbe>> = crate::db::service::port_probe_db();
-    let service_probe_db: &'static HashMap<ServiceProbe, ProbePayload> = crate::db::service::service_probe_db();
+    let port_probe_db: &'static HashMap<Port, Vec<ServiceProbe>> =
+        crate::db::service::port_probe_db();
+    let service_probe_db: &'static HashMap<ServiceProbe, ProbePayload> =
+        crate::db::service::service_probe_db();
 
     let mut results: Vec<Result<PortProbeResult>> = Vec::new();
     if let Some(probes) = port_probe_db.get(&port) {
@@ -226,7 +236,8 @@ where
 // Build a regex with given pattern and flags
 fn build_regex(pat: &str, flags: &str) -> anyhow::Result<Regex> {
     let mut b = RegexBuilder::new(pat);
-    b.case_insensitive(flags.contains('i')).dot_matches_new_line(flags.contains('s'));
+    b.case_insensitive(flags.contains('i'))
+        .dot_matches_new_line(flags.contains('s'));
     //b.multi_line(true);
     Ok(b.build()?)
 }
@@ -234,8 +245,8 @@ fn build_regex(pat: &str, flags: &str) -> anyhow::Result<Regex> {
 /// Build a regex for HTTP headers (multi-line, case-insensitive, dot matches new line)
 fn build_http_regex(pat: &str) -> anyhow::Result<Regex> {
     Ok(RegexBuilder::new(pat)
-        .multi_line(true)         
-        .case_insensitive(true)   
+        .multi_line(true)
+        .case_insensitive(true)
         .dot_matches_new_line(true)
         .build()?)
 }

@@ -1,5 +1,5 @@
-use termtree::Tree;
 use netdev::Interface;
+use termtree::Tree;
 
 use crate::output::tree_label;
 
@@ -12,7 +12,7 @@ pub fn print_interface_tree(ifaces: &[Interface]) {
             iface.name,
             if iface.default { " (default)" } else { "" }
         ));
-        
+
         node.push(Tree::new(format!("index: {}", iface.index)));
 
         if let Some(fn_name) = &iface.friendly_name {

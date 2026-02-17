@@ -5,7 +5,7 @@ use crate::{
     endpoint::{Host, Port, TransportProtocol},
     output::ScanResult,
     scan::HostScanner,
-    util::json::{save_json_output, JsonStyle},
+    util::json::{JsonStyle, save_json_output},
 };
 use anyhow::Result;
 use rand::seq::SliceRandom;

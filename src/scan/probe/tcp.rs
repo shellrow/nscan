@@ -2,7 +2,7 @@ use anyhow::Result;
 use futures::future::poll_fn;
 use futures::stream::{self, StreamExt};
 use netdev::{Interface, MacAddr};
-use nex::datalink::async_io::{async_channel, AsyncChannel, AsyncRawSender};
+use nex::datalink::async_io::{AsyncChannel, AsyncRawSender, async_channel};
 use nex::packet::frame::Frame;
 use nex::packet::ip::IpNextProtocol;
 use nex::packet::tcp::TcpFlags;
@@ -80,7 +80,8 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
 
             match AsyncTcpSocket::from_config(&cfg) {
                 Ok(socket) => {
-                    if let Ok(mut stream) = socket.connect_timeout(socket_addr, connect_timeout).await
+                    if let Ok(mut stream) =
+                        socket.connect_timeout(socket_addr, connect_timeout).await
                     {
                         port_result.state = PortState::Open;
                         let _ = stream.shutdown().await;

@@ -1,5 +1,5 @@
-use std::time::Duration;
 use netdev::MacAddr;
+use std::time::Duration;
 use termtree::Tree;
 
 use crate::{ping::result::PingResult, probe::ProbeStatusKind, protocol::Protocol};
@@ -27,7 +27,11 @@ pub fn print_ping_tree(res: &PingResult) {
     // Packet loss rate
     let sent = s.transmitted_count as f64;
     let recv = s.received_count as f64;
-    let loss = if sent > 0.0 { ((sent - recv) / sent) * 100.0 } else { 0.0 };
+    let loss = if sent > 0.0 {
+        ((sent - recv) / sent) * 100.0
+    } else {
+        0.0
+    };
 
     let mut root = Tree::new(title);
 
@@ -43,7 +47,10 @@ pub fn print_ping_tree(res: &PingResult) {
     if let Some(hostname) = &res.hostname {
         summary.push(Tree::new(format!("Hostname: {}", hostname)));
     }
-    summary.push(Tree::new(format!("Protocol: {}", format!("{:?}", res.protocol).to_uppercase())));
+    summary.push(Tree::new(format!(
+        "Protocol: {}",
+        format!("{:?}", res.protocol).to_uppercase()
+    )));
     match res.protocol {
         Protocol::Icmp => {}
         Protocol::Tcp => {
@@ -54,14 +61,21 @@ pub fn print_ping_tree(res: &PingResult) {
         Protocol::Udp => {}
         _ => {}
     }
-    summary.push(Tree::new(format!("Received/Sent: {}/{}", s.received_count, s.transmitted_count)));
+    summary.push(Tree::new(format!(
+        "Received/Sent: {}/{}",
+        s.received_count, s.transmitted_count
+    )));
     summary.push(Tree::new(format!("Packet loss: {}", pct(loss))));
     summary.push(Tree::new(format!("Elapsed: {:?}", res.elapsed_time)));
     if let Some(min) = &s.min {
         let mut rtt = Tree::new("RTT".to_string());
         rtt.push(Tree::new(format!("MIN: {}", fmt_ms(min))));
-        if let Some(avg) = &s.avg   { rtt.push(Tree::new(format!("AVG: {}", fmt_ms(avg)))); }
-        if let Some(max) = &s.max   { rtt.push(Tree::new(format!("MAX: {}", fmt_ms(max)))); }
+        if let Some(avg) = &s.avg {
+            rtt.push(Tree::new(format!("AVG: {}", fmt_ms(avg))));
+        }
+        if let Some(max) = &s.max {
+            rtt.push(Tree::new(format!("MAX: {}", fmt_ms(max))));
+        }
         summary.push(rtt);
     }
     root.push(summary);
@@ -92,7 +106,7 @@ pub fn print_ping_tree(res: &PingResult) {
                         node.push(Tree::new(format!("State: {}", state.as_str())));
                     }
                     replies.push(node);
-                },
+                }
                 _ => {
                     let err_head = format!(
                         "#{} {}: {}",
@@ -104,7 +118,7 @@ pub fn print_ping_tree(res: &PingResult) {
                     .to_string();
                     let node = Tree::new(err_head);
                     replies.push(node);
-                },
+                }
             }
         }
         root.push(replies);

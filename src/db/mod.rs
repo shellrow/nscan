@@ -1,13 +1,13 @@
-pub mod service;
-pub mod os;
-pub mod port;
-pub mod tls;
-pub mod oui;
 pub mod domain;
+pub mod os;
+pub mod oui;
+pub mod port;
+pub mod service;
+pub mod tls;
 
-use std::time::{Duration, Instant};
-use futures::StreamExt;
 use anyhow::Result;
+use futures::StreamExt;
+use std::time::{Duration, Instant};
 
 /// Initialization function type
 type InitFn = fn() -> Result<()>;
@@ -18,14 +18,38 @@ struct DbTask {
     init: InitFn,
 }
 
-const TASK_TCP_SERVICE: DbTask = DbTask { name: "tcp_service_db",       init: || service::init_tcp_service_db() };
-const TASK_UDP_SERVICE: DbTask = DbTask { name: "udp_service_db",       init: || service::init_udp_service_db() };
-const TASK_PORT_PROBE : DbTask = DbTask { name: "port_probe_db",        init: || service::init_port_probe_db() };
-const TASK_SVC_PROBE  : DbTask = DbTask { name: "service_probe_db",     init: || service::init_service_probe_db() };
-const TASK_RESP_SIGS  : DbTask = DbTask { name: "response_signatures",  init: || service::init_response_signatures_db() };
-const TASK_TLS_OID    : DbTask = DbTask { name: "tls_oid_map",          init: || tls::init_tls_oid_map() };
-const TASK_OS_DB      : DbTask = DbTask { name: "os_db",                init: || os::init_os_db() };
-const TASK_OUI_DB     : DbTask = DbTask { name: "oui_db",               init: || oui::init_oui_db() };
+const TASK_TCP_SERVICE: DbTask = DbTask {
+    name: "tcp_service_db",
+    init: || service::init_tcp_service_db(),
+};
+const TASK_UDP_SERVICE: DbTask = DbTask {
+    name: "udp_service_db",
+    init: || service::init_udp_service_db(),
+};
+const TASK_PORT_PROBE: DbTask = DbTask {
+    name: "port_probe_db",
+    init: || service::init_port_probe_db(),
+};
+const TASK_SVC_PROBE: DbTask = DbTask {
+    name: "service_probe_db",
+    init: || service::init_service_probe_db(),
+};
+const TASK_RESP_SIGS: DbTask = DbTask {
+    name: "response_signatures",
+    init: || service::init_response_signatures_db(),
+};
+const TASK_TLS_OID: DbTask = DbTask {
+    name: "tls_oid_map",
+    init: || tls::init_tls_oid_map(),
+};
+const TASK_OS_DB: DbTask = DbTask {
+    name: "os_db",
+    init: || os::init_os_db(),
+};
+const TASK_OUI_DB: DbTask = DbTask {
+    name: "oui_db",
+    init: || oui::init_oui_db(),
+};
 
 /// Database initialization result record
 #[derive(Debug, Clone)]
@@ -50,23 +74,49 @@ pub struct DbInitializer {
 
 impl DbInitializer {
     /// Create new initializer
-    pub fn new() -> Self { Self { tasks: Vec::new() } }
+    pub fn new() -> Self {
+        Self { tasks: Vec::new() }
+    }
     /// Add TCP service DB
-    pub fn with_tcp_services(mut self) -> Self { self.tasks.push(&TASK_TCP_SERVICE); self }
+    pub fn with_tcp_services(mut self) -> Self {
+        self.tasks.push(&TASK_TCP_SERVICE);
+        self
+    }
     /// Add UDP service DB
-    pub fn with_udp_services(mut self) -> Self { self.tasks.push(&TASK_UDP_SERVICE); self }
+    pub fn with_udp_services(mut self) -> Self {
+        self.tasks.push(&TASK_UDP_SERVICE);
+        self
+    }
     /// Add port probe DB
-    pub fn with_port_probe(mut self)   -> Self { self.tasks.push(&TASK_PORT_PROBE);  self }
+    pub fn with_port_probe(mut self) -> Self {
+        self.tasks.push(&TASK_PORT_PROBE);
+        self
+    }
     /// Add service probe DB
-    pub fn with_service_probe(mut self)-> Self { self.tasks.push(&TASK_SVC_PROBE);   self }
+    pub fn with_service_probe(mut self) -> Self {
+        self.tasks.push(&TASK_SVC_PROBE);
+        self
+    }
     /// Add response signatures DB
-    pub fn with_response_sigs(mut self)-> Self { self.tasks.push(&TASK_RESP_SIGS);   self }
+    pub fn with_response_sigs(mut self) -> Self {
+        self.tasks.push(&TASK_RESP_SIGS);
+        self
+    }
     /// Add TLS OID map
-    pub fn with_tls_oids(mut self)     -> Self { self.tasks.push(&TASK_TLS_OID);     self }
+    pub fn with_tls_oids(mut self) -> Self {
+        self.tasks.push(&TASK_TLS_OID);
+        self
+    }
     /// Add OS DB
-    pub fn with_os_db(mut self)        -> Self { self.tasks.push(&TASK_OS_DB);       self }
+    pub fn with_os_db(mut self) -> Self {
+        self.tasks.push(&TASK_OS_DB);
+        self
+    }
     /// Add OUI DB
-    pub fn with_oui_db(mut self)       -> Self { self.tasks.push(&TASK_OUI_DB);      self }
+    pub fn with_oui_db(mut self) -> Self {
+        self.tasks.push(&TASK_OUI_DB);
+        self
+    }
     /// Add all databases
     pub fn with_all() -> Self {
         Self::new()
@@ -99,9 +149,9 @@ impl DbInitializer {
         let results = stream::iter(uniq)
             .map(|task| async move {
                 let start = Instant::now();
-                let res  = (task.init)();
-                let ok   = res.is_ok();
-                let err  = res.err().map(|e| e.to_string());
+                let res = (task.init)();
+                let ok = res.is_ok();
+                let err = res.err().map(|e| e.to_string());
                 InitRecord {
                     name: task.name,
                     elapsed: start.elapsed(),
@@ -119,11 +169,19 @@ impl DbInitializer {
             if r.ok {
                 tracing::debug!("DB init ok: {} ({:?})", r.name, r.elapsed);
             } else {
-                tracing::error!("DB init failed: {} ({:?}) - {}", r.name, r.elapsed, r.error.as_deref().unwrap_or("?"));
+                tracing::error!(
+                    "DB init failed: {} ({:?}) - {}",
+                    r.name,
+                    r.elapsed,
+                    r.error.as_deref().unwrap_or("?")
+                );
             }
         }
         tracing::debug!("DB init done: {:?} total", total);
 
-        InitReport { total, records: results }
+        InitReport {
+            total,
+            records: results,
+        }
     }
 }

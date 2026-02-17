@@ -1,6 +1,12 @@
-use crate::{probe::{ProbeResult, ProbeStatus, ProbeStatusKind}, protocol::Protocol};
+use crate::{
+    probe::{ProbeResult, ProbeStatus, ProbeStatusKind},
+    protocol::Protocol,
+};
 use serde::{Deserialize, Serialize};
-use std::{net::{IpAddr, Ipv4Addr}, time::Duration};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    time::Duration,
+};
 
 /// Statistics of ping results
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -61,7 +67,10 @@ impl PingResult {
     }
     /// Return first successful response
     pub fn first_response(&self) -> Option<&ProbeResult> {
-        self.stat.responses.iter().find(|r| r.probe_status.kind == ProbeStatusKind::Done)
+        self.stat
+            .responses
+            .iter()
+            .find(|r| r.probe_status.kind == ProbeStatusKind::Done)
     }
 }
 

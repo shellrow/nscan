@@ -1,14 +1,23 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 
+use crate::{
+    endpoint::ServiceInfo,
+    service::{
+        build_regex, expand_cpe_templates,
+        probe::{PortProbeResult, ProbeContext, ServiceProbe},
+    },
+};
 use anyhow::Result;
-use crate::{endpoint::ServiceInfo, service::{build_regex, expand_cpe_templates, probe::{PortProbeResult, ProbeContext, ServiceProbe}}};
 
 use hickory_proto::{
     op::{Message, MessageType, OpCode, Query},
     rr::{DNSClass, Name, RecordType},
     serialize::binary::{BinEncodable, BinEncoder},
 };
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::{TcpStream, UdpSocket}};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpStream, UdpSocket},
+};
 
 /// Build a DNS query message for "version.bind" TXT record in CHAOS class.
 fn build_version_bind_query() -> anyhow::Result<Vec<u8>> {
@@ -31,8 +40,12 @@ fn build_version_bind_query() -> anyhow::Result<Vec<u8>> {
 }
 
 /// Perform a DNS version.bind query over UDP.
-async fn run_dns_version_bind_udp(addr: std::net::SocketAddr, idle: std::time::Duration, _total: std::time::Duration, max_bytes: usize)
--> anyhow::Result<(String, bool)> {
+async fn run_dns_version_bind_udp(
+    addr: std::net::SocketAddr,
+    idle: std::time::Duration,
+    _total: std::time::Duration,
+    max_bytes: usize,
+) -> anyhow::Result<(String, bool)> {
     let q = build_version_bind_query()?;
     let local = if addr.is_ipv6() {
         SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0)
@@ -54,11 +67,17 @@ async fn run_dns_version_bind_udp(addr: std::net::SocketAddr, idle: std::time::D
     // Extract TXT record
     let mut txt = String::new();
     for ans in msg.answers() {
-        if ans.record_type() == RecordType::TXT && ans.name().to_ascii().eq_ignore_ascii_case("version.bind.") {
+        if ans.record_type() == RecordType::TXT
+            && ans.name().to_ascii().eq_ignore_ascii_case("version.bind.")
+        {
             if ans.dns_class() == DNSClass::CH {
                 if let hickory_proto::rr::RData::TXT(t) = ans.data() {
-                    let joined = t.txt_data().iter().map(|b| String::from_utf8_lossy(b).to_string())
-                        .collect::<Vec<_>>().join("");
+                    let joined = t
+                        .txt_data()
+                        .iter()
+                        .map(|b| String::from_utf8_lossy(b).to_string())
+                        .collect::<Vec<_>>()
+                        .join("");
                     txt = joined;
                     break;
                 }
@@ -73,8 +92,12 @@ async fn run_dns_version_bind_udp(addr: std::net::SocketAddr, idle: std::time::D
 }
 
 /// Perform a DNS version.bind query over TCP.
-async fn run_dns_version_bind_tcp(addr: std::net::SocketAddr, idle: std::time::Duration, total: std::time::Duration, max_bytes: usize)
--> anyhow::Result<String> {
+async fn run_dns_version_bind_tcp(
+    addr: std::net::SocketAddr,
+    idle: std::time::Duration,
+    total: std::time::Duration,
+    max_bytes: usize,
+) -> anyhow::Result<String> {
     let mut stream = tokio::time::timeout(total, TcpStream::connect(addr)).await??;
 
     let q = build_version_bind_query()?;
@@ -88,7 +111,9 @@ async fn run_dns_version_bind_tcp(addr: std::net::SocketAddr, idle: std::time::D
     let mut lenbuf = [0u8; 2];
     tokio::time::timeout(idle, stream.read_exact(&mut lenbuf)).await??;
     let want = u16::from_be_bytes(lenbuf) as usize;
-    if want > max_bytes { anyhow::bail!("dns/tcp response exceeds max_bytes"); }
+    if want > max_bytes {
+        anyhow::bail!("dns/tcp response exceeds max_bytes");
+    }
 
     let mut buf = vec![0u8; want];
     tokio::time::timeout(idle, stream.read_exact(&mut buf)).await??;
@@ -96,12 +121,20 @@ async fn run_dns_version_bind_tcp(addr: std::net::SocketAddr, idle: std::time::D
     let msg = hickory_proto::op::Message::from_vec(&buf)?;
     // Extract TXT record
     for ans in msg.answers() {
-        if ans.record_type() == RecordType::TXT && ans.name().to_ascii().eq_ignore_ascii_case("version.bind.") {
+        if ans.record_type() == RecordType::TXT
+            && ans.name().to_ascii().eq_ignore_ascii_case("version.bind.")
+        {
             if ans.dns_class() == DNSClass::CH {
                 if let hickory_proto::rr::RData::TXT(t) = ans.data() {
-                    let joined = t.txt_data().iter().map(|b| String::from_utf8_lossy(b).to_string())
-                        .collect::<Vec<_>>().join("");
-                    if !joined.is_empty() { return Ok(joined); }
+                    let joined = t
+                        .txt_data()
+                        .iter()
+                        .map(|b| String::from_utf8_lossy(b).to_string())
+                        .collect::<Vec<_>>()
+                        .join("");
+                    if !joined.is_empty() {
+                        return Ok(joined);
+                    }
                 }
             }
         }
@@ -153,9 +186,17 @@ impl DnsProbe {
     pub async fn run(ctx: ProbeContext) -> Result<PortProbeResult> {
         let addr = std::net::SocketAddr::new(ctx.ip, ctx.probe.port);
         // Try UDP first
-        if matches!(ctx.probe.probe_id, ServiceProbe::UdpDNSVersionBindReq | ServiceProbe::TcpDNSVersionBindReq) {
-            tracing::debug!("DNS Version Bind Probe (UDP): {}:{}", ctx.ip, ctx.probe.port);
-            match run_dns_version_bind_udp(addr, ctx.timeout, ctx.timeout, ctx.max_read_size).await {
+        if matches!(
+            ctx.probe.probe_id,
+            ServiceProbe::UdpDNSVersionBindReq | ServiceProbe::TcpDNSVersionBindReq
+        ) {
+            tracing::debug!(
+                "DNS Version Bind Probe (UDP): {}:{}",
+                ctx.ip,
+                ctx.probe.port
+            );
+            match run_dns_version_bind_udp(addr, ctx.timeout, ctx.timeout, ctx.max_read_size).await
+            {
                 Ok((txt, truncated)) => {
                     let mut svc = ServiceInfo::default();
                     let udp_svc_db = crate::db::service::udp_service_db();
@@ -163,20 +204,24 @@ impl DnsProbe {
                     svc.banner = Some(txt.clone());
                     svc.raw = Some(txt.clone());
                     // Match (using UDP-side)
-                    let hits = match_response_signatures(
-                        "udp:dns_version_bind_req", &txt
-                    )?;
+                    let hits = match_response_signatures("udp:dns_version_bind_req", &txt)?;
                     if let Some((best_service, cpes)) = hits {
                         svc.name = Some(best_service);
                         svc.cpes = cpes;
                     }
                     // If truncated, try TCP as well
                     if truncated {
-                        if let Ok(txt2) = run_dns_version_bind_tcp(addr, ctx.timeout, ctx.timeout, ctx.max_read_size).await {
+                        if let Ok(txt2) = run_dns_version_bind_tcp(
+                            addr,
+                            ctx.timeout,
+                            ctx.timeout,
+                            ctx.max_read_size,
+                        )
+                        .await
+                        {
                             svc.raw = Some(txt2.clone());
-                            let hits2 = match_response_signatures(
-                                "tcp:dns_version_bind_req", &txt2
-                            )?;
+                            let hits2 =
+                                match_response_signatures("tcp:dns_version_bind_req", &txt2)?;
                             if let Some((best_service, cpes)) = hits2 {
                                 svc.name = Some(best_service);
                                 svc.cpes = cpes;
@@ -195,17 +240,22 @@ impl DnsProbe {
                 }
                 Err(e) => {
                     tracing::debug!("DNS Version Bind Probe (UDP) failed: {}", e);
-                    tracing::debug!("Attempting DNS Version Bind Probe (TCP): {}:{}", ctx.ip, ctx.probe.port);
+                    tracing::debug!(
+                        "Attempting DNS Version Bind Probe (TCP): {}:{}",
+                        ctx.ip,
+                        ctx.probe.port
+                    );
                     let mut svc = ServiceInfo::default();
                     let tcp_svc_db = crate::db::service::tcp_service_db();
                     svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
                     // If UDP failed, try TCP
-                    if let Ok(txt) = run_dns_version_bind_tcp(addr, ctx.timeout, ctx.timeout, ctx.max_read_size).await {
+                    if let Ok(txt) =
+                        run_dns_version_bind_tcp(addr, ctx.timeout, ctx.timeout, ctx.max_read_size)
+                            .await
+                    {
                         svc.banner = Some(txt.clone());
                         svc.raw = Some(txt.clone());
-                        let hits = match_response_signatures(
-                            "tcp:dns_version_bind_req", &txt
-                        )?;
+                        let hits = match_response_signatures("tcp:dns_version_bind_req", &txt)?;
                         if let Some((best_service, cpes)) = hits {
                             svc.name = Some(best_service);
                             svc.cpes = cpes;
@@ -226,8 +276,13 @@ impl DnsProbe {
 
         // If UDP not selected or failed, and TCP is selected
         if matches!(ctx.probe.probe_id, ServiceProbe::TcpDNSVersionBindReq) {
-            tracing::debug!("DNS Version Bind Probe (TCP): {}:{}", ctx.ip, ctx.probe.port);
-            let txt = run_dns_version_bind_tcp(addr, ctx.timeout, ctx.timeout, ctx.max_read_size).await?;
+            tracing::debug!(
+                "DNS Version Bind Probe (TCP): {}:{}",
+                ctx.ip,
+                ctx.probe.port
+            );
+            let txt =
+                run_dns_version_bind_tcp(addr, ctx.timeout, ctx.timeout, ctx.max_read_size).await?;
             let mut svc = ServiceInfo::default();
             let tcp_svc_db = crate::db::service::tcp_service_db();
             svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());

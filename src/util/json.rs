@@ -1,8 +1,8 @@
+use anyhow::Result;
+use serde::Serialize;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use anyhow::Result;
-use serde::Serialize;
 
 /// JSON output style
 pub enum JsonStyle {

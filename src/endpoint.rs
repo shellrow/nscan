@@ -534,11 +534,13 @@ mod tests {
 
         let back: EndpointResult = from_str(&json).unwrap();
         assert_eq!(back.ports.len(), 2);
-        assert!(back
-            .ports
-            .contains_key(&Port::new(80, TransportProtocol::Tcp)));
-        assert!(back
-            .ports
-            .contains_key(&Port::new(443, TransportProtocol::Tcp)));
+        assert!(
+            back.ports
+                .contains_key(&Port::new(80, TransportProtocol::Tcp))
+        );
+        assert!(
+            back.ports
+                .contains_key(&Port::new(443, TransportProtocol::Tcp))
+        );
     }
 }

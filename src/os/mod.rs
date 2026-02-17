@@ -1,9 +1,12 @@
 pub mod probe;
 
-use nex::packet::{frame::Frame, tcp::{TcpHeader, TcpOptionKind}};
-use serde::{Deserialize, Serialize};
-use anyhow::Result;
 use crate::{output::port::OsProbeResult, probe::ProbeSetting};
+use anyhow::Result;
+use nex::packet::{
+    frame::Frame,
+    tcp::{TcpHeader, TcpOptionKind},
+};
+use serde::{Deserialize, Serialize};
 
 /// OS Detector using TCP SYN packets
 pub struct OsDetector {

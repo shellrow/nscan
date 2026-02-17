@@ -1,36 +1,53 @@
-use std::{collections::BTreeMap, net::{IpAddr, SocketAddr}};
+use std::{
+    collections::BTreeMap,
+    net::{IpAddr, SocketAddr},
+};
 
+use crate::{
+    cli::PortScanMethod,
+    endpoint::{
+        EndpointResult, OsGuess, Port, PortResult, PortState, ServiceInfo, TransportProtocol,
+    },
+    output::ScanResult,
+    scan::ProbeSetting,
+    service::probe::quic::quic_client_config,
+};
 use anyhow::Result;
 use futures::stream::{self, StreamExt};
 use tracing_indicatif::span_ext::IndicatifSpanExt;
-use crate::{cli::PortScanMethod, endpoint::{EndpointResult, OsGuess, Port, PortResult, PortState, ServiceInfo, TransportProtocol}, output::ScanResult, scan::ProbeSetting, service::probe::quic::quic_client_config};
 
 /// Run a QUIC connect scan based on the provided probe settings.
-pub async fn run_connect_scan(
-    setting: ProbeSetting,
-) -> Result<ScanResult> {
+pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
     let concurrency = setting.port_concurrency.max(1);
     let connect_timeout = setting.connect_timeout;
     let start_time = std::time::Instant::now();
     let alpn: [&[u8]; 8] = [
-            b"h3".as_slice(),
-            b"h3-34".as_slice(), b"h3-33".as_slice(), b"h3-32".as_slice(), b"h3-31".as_slice(), b"h3-30".as_slice(), b"h3-29".as_slice(),
-            b"hq-29".as_slice(),
-        ];
+        b"h3".as_slice(),
+        b"h3-34".as_slice(),
+        b"h3-33".as_slice(),
+        b"h3-32".as_slice(),
+        b"h3-31".as_slice(),
+        b"h3-30".as_slice(),
+        b"h3-29".as_slice(),
+        b"hq-29".as_slice(),
+    ];
 
     let mut endpoint_map: BTreeMap<IpAddr, EndpointResult> = BTreeMap::new();
     let mut work_items: Vec<(IpAddr, String, Port)> = Vec::new();
     for target in setting.target_endpoints {
-        endpoint_map.insert(target.ip, EndpointResult {
-            ip: target.ip,
-            hostname: target.hostname.clone(),
-            ports: BTreeMap::new(),
-            mac_addr: target.mac_addr,
-            vendor_name: None,
-            os: OsGuess::default(),
-            tags: target.tags,
-            cpes: Vec::new(),
-        });
+        endpoint_map.insert(
+            target.ip,
+            EndpointResult {
+                ip: target.ip,
+                hostname: target.hostname.clone(),
+                ports: BTreeMap::new(),
+                mac_addr: target.mac_addr,
+                vendor_name: None,
+                os: OsGuess::default(),
+                tags: target.tags,
+                cpes: Vec::new(),
+            },
+        );
 
         let hostname = target.hostname.unwrap_or_else(|| target.ip.to_string());
         for port in target.ports {
@@ -61,7 +78,13 @@ pub async fn run_connect_scan(
                 let socket_addr = SocketAddr::new(ip, port.number);
                 let bind_addr: SocketAddr = if ip.is_ipv6() { "[::]:0" } else { "0.0.0.0:0" }
                     .parse()
-                    .unwrap_or_else(|_| if ip.is_ipv6() { SocketAddr::from(([0u16; 8], 0)) } else { SocketAddr::from(([0, 0, 0, 0], 0)) });
+                    .unwrap_or_else(|_| {
+                        if ip.is_ipv6() {
+                            SocketAddr::from(([0u16; 8], 0))
+                        } else {
+                            SocketAddr::from(([0, 0, 0, 0], 0))
+                        }
+                    });
 
                 let mut port_result = PortResult {
                     port: Port::new(port.number, TransportProtocol::Quic),
@@ -131,9 +154,6 @@ pub async fn run_connect_scan(
 }
 
 /// Run a QUIC port scan using the specified probe settings and method.
-pub async fn run_port_scan(
-    setting: ProbeSetting,
-    _method: PortScanMethod,
-) -> Result<ScanResult> {
+pub async fn run_port_scan(setting: ProbeSetting, _method: PortScanMethod) -> Result<ScanResult> {
     run_connect_scan(setting).await
 }

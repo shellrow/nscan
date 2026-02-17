@@ -1,14 +1,14 @@
-use std::time::Duration;
+use crate::endpoint::{Endpoint, EndpointResult};
 use nex::packet::frame::Frame;
 use serde::{Deserialize, Serialize};
-use crate::endpoint::{Endpoint, EndpointResult};
+use std::time::Duration;
 
+pub mod domain;
+pub mod host;
+pub mod interface;
+pub mod ping;
 pub mod port;
 pub mod progress;
-pub mod host;
-pub mod ping;
-pub mod domain;
-pub mod interface;
 
 /// Convert a string into a tree label.
 fn tree_label<S: Into<String>>(s: S) -> String {
@@ -40,7 +40,10 @@ impl ScanResult {
 
     /// Get a list of active endpoints (those with active results).
     pub fn get_active_endpoints(&self) -> Vec<Endpoint> {
-        self.endpoints.iter().filter_map(|e| e.active_endpoint()).collect()
+        self.endpoints
+            .iter()
+            .filter_map(|e| e.active_endpoint())
+            .collect()
     }
 
     /// Sort the endpoints by their IP addresses.

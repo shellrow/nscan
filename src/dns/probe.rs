@@ -1,6 +1,6 @@
 use anyhow::Result;
 use futures::stream::{self, StreamExt};
-use rand::{distr::Alphanumeric, Rng};
+use rand::{Rng, distr::Alphanumeric};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{net::IpAddr, time::Instant};

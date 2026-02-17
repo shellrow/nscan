@@ -4,7 +4,7 @@ pub mod port;
 
 use std::path::PathBuf;
 
-use clap::{value_parser, ArgAction, Args, Parser, Subcommand, ValueEnum};
+use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum, value_parser};
 
 use crate::{config::default::DEFAULT_PORTS_CONCURRENCY, endpoint::TransportProtocol};
 

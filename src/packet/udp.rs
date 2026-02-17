@@ -1,5 +1,5 @@
-use bytes::Bytes;
 use anyhow::Result;
+use bytes::Bytes;
 use netdev::{Interface, MacAddr};
 use nex::packet::builder::{
     ethernet::EthernetPacketBuilder, ipv4::Ipv4PacketBuilder, ipv6::Ipv6PacketBuilder,
@@ -32,16 +32,14 @@ pub fn build_udp_packet(
         crate::interface::get_interface_local_ipv6(interface).unwrap_or(Ipv6Addr::UNSPECIFIED);
 
     let src_ip: IpAddr = match dst_ip {
-        IpAddr::V4(_) => {
-            IpAddr::V4(src_ipv4)
-        },
+        IpAddr::V4(_) => IpAddr::V4(src_ipv4),
         IpAddr::V6(_) => {
             if nex::net::ip::is_global_ip(&dst_ip) {
                 IpAddr::V6(src_global_ipv6)
             } else {
                 IpAddr::V6(src_local_ipv6)
             }
-        },
+        }
     };
 
     let udp_packet = UdpPacketBuilder::new(src_ip, dst_ip)

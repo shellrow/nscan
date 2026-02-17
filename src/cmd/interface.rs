@@ -1,6 +1,6 @@
-use netdev::Interface;
-use anyhow::Result;
 use crate::cli::InterfaceArgs;
+use anyhow::Result;
+use netdev::Interface;
 
 /// Show network interfaces
 pub fn show(args: &InterfaceArgs) -> Result<()> {

@@ -2,7 +2,7 @@
 name = "nscan"
 version = "1.5.0"
 authors = ["shellrow <shellrow@foctal.com>"]
-edition = "2021"
+edition = "2024"
 description = "Cross-platform network scan tool for host and service discovery"
 repository = "https://github.com/shellrow/nscan"
 homepage = "https://github.com/shellrow/nscan"

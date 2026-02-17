@@ -24,16 +24,26 @@ pub fn tls_oid_map() -> &'static TlsOidMap {
 /// Initialize the TLS OID map from the bundled JSON data.
 pub fn init_tls_oid_map() -> Result<()> {
     let map: TlsOidMap = serde_json::from_str(&TLS_OID_MAP_JSON).expect("invalid json");
-    TLS_OID_MAP.set(map).map_err(|_| anyhow::anyhow!("Failed to set TLS_OID_MAP in OnceLock"))?;
+    TLS_OID_MAP
+        .set(map)
+        .map_err(|_| anyhow::anyhow!("Failed to set TLS_OID_MAP in OnceLock"))?;
     Ok(())
 }
 
 /// Get the name of a TLS version given its numeric representation.
 pub fn oid_sig_name(oid: &str) -> String {
-    tls_oid_map().sig.get(oid).cloned().unwrap_or_else(|| oid.to_string())
+    tls_oid_map()
+        .sig
+        .get(oid)
+        .cloned()
+        .unwrap_or_else(|| oid.to_string())
 }
 
 /// Get the name of a public key algorithm given its OID.
 pub fn oid_pubkey_name(oid: &str) -> String {
-    tls_oid_map().pubkey.get(oid).cloned().unwrap_or_else(|| oid.to_string())
+    tls_oid_map()
+        .pubkey
+        .get(oid)
+        .cloned()
+        .unwrap_or_else(|| oid.to_string())
 }

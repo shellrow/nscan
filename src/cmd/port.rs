@@ -6,13 +6,13 @@ use crate::{
     cli::PortScanArgs,
     endpoint::{Host, Port, PortState, TransportProtocol},
     output::{
-        port::{print_report_tree, ScanReport},
         ScanResult,
+        port::{ScanReport, print_report_tree},
     },
     probe::ProbeSetting,
     scan::PortScanner,
     service::{ServiceDetector, ServiceProbeConfig},
-    util::json::{save_json_output, JsonStyle},
+    util::json::{JsonStyle, save_json_output},
 };
 use anyhow::Result;
 use rand::seq::SliceRandom;
@@ -185,7 +185,9 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
             );
         }
 
-        let service_result = service_detector.run_service_detection(service_targets).await?;
+        let service_result = service_detector
+            .run_service_detection(service_targets)
+            .await?;
         tracing::info!(
             "Service detection completed in {:?}",
             service_result.scan_time

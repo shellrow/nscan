@@ -1,7 +1,10 @@
 use std::{path::PathBuf, time::Duration};
 
+use crate::{
+    cli::DomainScanArgs,
+    util::json::{JsonStyle, save_json_output},
+};
 use anyhow::Result;
-use crate::{cli::DomainScanArgs, util::json::{save_json_output, JsonStyle}};
 
 /// Run subdomain scan
 pub async fn run(args: DomainScanArgs, no_stdout: bool, output: Option<PathBuf>) -> Result<()> {
@@ -11,7 +14,11 @@ pub async fn run(args: DomainScanArgs, no_stdout: bool, output: Option<PathBuf>)
         base_domain: base.name.clone(),
         word_list: if let Some(wl_path) = args.wordlist {
             let content = std::fs::read_to_string(wl_path)?;
-            content.lines().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+            content
+                .lines()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect()
         } else {
             crate::db::domain::get_subdomain_wordlist()
         },
@@ -30,7 +37,7 @@ pub async fn run(args: DomainScanArgs, no_stdout: bool, output: Option<PathBuf>)
                 if !no_stdout {
                     tracing::info!("JSON output saved to {}", path.display());
                 }
-            },
+            }
             Err(e) => tracing::error!("Failed to save JSON output: {}", e),
         }
     }

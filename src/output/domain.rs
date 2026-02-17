@@ -1,6 +1,9 @@
-use termtree::Tree;
+use crate::{
+    dns::{Domain, DomainScanResult},
+    output::tree_label,
+};
 use std::net::IpAddr;
-use crate::{dns::{Domain, DomainScanResult}, output::tree_label};
+use termtree::Tree;
 
 /// Print the domain scan results in a tree structure.
 pub fn print_domain_tree(base_domain: &Domain, res: &DomainScanResult) {
@@ -73,7 +76,7 @@ pub fn print_domain_tree(base_domain: &Domain, res: &DomainScanResult) {
 
         base_node.push(node);
     }
-    
+
     root.push(base_node);
 
     println!("Scan report(s)");

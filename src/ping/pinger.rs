@@ -1,4 +1,7 @@
-use crate::{ping::{result::PingResult, setting::PingSetting}, protocol::Protocol};
+use crate::{
+    ping::{result::PingResult, setting::PingSetting},
+    protocol::Protocol,
+};
 use anyhow::Result;
 
 /// Pinger structure.
@@ -21,9 +24,7 @@ impl Pinger {
             Protocol::Icmp => super::probe::icmp::run_icmp_ping(&self.ping_setting).await,
             Protocol::Udp => super::probe::udp::run_udp_ping(&self.ping_setting).await,
             Protocol::Tcp => super::probe::tcp::run_tcp_ping(&self.ping_setting).await,
-            _ => {
-                Err(anyhow::anyhow!("Unsupported protocol"))
-            },
+            _ => Err(anyhow::anyhow!("Unsupported protocol")),
         }
     }
 }

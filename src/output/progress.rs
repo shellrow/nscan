@@ -18,10 +18,7 @@ pub fn get_progress_style() -> ProgressStyle {
 }
 
 /// Custom formatter for elapsed time with millisecond precision.
-fn elapsed_precise_subsec(
-    state: &ProgressState,
-    writer: &mut dyn std::fmt::Write,
-) {
+fn elapsed_precise_subsec(state: &ProgressState, writer: &mut dyn std::fmt::Write) {
     let elapsed = state.elapsed();
     let secs = elapsed.as_secs();
     let sub_ms = elapsed.subsec_millis();

@@ -7,7 +7,7 @@ use crate::{output::ScanResult, scan::ProbeSetting};
 use anyhow::Result;
 use futures::future::poll_fn;
 use netdev::{Interface, MacAddr};
-use nex::datalink::async_io::{async_channel, AsyncChannel, AsyncRawSender};
+use nex::datalink::async_io::{AsyncChannel, AsyncRawSender, async_channel};
 use nex::packet::frame::Frame;
 use nex::packet::ip::IpNextProtocol;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
