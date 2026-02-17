@@ -93,3 +93,7 @@ When using nscan on Windows, please consider the following:
     - Place the Packet.lib file from the [Npcap SDK](https://npcap.com/#download) or WinPcap Developers pack in a directory named lib at the root of this repository.
     - The file can be found in the %LIB% or $Env:LIB environment variables.
     - Locate Packet.lib in <SDK>/Lib/x64/Packet.lib for the 64-bit toolchain or <SDK>/Lib/Packet.lib for the 32-bit toolchain.
+
+## Notice
+`nscan` will now be succeeded by [nrev](https://github.com/shellrow/nrev), our network mapping tool.  
+Updates to `nscan` will be limited going forward, as we aim to keep `nscan` focused on scanning-specific tasks.
