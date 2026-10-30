@@ -162,6 +162,12 @@ impl NodeType {
 /// Service information detected on a port
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ServiceInfo {
+    /// Port registry label; not evidence of the running service.
+    #[serde(default)]
+    pub registered_name: Option<String>,
+    /// Unverified HTTP Server header supplied by the peer.
+    #[serde(default)]
+    pub server_header: Option<String>,
     pub name: Option<String>,
     pub product: Option<String>,
     pub version: Option<String>,

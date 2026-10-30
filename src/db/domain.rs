@@ -1,6 +1,38 @@
-use crate::config::db::TOP_SUBDOMAIN_WORDS_JSON;
-
-/// Get top subdomain wordlist
+/// Small starter wordlist. Use --wordlist for broader enumeration.
 pub fn get_subdomain_wordlist() -> Vec<String> {
-    serde_json::from_str(TOP_SUBDOMAIN_WORDS_JSON).unwrap_or_default()
+    [
+        "www",
+        "mail",
+        "smtp",
+        "imap",
+        "pop",
+        "webmail",
+        "ns1",
+        "ns2",
+        "api",
+        "app",
+        "dev",
+        "test",
+        "staging",
+        "admin",
+        "portal",
+        "vpn",
+        "remote",
+        "ftp",
+        "cdn",
+        "static",
+        "assets",
+        "blog",
+        "shop",
+        "support",
+        "status",
+        "docs",
+        "git",
+        "mx",
+        "autodiscover",
+        "autoconfig",
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect()
 }

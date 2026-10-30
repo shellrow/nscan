@@ -27,26 +27,8 @@ pub fn print_report_tree(result: &ScanResult) {
             ep_root.push(mac_node);
         }
 
-        // OS info
-        if ep.os.family.is_some() || ep.os.ttl_observed.is_some() || !ep.cpes.is_empty() {
-            let mut os_node = Tree::new(tree_label("os"));
-            if let Some(f) = &ep.os.family {
-                os_node.push(Tree::new(tree_label(format!("family: {}", f))));
-            }
-            if let Some(ttl) = ep.os.ttl_observed {
-                os_node.push(Tree::new(tree_label(format!("TTL: {}", ttl))));
-            }
-            if let Some(conf) = ep.os.confidence {
-                os_node.push(Tree::new(tree_label(format!("confidence: {:.2}", conf))));
-            }
-            if !ep.cpes.is_empty() {
-                let mut cpe_node = Tree::new(tree_label("cpes"));
-                for c in &ep.cpes {
-                    cpe_node.push(Tree::new(c.clone()));
-                }
-                os_node.push(cpe_node);
-            }
-            ep_root.push(os_node);
+        if let Some(ttl) = ep.os.ttl_observed {
+            ep_root.push(Tree::new(format!("observed TTL: {ttl}")));
         }
 
         // Port information

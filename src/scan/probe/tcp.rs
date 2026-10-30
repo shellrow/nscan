@@ -606,20 +606,8 @@ fn parse_hostscan_result(
 
         let vendor_name_opt = crate::db::oui::lookup_vendor_name(&mac_addr);
 
-        let mut os_guess = OsGuess::default().with_ttl_observed(ttl);
-        let mut cpes: Vec<String> = Vec::new();
-
-        match crate::os::match_tcpip_signatures(&p) {
-            Some(os_match) => {
-                os_guess.family = Some(os_match.family);
-                os_guess.confidence = Some(os_match.confidence as f32);
-                os_guess.ttl_observed = Some(ttl);
-                cpes = os_match.cpes;
-            }
-            None => {
-                tracing::debug!("No matching OS found");
-            }
-        }
+        let os_guess = OsGuess::default().with_ttl_observed(ttl);
+        let cpes = Vec::new();
 
         endpoint_map
             .entry(ip_addr)

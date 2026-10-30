@@ -7,7 +7,7 @@ pub mod dns;
 pub mod endpoint;
 pub mod interface;
 pub mod log;
-pub mod os;
+pub mod nmap;
 pub mod output;
 pub mod packet;
 pub mod ping;
@@ -21,8 +21,6 @@ pub mod util;
 use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, Command};
-
-use crate::db::DbInitializer;
 
 #[tokio::main]
 async fn main() -> std::process::ExitCode {
@@ -51,34 +49,12 @@ async fn main() -> std::process::ExitCode {
 
 async fn run_command(cli: Cli) -> Result<()> {
     match cli.command {
-        Command::Port(args) => {
-            let mut databases = DbInitializer::new().with_tcp_services().with_udp_services();
-            if args.service_detect {
-                databases = databases
-                    .with_port_probe()
-                    .with_service_probe()
-                    .with_response_sigs()
-                    .with_tls_oids();
-            }
-            if args.os_detect {
-                databases = databases.with_os_db().with_oui_db();
-            }
-            databases.init().await.ensure_success()?;
-            cmd::port::run(args, cli.no_stdout, cli.output)
-                .await
-                .map_err(|e| anyhow::anyhow!("Port scan failed: {}", e))
-        }
-        Command::Host(args) => {
-            DbInitializer::new()
-                .with_os_db()
-                .with_oui_db()
-                .init()
-                .await
-                .ensure_success()?;
-            cmd::host::run(args, cli.no_stdout, cli.output)
-                .await
-                .map_err(|e| anyhow::anyhow!("Host scan failed: {}", e))
-        }
+        Command::Port(args) => cmd::port::run(args, cli.no_stdout, cli.output)
+            .await
+            .map_err(|e| anyhow::anyhow!("Port scan failed: {}", e)),
+        Command::Host(args) => cmd::host::run(args, cli.no_stdout, cli.output)
+            .await
+            .map_err(|e| anyhow::anyhow!("Host scan failed: {}", e)),
         Command::Domain(args) => cmd::domain::run(args, cli.no_stdout, cli.output)
             .await
             .map_err(|e| anyhow::anyhow!("Domain scan failed: {}", e)),

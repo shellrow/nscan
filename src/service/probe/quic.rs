@@ -128,10 +128,10 @@ impl QuicProbe {
             tls_info.not_before = Some(x509.validity().not_before.to_string());
             tls_info.not_after = Some(x509.validity().not_after.to_string());
             tls_info.serial_hex = Some(x509.raw_serial_as_string());
-            tls_info.sig_algorithm = Some(crate::db::tls::oid_sig_name(
+            tls_info.sig_algorithm = Some(crate::service::probe::tls::oid_name(
                 x509.signature_algorithm.oid().to_id_string().as_str(),
             ));
-            tls_info.pubkey_algorithm = Some(crate::db::tls::oid_pubkey_name(
+            tls_info.pubkey_algorithm = Some(crate::service::probe::tls::oid_name(
                 x509.public_key().algorithm.oid().to_id_string().as_str(),
             ));
         }
@@ -179,14 +179,13 @@ impl QuicProbe {
                 );
                 let res = stream.recv_response().await?;
                 // Extract status and Server headers
-                let udp_svc_db = crate::db::service::udp_service_db();
-                svc.name = udp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
+                svc.name = Some("http".into());
                 svc.banner = Some(format!("HTTP/3 {}", res.status()));
                 svc.quic_version = Some("1".into());
                 if let Some(val) = res.headers().get("server")
                     && let Ok(s) = val.to_str()
                 {
-                    svc.product = Some(s.to_string());
+                    svc.server_header = Some(s.to_string());
                 }
 
                 // receiving potential response body

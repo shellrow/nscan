@@ -25,6 +25,24 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     {
         anyhow::bail!("SYN scanning is supported only for TCP");
     }
+    let external = if args.nmap || args.os_detect {
+        anyhow::ensure!(
+            args.proto == crate::cli::PortScanTransport::Tcp,
+            "Nmap identification currently supports TCP scans only"
+        );
+        Some(crate::nmap::Nmap::preflight(&args.nmap_path).await?)
+    } else {
+        None
+    };
+    if args.service_detect {
+        crate::service::select_probe(args.service_probe, Port::new(1, args.proto.to_transport()))?;
+        if args.quic {
+            crate::service::select_probe(
+                args.service_probe,
+                Port::new(1, TransportProtocol::Quic),
+            )?;
+        }
+    }
     let mut rep = ScanReport::new();
     // Parse target hosts
     let target_hosts: Vec<Host> = crate::cli::host::parse_target_hosts(&args.target).await?;
@@ -55,10 +73,10 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     }
 
     // Get network interface
-    let uses_raw = args.method == crate::cli::PortScanMethod::Syn || args.os_detect;
+    let uses_raw = args.method == crate::cli::PortScanMethod::Syn;
     anyhow::ensure!(
         uses_raw || args.interface.is_none(),
-        "--interface applies to raw SYN/OS probes; connect scans use OS routing"
+        "--interface applies to raw SYN probes; connect scans use OS routing"
     );
     let interface = if uses_raw {
         Some(resolve_interface(args.interface.as_deref())?)
@@ -153,41 +171,13 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         tracing::info!("{}: Open ports: {:?}", endpoint.ip, open_ports);
     }
 
-    if args.os_detect {
-        // OS detection
-        let os_probe_setting = ProbeSetting {
-            target_endpoints: active_endpoints.clone(),
-            if_index: probe_setting.if_index,
-            host_concurrency: probe_setting.host_concurrency,
-            port_concurrency: probe_setting.port_concurrency,
-            task_timeout: probe_setting.task_timeout,
-            connect_timeout: probe_setting.connect_timeout,
-            wait_time: probe_setting.wait_time,
-            send_rate: probe_setting.send_rate,
-        };
-        tracing::info!(
-            "Starting OS detection on {} host(s)",
-            os_probe_setting.target_endpoints.len()
-        );
-        let os_detector = crate::os::OsDetector::new(os_probe_setting);
-        let os_probe_result = os_detector.run().await?;
-        tracing::info!("OS detection completed in {:?}", os_probe_result.probe_time);
-        if os_probe_result.endpoints.is_empty() {
-            tracing::info!("No OS detected");
-        }
-        for endpoint in &os_probe_result.endpoints {
-            tracing::debug!("[OS] Guess {}: {:?}", endpoint.ip, endpoint.cpes);
-        }
-
-        rep.apply_os_probe(os_probe_result);
-    }
-
     if args.service_detect {
         // service detection
         let service_probe_setting = ServiceProbeConfig {
             timeout: Duration::from_millis(args.read_timeout_ms.unwrap_or(2_000)),
             max_concurrency: concurrency,
             max_read_size: 1024 * 1024,
+            mode: args.service_probe,
             sni: true,
             skip_cert_verify: true,
         };
@@ -235,6 +225,18 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         rep.apply_service_detection(service_result);
     }
 
+    if let Some(nmap) = external {
+        let targets = rep.endpoints.values().cloned().collect::<Vec<_>>();
+        rep.identification = Some(
+            nmap.identify(
+                &targets,
+                args.nmap,
+                args.os_detect,
+                Duration::from_millis(args.nmap_timeout_ms),
+            )
+            .await,
+        );
+    }
     rep.finish();
 
     if !no_stdout {
@@ -243,6 +245,13 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     if let Some(path) = &output {
         save_json_output(&rep, path, JsonStyle::Pretty)?;
         tracing::info!("JSON output saved to {}", path.display());
+    }
+    if let Some(details) = &rep.identification {
+        anyhow::ensure!(
+            details.complete,
+            "Nmap identification failed; basic scan results were retained: {}",
+            details.error.as_deref().unwrap_or("unknown error")
+        );
     }
     Ok(())
 }

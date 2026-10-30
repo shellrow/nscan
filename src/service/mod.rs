@@ -1,20 +1,17 @@
 use anyhow::{Result, bail};
 use futures::stream::{self, StreamExt};
-use regex::{Regex, RegexBuilder};
-use std::{collections::HashMap, net::IpAddr, time::Duration};
+use std::{net::IpAddr, time::Duration};
 use tokio::{
     io::{AsyncRead, AsyncReadExt},
-    net::TcpStream,
     time::{Instant, timeout},
 };
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 use crate::{
     endpoint::{Endpoint, Port},
-    service::probe::{PortProbe, PortProbeResult, ProbeContext, ProbePayload, ServiceProbe},
+    service::probe::{PortProbe, PortProbeResult, ProbeContext, ProbeMode, ServiceProbe},
 };
 
-mod payload;
 pub mod probe;
 
 /// Configuration for service probing
@@ -24,6 +21,7 @@ pub struct ServiceProbeConfig {
     pub timeout: Duration,
     pub max_concurrency: usize,
     pub max_read_size: usize,
+    pub mode: ProbeMode,
     pub sni: bool,
     pub skip_cert_verify: bool,
 }
@@ -107,90 +105,66 @@ async fn run_probes_for_target_port(
     hostname: Option<String>,
     port: Port,
 ) -> Vec<Result<PortProbeResult>> {
-    let port_probe_db: &'static HashMap<Port, Vec<ServiceProbe>> =
-        crate::db::service::port_probe_db();
-    let service_probe_db: &'static HashMap<ServiceProbe, ProbePayload> =
-        crate::db::service::service_probe_db();
-
-    let mut results: Vec<Result<PortProbeResult>> = Vec::new();
-    if let Some(probes) = port_probe_db.get(&port) {
-        for probe in probes {
-            let probe_payload = match service_probe_db.get(probe) {
-                Some(payload) => payload,
-                None => {
-                    results.push(Err(anyhow::anyhow!("No payload for probe {:?}", probe)));
-                    continue;
+    let selected = select_probe(config.mode, port);
+    let probe_id = match selected {
+        Ok(probe) => probe,
+        Err(error) => return vec![Err(error)],
+    };
+    let ctx = ProbeContext {
+        ip,
+        hostname,
+        probe: PortProbe {
+            probe_id,
+            port: port.number,
+            transport: port.transport,
+        },
+        timeout: config.timeout,
+        max_read_size: config.max_read_size,
+        sni: config.sni,
+        skip_cert_verify: config.skip_cert_verify,
+    };
+    vec![
+        timeout(config.timeout.saturating_mul(4), async {
+            match probe_id {
+                ServiceProbe::TcpNull => probe::null::NullProbe::run(ctx).await,
+                ServiceProbe::TcpHTTPGet | ServiceProbe::TcpHTTPSGet => {
+                    probe::http::HttpProbe::run(ctx).await
                 }
-            };
-            let port_probe = PortProbe {
-                probe_id: probe.clone(),
-                probe_name: probe_payload.id.clone(),
-                port: port.number,
-                transport: port.transport,
-                payload: probe_payload.payload.clone(),
-                payload_encoding: probe_payload.payload_encoding,
-            };
-            let ctx = ProbeContext {
-                ip,
-                hostname: hostname.clone(),
-                probe: port_probe,
-                timeout: config.timeout,
-                max_read_size: config.max_read_size,
-                sni: config.sni,
-                skip_cert_verify: config.skip_cert_verify,
-            };
-
-            let r = timeout(config.timeout.saturating_mul(4), async {
-                match probe {
-                    ServiceProbe::TcpHTTPGet
-                    | ServiceProbe::TcpHTTPSGet
-                    | ServiceProbe::TcpHTTPOptions => probe::http::HttpProbe::run(ctx).await,
-                    ServiceProbe::TcpTlsSession => probe::tls::TlsProbe::run(ctx).await,
-                    ServiceProbe::TcpGenericLines | ServiceProbe::TcpHelp => {
-                        probe::generic::GenericProbe::run(ctx).await
-                    }
-                    ServiceProbe::UdpDNSVersionBindReq | ServiceProbe::TcpDNSVersionBindReq => {
-                        probe::dns::DnsProbe::run(ctx).await
-                    }
-                    ServiceProbe::UdpQuic => probe::quic::QuicProbe::run(ctx).await,
-                    _ => probe::null::NullProbe::run(ctx).await,
-                }
-            })
-            .await
-            .unwrap_or_else(|_| Err(anyhow::anyhow!("service probe timed out")));
-            results.push(r);
-        }
-    } else {
-        let ctx = ProbeContext {
-            ip,
-            hostname,
-            probe: PortProbe::null_probe(port.number, port.transport),
-            timeout: config.timeout,
-            max_read_size: config.max_read_size,
-            sni: config.sni,
-            skip_cert_verify: config.skip_cert_verify,
-        };
-        results.push(
-            timeout(
-                config.timeout.saturating_mul(4),
-                probe::null::NullProbe::run(ctx),
-            )
-            .await
-            .unwrap_or_else(|_| Err(anyhow::anyhow!("service probe timed out"))),
-        );
-    }
-
-    results
+                ServiceProbe::TcpTlsSession => probe::tls::TlsProbe::run(ctx).await,
+                ServiceProbe::UdpQuic => probe::quic::QuicProbe::run(ctx).await,
+            }
+        })
+        .await
+        .unwrap_or_else(|_| Err(anyhow::anyhow!("service probe timed out"))),
+    ]
 }
 
-pub fn set_read_timeout(tcp_stream: TcpStream, timeout: Duration) -> std::io::Result<TcpStream> {
-    // Convert to std::net::TcpStream
-    let std_tcp_stream = tcp_stream.into_std()?;
-    // Set read timeout
-    std_tcp_stream.set_read_timeout(Some(timeout))?;
-    // Convert back to tokio TcpStream
-    let tokio_tcp_stream = TcpStream::from_std(std_tcp_stream)?;
-    Ok(tokio_tcp_stream)
+pub fn select_probe(mode: ProbeMode, port: Port) -> Result<ServiceProbe> {
+    use crate::endpoint::TransportProtocol;
+    if port.transport == TransportProtocol::Quic {
+        anyhow::ensure!(
+            matches!(mode, ProbeMode::Auto | ProbeMode::Quic),
+            "TCP probe requested for QUIC"
+        );
+        return Ok(ServiceProbe::UdpQuic);
+    }
+    anyhow::ensure!(
+        port.transport == TransportProtocol::Tcp,
+        "built-in UDP service probing is unsupported"
+    );
+    Ok(match mode {
+        ProbeMode::Auto => match port.number {
+            80 | 8000 | 8080 => ServiceProbe::TcpHTTPGet,
+            443 | 8443 => ServiceProbe::TcpHTTPSGet,
+            465 | 636 | 853 | 993 | 995 => ServiceProbe::TcpTlsSession,
+            _ => ServiceProbe::TcpNull,
+        },
+        ProbeMode::Banner => ServiceProbe::TcpNull,
+        ProbeMode::Http => ServiceProbe::TcpHTTPGet,
+        ProbeMode::Https => ServiceProbe::TcpHTTPSGet,
+        ProbeMode::Tls => ServiceProbe::TcpTlsSession,
+        ProbeMode::Quic => anyhow::bail!("QUIC probe requires QUIC transport"),
+    })
 }
 
 pub async fn read_timeout<S>(
@@ -245,42 +219,6 @@ where
     Ok(out)
 }
 
-// Build a regex with given pattern and flags
-fn build_regex(pat: &str, flags: &str) -> anyhow::Result<Regex> {
-    let mut b = RegexBuilder::new(pat);
-    b.case_insensitive(flags.contains('i'))
-        .dot_matches_new_line(flags.contains('s'));
-    //b.multi_line(true);
-    Ok(b.build()?)
-}
-
-/// Build a regex for HTTP headers (multi-line, case-insensitive, dot matches new line)
-fn build_http_regex(pat: &str) -> anyhow::Result<Regex> {
-    Ok(RegexBuilder::new(pat)
-        .multi_line(true)
-        .case_insensitive(true)
-        .dot_matches_new_line(true)
-        .build()?)
-}
-
-/// Expand CPE templates with regex capture groups
-fn expand_cpe_templates(cpe_list: &[String], caps: &regex::Captures) -> Vec<String> {
-    let mut out = Vec::with_capacity(cpe_list.len());
-    for t in cpe_list {
-        let mut s = t.clone();
-        // Replace $1, $2, ... $99 with corresponding capture groups
-        for i in (1..=99).rev() {
-            let needle = format!("${}", i);
-            if s.contains(&needle) {
-                let repl = caps.get(i).map(|m| m.as_str()).unwrap_or("");
-                s = s.replace(&needle, repl);
-            }
-        }
-        out.push(s);
-    }
-    out
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -321,7 +259,6 @@ mod integration_tests {
 
     #[tokio::test]
     async fn service_detection_keeps_banner_when_peer_leaves_connection_open() {
-        crate::db::DbInitializer::with_all().init().await;
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let server = tokio::spawn(async move {
@@ -333,6 +270,7 @@ mod integration_tests {
             timeout: Duration::from_millis(50),
             max_concurrency: 1,
             max_read_size: 4096,
+            mode: ProbeMode::Banner,
             sni: true,
             skip_cert_verify: true,
         };

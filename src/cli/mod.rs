@@ -137,8 +137,8 @@ pub struct PortScanArgs {
     #[arg(required = true)]
     pub target: Vec<String>,
 
-    /// Port spec: "top-1000" | "1-1024,80,443" | "22-25"
-    #[arg(short, long, default_value = "top-1000")]
+    /// Port spec: "common" | "1-1024,80,443" | "22-25"
+    #[arg(short, long, default_value = "common")]
     pub ports: String,
 
     /// Transport to scan
@@ -153,9 +153,25 @@ pub struct PortScanArgs {
     #[arg(short='S', long, default_value_t = false, action=ArgAction::SetTrue)]
     pub service_detect: bool,
 
-    /// Enable OS fingerprinting (sends one SYN on open ports to collect fingerprint features)
+    /// Request OS identification through Nmap (requires raw packet privileges)
     #[arg(short = 'O', long, default_value_t = false, action = ArgAction::SetTrue)]
     pub os_detect: bool,
+
+    /// Request detailed TCP service identification through an installed Nmap
+    #[arg(long)]
+    pub nmap: bool,
+
+    /// Nmap executable path (used only with --nmap or --os-detect)
+    #[arg(long, default_value = "nmap")]
+    pub nmap_path: PathBuf,
+
+    /// Total timeout for the Nmap identification phase in milliseconds
+    #[arg(long, default_value_t = 120_000, value_parser = value_parser!(u64).range(1..=3_600_000))]
+    pub nmap_timeout_ms: u64,
+
+    /// Built-in probe selection (used with --service-detect)
+    #[arg(long, value_enum, default_value_t = crate::service::probe::ProbeMode::Auto, requires = "service_detect")]
+    pub service_probe: crate::service::probe::ProbeMode,
 
     /// Enable QUIC probing on UDP ports (e.g., 443/udp)
     #[arg(long, action=ArgAction::SetTrue)]

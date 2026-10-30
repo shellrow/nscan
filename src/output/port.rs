@@ -5,37 +5,19 @@ use std::{
 };
 
 use crate::{
-    endpoint::{EndpointResult, Port, PortResult, PortState, ServiceInfo, TransportProtocol},
+    endpoint::{EndpointResult, Port, PortState},
     output::{ScanResult, tree_label},
-    service::{ServiceDetectionResult, probe::ServiceProbe},
+    service::ServiceDetectionResult,
 };
-use nex::packet::frame::Frame;
 use serde::{Deserialize, Serialize};
 use termtree::Tree;
-
-/// Results of OS probing
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OsProbeResult {
-    pub endpoints: Vec<EndpointResult>,
-    pub probe_time: Duration,
-    pub fingerprints: Vec<Frame>,
-}
-
-impl OsProbeResult {
-    /// Construct a new, empty OsProbeResult.
-    pub fn new() -> Self {
-        Self {
-            endpoints: Vec::new(),
-            probe_time: Duration::new(0, 0),
-            fingerprints: Vec::new(),
-        }
-    }
-}
 
 /// Comprehensive scan report combining various scan results.
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ScanReport {
     pub meta: ReportMeta,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identification: Option<crate::nmap::Identification>,
     /// Keep IP as key for merging
     #[serde(default)]
     pub endpoints: BTreeMap<IpAddr, EndpointResult>,
@@ -71,14 +53,6 @@ pub struct ReportStats {
     pub open_ports: usize,
     pub duration_scan: Option<Duration>,    // PortScan
     pub duration_service: Option<Duration>, // ServiceDetect
-    pub duration_os: Option<Duration>,      // OS probe
-}
-
-/// An attempt to probe a service on a port
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PortProbeAttempt {
-    pub probe_id: ServiceProbe,
-    pub result: Result<ServiceInfo, String>,
 }
 
 impl ScanReport {
@@ -111,53 +85,20 @@ impl ScanReport {
                 number: r.port,
                 transport: r.transport,
             };
-            let pr = ep.ports.entry(port_key).or_insert_with(|| PortResult {
-                port: port_key,
-                state: PortState::Open,
-                service: r.service_info.clone(),
-                rtt_ms: None,
-            });
-
-            pr.state = PortState::Open;
-            pr.port = port_key;
-            pr.service = select_better_service(pr.service.clone(), r.service_info);
+            if let Some(pr) = ep.ports.get_mut(&port_key) {
+                pr.service = r.service_info;
+            }
         }
         self.stats.duration_service = Some(sd.scan_time);
         self.recompute_stats();
     }
 
-    /// Apply OS probe results: replace with the more confident one
-    pub fn apply_os_probe(&mut self, osr: OsProbeResult) {
-        for ep2 in osr.endpoints {
-            if let Some(ep) = self.endpoints.get_mut(&ep2.ip) {
-                ep.merge(ep2);
-            } else {
-                self.endpoints.insert(ep2.ip, ep2);
-            }
-        }
-        self.stats.duration_os = Some(osr.probe_time);
-        self.recompute_stats();
-    }
-
     pub fn finish(&mut self) {
         self.meta.finished_at = Some(SystemTime::now());
-        let tcp_svc_db = crate::db::service::tcp_service_db();
-        let udp_svc_db = crate::db::service::udp_service_db();
-        // check service name. if service name is not in result, set it.
         for ep in self.endpoints.values_mut() {
             for (port, pr) in &mut ep.ports {
-                if pr.service.name.is_none() {
-                    match port.transport {
-                        TransportProtocol::Tcp => {
-                            pr.service.name =
-                                tcp_svc_db.get_name(port.number).map(|s| s.to_string());
-                        }
-                        TransportProtocol::Udp | TransportProtocol::Quic => {
-                            pr.service.name =
-                                udp_svc_db.get_name(port.number).map(|s| s.to_string());
-                        }
-                    }
-                }
+                pr.service.registered_name =
+                    crate::db::service::registered_name(port.number, port.transport);
             }
         }
     }
@@ -182,34 +123,7 @@ impl ScanReport {
     }
 }
 
-/// Choose the better ServiceInfo based on a simple scoring system.
-fn select_better_service(cur: ServiceInfo, newv: ServiceInfo) -> ServiceInfo {
-    let old_score = score_service(&cur);
-    let new_score = score_service(&newv);
-    if new_score >= old_score { newv } else { cur }
-}
-
-/// Score a ServiceInfo based on the presence of certain fields.
-fn score_service(s: &ServiceInfo) -> usize {
-    let mut sc = 0;
-    if s.name.is_some() {
-        sc += 1;
-    }
-    if s.product.is_some() {
-        sc += 1;
-    }
-    if let Some(b) = &s.banner {
-        sc += 1;
-        // Check for HTTP 200 OK for additional points
-        if b.contains("HTTP") && b.contains("200 OK") {
-            sc += 1;
-        }
-    }
-    sc += s.cpes.len();
-    sc
-}
-
-/// Match and print OS detection results in a tree structure.
+/// Print observations and optional external identification separately.
 pub fn print_report_tree(rep: &ScanReport) {
     let mut root = Tree::new(tree_label("Scan report(s)"));
     for ep in rep.endpoints.values() {
@@ -220,23 +134,8 @@ pub fn print_report_tree(rep: &ScanReport) {
         };
         let mut ep_root = Tree::new(title);
 
-        // OS
-        if ep.os.family.is_some() || !ep.cpes.is_empty() {
-            let mut os_node = Tree::new(tree_label("os"));
-            if let Some(f) = &ep.os.family {
-                os_node.push(Tree::new(tree_label(format!("family: {}", f))));
-            }
-            if let Some(v) = &ep.os.ttl_observed {
-                os_node.push(Tree::new(tree_label(format!("TTL: {}", v))));
-            }
-            if !ep.cpes.is_empty() {
-                let mut cpe_node = Tree::new(tree_label("cpes"));
-                for c in &ep.cpes {
-                    cpe_node.push(Tree::new(c.clone()));
-                }
-                os_node.push(cpe_node);
-            }
-            ep_root.push(os_node);
+        if let Some(ttl) = ep.os.ttl_observed {
+            ep_root.push(Tree::new(format!("observed TTL: {ttl}")));
         }
 
         // Ports
@@ -252,6 +151,12 @@ pub fn print_report_tree(rep: &ScanReport) {
             pnode.push(Tree::new(tree_label(format!("state: {:?}", pr.state))));
             if let Some(name) = &pr.service.name {
                 pnode.push(Tree::new(tree_label(format!("service: {}", name))));
+            }
+            if let Some(label) = &pr.service.registered_name {
+                pnode.push(Tree::new(format!("registered service: {label}")));
+            }
+            if let Some(server) = &pr.service.server_header {
+                pnode.push(Tree::new(format!("HTTP Server header: {server}")));
             }
             if let Some(b) = &pr.service.banner {
                 pnode.push(Tree::new(tree_label(format!("banner: {}", b))));
@@ -271,11 +176,42 @@ pub fn print_report_tree(rep: &ScanReport) {
 
         root.push(ep_root);
     }
-    println!("{}", crate::output::terminal_text(&root.to_string()));
-}
-
-impl Default for OsProbeResult {
-    fn default() -> Self {
-        Self::new()
+    if let Some(details) = &rep.identification {
+        let mut node = Tree::new(format!(
+            "Nmap {} ({})",
+            details.version,
+            if details.complete {
+                "complete"
+            } else {
+                "incomplete"
+            }
+        ));
+        for host in &details.hosts {
+            let mut host_node = Tree::new(host.ip.to_string());
+            for port in &host.ports {
+                if let Some(service) = &port.service {
+                    host_node.push(Tree::new(format!(
+                        "{}/{}: {} {} {}",
+                        port.port,
+                        port.protocol,
+                        service.name.as_deref().unwrap_or("unknown"),
+                        service.product.as_deref().unwrap_or(""),
+                        service.version.as_deref().unwrap_or("")
+                    )));
+                }
+            }
+            for os in &host.os_matches {
+                host_node.push(Tree::new(format!("OS: {} ({}%)", os.name, os.accuracy)));
+            }
+            node.push(host_node);
+        }
+        for warning in &details.warnings {
+            node.push(Tree::new(format!("warning: {warning}")));
+        }
+        if let Some(error) = &details.error {
+            node.push(Tree::new(error.clone()));
+        }
+        root.push(node);
     }
+    println!("{}", crate::output::terminal_text(&root.to_string()));
 }

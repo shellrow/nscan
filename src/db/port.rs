@@ -1,15 +1,21 @@
-use crate::config;
+use std::sync::LazyLock;
 
-/// Get default port list
-pub fn get_default_ports() -> Vec<u16> {
-    let default_ports: Vec<u16> = serde_json::from_str(config::db::DEFAULT_PORTS_JSON)
-        .expect("Invalid default-ports.json format");
-    default_ports
+/// Fixed common-port preset bundled with this version of nscan.
+pub fn common_ports() -> &'static [u16] {
+    static PORTS: LazyLock<Vec<u16>> = LazyLock::new(|| {
+        serde_json::from_str(crate::config::db::COMMON_PORTS_JSON)
+            .expect("invalid common-port preset")
+    });
+    &PORTS
 }
 
-/// Get well-known port list
-pub fn get_wellknown_ports() -> Vec<u16> {
-    let wellknown_ports: Vec<u16> = serde_json::from_str(config::db::WELLKNOWN_PORTS_JSON)
-        .expect("Invalid wellknown-ports.json format");
-    wellknown_ports
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn preset_is_sorted_unique_and_nonzero() {
+        let ports = super::common_ports();
+        assert_eq!(ports.len(), 1000);
+        assert!(ports[0] > 0);
+        assert!(ports.windows(2).all(|p| p[0] < p[1]));
+    }
 }

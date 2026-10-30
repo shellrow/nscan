@@ -9,7 +9,7 @@ Cross-platform network scanner for host and service discovery.
 - Port scan
 - Host scan
 - Service detection
-- OS family detection
+- Optional service and OS identification through Nmap
 - Subdomain scan
 
 ## Installation
@@ -80,7 +80,7 @@ nscan domain --help
 - Windows
 
 ## Privileges
-TCP connect scans, QUIC probes, DNS enumeration, and interface listing do not require raw-socket privileges. TCP SYN scans, host discovery, and OS fingerprinting require raw packet access and an appropriate interface. `--interface` applies to raw probes; connect scans use operating-system routing.
+TCP connect scans, QUIC probes, DNS enumeration, and interface listing do not require raw-socket privileges. TCP SYN scans and host discovery require raw packet access and an appropriate interface. `--interface` applies to nscan raw probes; connect scans use operating-system routing. OS identification uses Nmap and requires the privileges and capture driver needed by Nmap.
 
 ## Notes for Windows Users
 - Npcap/WinPcap Installation:
@@ -107,6 +107,22 @@ nscan port @targets.txt --ports 443 --concurrency 100
 nscan port example.com --proto quic --ports 443
 ```
 
+## Service detection
+
+`--service-detect` (`-S`) collects banners, HTTP headers, and TLS metadata. Use `--service-probe banner|http|https|tls|quic` to override automatic probe selection:
+
+```sh
+nscan port example.com --ports 9443 -S --service-probe https
+```
+
+For detailed TCP service/version detection, add `--nmap`. Use `--os-detect` (`-O`) for OS detection. These options require a separate Nmap installation; OS detection also requires privileges.
+
+```sh
+nscan port example.com --ports 22,80,443 --nmap --output scan.json
+```
+
+Detailed results appear separately under `identification`. If identification fails or times out, basic results are retained and the command exits with status `1`.
+
 ## Output
 
 Reports are printed to stdout; logs and progress use stderr. Use `--no-stdout` to suppress the report and `--quiet` to suppress non-error diagnostics. `--log-file-path` enables file logging. Global options can appear before or after the subcommand.
@@ -123,6 +139,8 @@ Domain scans may return partial results with exit status `0`. Check `complete`, 
 
 ## Scan options and limits
 
+- `--ports common` (default) selects a fixed set of 1,000 ports. Use explicit lists or ranges for custom scans; `top-N` is no longer supported.
+- Domain enumeration uses a small starter wordlist. Supply `--wordlist FILE` for broader coverage.
 - Port scanning supports TCP and QUIC. Generic UDP port scanning is not supported; UDP host discovery is available. QUIC uses the connect method.
 - Connect scans use OS routing without a preliminary ping. Set `--connect-timeout-ms` to override the default timeout. `--no-ping` skips the preliminary ping for raw scans.
 - `--ordered` scans hosts and ports in ascending IP/port order. Target files can include other files using paths relative to the containing file. Repeated files are read once; nesting is limited to 32 levels.
@@ -134,7 +152,7 @@ Domain scans may return partial results with exit status `0`. Check `complete`, 
 
 TCP ports are reported as `closed` after a connection refusal or reset. Timeouts are reported as `filtered`. For QUIC, `filtered` can also mean that the port does not run a QUIC service.
 
-Service names may be inferred from port numbers. TLS probes accept untrusted certificates for discovery; they do not verify server identity. OS detection returns an estimate based on packet fingerprints.
+`service.name` is the observed protocol; `service.registered_name` is the conventional port label. Banners, HTTP Server headers, and TTL values are observations, not verified product or OS identities. TLS probes accept untrusted certificates for discovery.
 
 Wildcard DNS answers are retained and marked with `wildcard_detected`. Detection uses one random name and may miss rotating or intermittent wildcard responses.
 
