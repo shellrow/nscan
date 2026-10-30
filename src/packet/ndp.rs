@@ -60,7 +60,7 @@ pub fn build_ndp_packet(interface: &Interface, dst_ip: IpAddr) -> Result<Vec<u8>
                 .source(src_mac)
                 .destination(dst_mac)
                 .ethertype(EtherType::Ipv6)
-                .payload(ipv6.payload(ndp.build().to_bytes()).build().to_bytes());
+                .payload(ipv6.payload(ndp.build()?.to_bytes()).build()?.to_bytes());
 
             let packet = ethernet.build().to_bytes();
             Ok(packet.to_vec())

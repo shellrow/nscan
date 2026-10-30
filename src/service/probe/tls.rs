@@ -76,15 +76,15 @@ pub fn extract_tls_info(
     client_conn: &ClientConnection,
 ) -> Option<TlsInfo> {
     let mut tls_info = TlsInfo::default();
-    if let Some(version) = client_conn.protocol_version() {
-        if let Some(version) = version.as_str() {
-            tls_info.version = Some(version.to_string());
-        }
+    if let Some(version) = client_conn.protocol_version()
+        && let Some(version) = version.as_str()
+    {
+        tls_info.version = Some(version.to_string());
     }
-    if let Some(cs) = client_conn.negotiated_cipher_suite() {
-        if let Some(cs) = cs.suite().as_str() {
-            tls_info.cipher_suite = Some(cs.to_string());
-        }
+    if let Some(cs) = client_conn.negotiated_cipher_suite()
+        && let Some(cs) = cs.suite().as_str()
+    {
+        tls_info.cipher_suite = Some(cs.to_string());
     }
     if let Some(alpn) = client_conn.alpn_protocol() {
         tls_info.alpn = Some(String::from_utf8_lossy(alpn).to_string());
@@ -159,8 +159,10 @@ impl TlsProbe {
 
         // rustls config
         let mut roots = RootCertStore::empty();
-        for cert in rustls_native_certs::load_native_certs()? {
-            let _ = roots.add(cert);
+        if !ctx.skip_cert_verify {
+            for cert in rustls_native_certs::load_native_certs().certs {
+                let _ = roots.add(cert);
+            }
         }
         let mut config = ClientConfig::builder()
             .with_root_certificates(roots)
@@ -186,7 +188,7 @@ impl TlsProbe {
         let tcp_svc_db = crate::db::service::tcp_service_db();
         svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
 
-        svc.tls_info = crate::service::probe::tls::extract_tls_info(&ctx, &conn);
+        svc.tls_info = crate::service::probe::tls::extract_tls_info(&ctx, conn);
 
         let probe_result: PortProbeResult = PortProbeResult {
             ip: ctx.ip,
@@ -197,6 +199,6 @@ impl TlsProbe {
             service_info: svc,
         };
         tracing::debug!("TLS Probe Result: {:?}", probe_result);
-        return Ok(probe_result);
+        Ok(probe_result)
     }
 }

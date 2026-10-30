@@ -78,11 +78,11 @@ pub fn init_port_probe_db() -> Result<()> {
     for (port, probes) in port_probe_db.map {
         let service_probes: Vec<ServiceProbe> = probes
             .into_iter()
-            .map(|probe| ServiceProbe::from_str(&probe).expect("Invalid service probe format"))
+            .map(|probe| ServiceProbe::parse(&probe).expect("Invalid service probe format"))
             .collect();
         for service_probe in service_probes {
             let port = Port::new(port, service_probe.transport());
-            map.entry(port).or_insert_with(Vec::new).push(service_probe);
+            map.entry(port).or_default().push(service_probe);
         }
     }
     PORT_PROBE_DB
@@ -98,7 +98,7 @@ pub fn init_service_probe_db() -> Result<()> {
     let mut service_probe_map: HashMap<ServiceProbe, ProbePayload> = HashMap::new();
     for probe_payload in probe_payload_db.probes {
         let service_probe: ServiceProbe =
-            ServiceProbe::from_str(&probe_payload.id).expect("Invalid service probe format");
+            ServiceProbe::parse(&probe_payload.id).expect("Invalid service probe format");
         service_probe_map.insert(service_probe, probe_payload);
     }
     SERVICE_PROBE_DB
@@ -121,10 +121,7 @@ pub fn init_response_signatures_db() -> Result<()> {
 /// Get the service name for a given TCP port
 pub fn get_tcp_service_name(port: u16) -> Option<String> {
     match TCP_SERVICE_DB.get() {
-        Some(db) => match db.get(port) {
-            Some(service) => Some(service.name.clone()),
-            None => None,
-        },
+        Some(db) => db.get(port).map(|service| service.name.clone()),
         None => None,
     }
 }
@@ -152,11 +149,8 @@ pub fn get_port_probes() -> HashMap<u16, Vec<ServiceProbe>> {
     for (port, probes) in port_probe_db.map {
         for probe in probes {
             let service_probe: ServiceProbe =
-                ServiceProbe::from_str(&probe).expect("Invalid service probe format");
-            port_probe_map
-                .entry(port)
-                .or_insert_with(Vec::new)
-                .push(service_probe);
+                ServiceProbe::parse(&probe).expect("Invalid service probe format");
+            port_probe_map.entry(port).or_default().push(service_probe);
         }
     }
     port_probe_map
@@ -169,7 +163,7 @@ pub fn get_service_probes() -> HashMap<ServiceProbe, ProbePayload> {
         .expect("Invalid service-probes.json format");
     for probe_payload in probe_payload_db.probes {
         let service_probe: ServiceProbe =
-            ServiceProbe::from_str(&probe_payload.id).expect("Invalid service probe format");
+            ServiceProbe::parse(&probe_payload.id).expect("Invalid service probe format");
         service_probe_map.insert(service_probe, probe_payload);
     }
     service_probe_map

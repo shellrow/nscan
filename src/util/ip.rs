@@ -16,22 +16,32 @@ pub fn next_hop_ip(iface: &Interface, target: IpAddr) -> Option<IpAddr> {
     match target {
         IpAddr::V4(dst) => {
             // Check if the target IP is in the same network as the interface
-            if let Some(_) = iface.ipv4.iter().find(|ipnet| ipnet.contains(&dst)) {
+            if iface
+                .ipv4
+                .iter()
+                .find(|ipnet| ipnet.contains(&dst))
+                .is_some()
+            {
                 return Some(IpAddr::V4(dst));
             }
             // off-link, return the default gateway (IPv4)
             match &iface.gateway {
-                Some(gw) => gw.ipv4.iter().next().map(|ip| IpAddr::V4(*ip)),
+                Some(gw) => gw.ipv4.first().map(|ip| IpAddr::V4(*ip)),
                 None => None,
             }
         }
         IpAddr::V6(dst) => {
-            if let Some(_) = iface.ipv6.iter().find(|ipnet| ipnet.contains(&dst)) {
+            if iface
+                .ipv6
+                .iter()
+                .find(|ipnet| ipnet.contains(&dst))
+                .is_some()
+            {
                 return Some(IpAddr::V6(dst));
             }
             // off-link, return the default gateway (IPv6)
             match &iface.gateway {
-                Some(gw) => gw.ipv6.iter().next().map(|ip| IpAddr::V6(*ip)),
+                Some(gw) => gw.ipv6.first().map(|ip| IpAddr::V6(*ip)),
                 None => None,
             }
         }

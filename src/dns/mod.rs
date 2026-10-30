@@ -16,7 +16,7 @@ pub async fn lookup_host(host: &str, timeout: Duration) -> Result<Host> {
             .unwrap_or_else(|| ip.to_string());
         Ok(Host {
             hostname: Some(hostname),
-            ip: ip,
+            ip,
         })
     } else {
         // Resolve hostname to IP address
@@ -53,7 +53,10 @@ pub async fn lookup_ip(hostname: &str, timeout: Duration) -> Option<Vec<IpAddr>>
 pub async fn reverse_lookup(ip: IpAddr, timeout: Duration) -> Option<String> {
     let resolver = resolver::get_resolver().ok()?;
     match tokio::time::timeout(timeout, async move { resolver.reverse_lookup(ip).await }).await {
-        Ok(Ok(names)) => names.iter().next().map(|n| n.to_string()),
+        Ok(Ok(names)) => names.answers().iter().find_map(|r| match &r.data {
+            hickory_proto::rr::RData::PTR(name) => Some(name.to_string()),
+            _ => None,
+        }),
         _ => None,
     }
 }
@@ -70,6 +73,12 @@ pub struct Domain {
 pub struct DomainScanResult {
     /// List of scanned domains
     pub domains: Vec<Domain>,
+    /// Wildcard DNS was observed; discovered names may be wildcard responses.
+    pub wildcard_detected: bool,
+    /// Whether every candidate finished before the overall deadline.
+    pub complete: bool,
+    pub attempted: usize,
+    pub total: usize,
     /// Time from start to end of scan.  
     pub scan_time: Duration,
 }

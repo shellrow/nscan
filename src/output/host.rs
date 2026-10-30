@@ -79,5 +79,5 @@ pub fn print_report_tree(result: &ScanResult) {
         }
         root.push(ep_root);
     }
-    println!("{}", root);
+    println!("{}", crate::output::terminal_text(&root.to_string()));
 }

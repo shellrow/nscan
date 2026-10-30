@@ -159,7 +159,7 @@ impl DbInitializer {
                     error: err,
                 }
             })
-            .buffer_unordered(uniq_count)
+            .buffer_unordered(uniq_count.max(1))
             .collect::<Vec<_>>()
             .await;
 
@@ -183,5 +183,26 @@ impl DbInitializer {
             total,
             records: results,
         }
+    }
+}
+
+impl Default for DbInitializer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl InitReport {
+    /// Do not proceed with partially initialized databases.
+    pub fn ensure_success(&self) -> Result<()> {
+        for record in &self.records {
+            anyhow::ensure!(
+                record.ok,
+                "database {} failed to initialize: {}",
+                record.name,
+                record.error.as_deref().unwrap_or("unknown error")
+            );
+        }
+        Ok(())
     }
 }

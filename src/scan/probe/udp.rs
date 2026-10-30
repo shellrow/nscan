@@ -19,7 +19,7 @@ pub async fn send_hostscan_packets(
     tx: &mut Box<dyn AsyncRawSender>,
     interface: &Interface,
     scan_setting: &ProbeSetting,
-) {
+) -> Result<()> {
     let header_span = tracing::info_span!("udp_host_scan");
     header_span.pb_set_style(&crate::output::progress::get_progress_style());
     header_span.pb_set_message("HostScan");
@@ -29,7 +29,7 @@ pub async fn send_hostscan_packets(
 
     for target in &scan_setting.target_endpoints {
         let packet = match crate::packet::udp::build_udp_packet(
-            &interface,
+            interface,
             target.ip,
             DEFAULT_BASE_TARGET_UDP_PORT,
             false,
@@ -37,8 +37,7 @@ pub async fn send_hostscan_packets(
             Ok(packet) => packet,
             Err(e) => {
                 tracing::error!("Failed to build UDP packet for {}: {}", target.ip, e);
-                header_span.pb_inc(1);
-                continue;
+                return Err(e);
             }
         };
         // Send a packet using poll_fn.
@@ -48,11 +47,12 @@ pub async fn send_hostscan_packets(
                     tokio::time::sleep(scan_setting.send_rate).await;
                 }
             }
-            Err(e) => eprintln!("Failed to send packet: {}", e),
+            Err(e) => return Err(e.into()),
         }
         header_span.pb_inc(1);
     }
     drop(header_span);
+    Ok(())
 }
 
 /// Run a UDP host scan based on the provided probe settings.
@@ -62,18 +62,18 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
         None => return Err(anyhow::anyhow!("Interface not found")),
     };
     // Create sender
-    let config = nex::datalink::Config {
-        write_buffer_size: 4096,
-        read_buffer_size: 4096,
-        read_timeout: Some(setting.wait_time),
-        write_timeout: None,
-        channel_type: nex::datalink::ChannelType::Layer2,
-        bpf_fd_attempts: 1000,
-        linux_fanout: None,
-        promiscuous: false,
-    };
+    let mut config = nex::datalink::Config::default();
+    config.write_buffer_size = 4096;
+    config.read_buffer_size = 4096;
+    config.read_timeout = Some(setting.wait_time);
+    config.write_timeout = None;
+    config.channel_type = nex::datalink::ChannelType::Layer2;
+    config.bpf_fd_attempts = 1000;
+    config.linux_fanout = None;
+    config.promiscuous = false;
 
-    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)? else {
+    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface.clone().into(), config)?
+    else {
         unreachable!();
     };
 
@@ -108,16 +108,26 @@ pub async fn run_host_scan(setting: ProbeSetting) -> Result<ScanResult> {
     });
 
     // Wait for listener to start
-    let _ = ready_rx;
+    ready_rx
+        .await
+        .map_err(|_| anyhow::anyhow!("packet capture failed to start"))?;
     let start_time = std::time::Instant::now();
     // Send probe packets
-    send_hostscan_packets(&mut tx, &interface, &setting).await;
+    let send_result = tokio::time::timeout(
+        setting.task_timeout,
+        send_hostscan_packets(&mut tx, &interface, &setting),
+    )
+    .await;
+    if !matches!(send_result, Ok(Ok(()))) {
+        capture_handle.abort();
+        send_result.map_err(|_| anyhow::anyhow!("packet transmission deadline exceeded"))??;
+    }
     tokio::time::sleep(setting.wait_time).await;
     // Stop pcap
     let _ = stop_tx.send(());
     let frames = capture_handle
         .await
-        .map_err(|e| anyhow::anyhow!("capture task join error: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("capture task join error: {}", e))??;
     let dns_map = setting.get_dns_map();
     let mut result = parse_hostscan_result(frames, &interface, &dns_map);
     result.scan_time = start_time.elapsed();

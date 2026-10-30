@@ -18,8 +18,12 @@ pub fn resolve_interface(interface_name: Option<&str>) -> Result<Interface> {
 }
 
 /// Build endpoints by applying the same port list to each host.
-pub fn build_endpoints(hosts: Vec<Host>, ports: &[Port]) -> Vec<Endpoint> {
-    hosts
+pub fn build_endpoints(hosts: Vec<Host>, ports: &[Port]) -> Result<Vec<Endpoint>> {
+    anyhow::ensure!(
+        hosts.len().saturating_mul(ports.len().max(1)) <= 1_000_000,
+        "scan exceeds 1,000,000 host/port pairs; split the scan"
+    );
+    Ok(hosts
         .into_iter()
         .map(|host| {
             let mut endpoint = Endpoint::new(host.ip);
@@ -29,7 +33,7 @@ pub fn build_endpoints(hosts: Vec<Host>, ports: &[Port]) -> Vec<Endpoint> {
             }
             endpoint
         })
-        .collect()
+        .collect())
 }
 
 /// Merge duplicate endpoints by IP and de-duplicate ports.

@@ -45,7 +45,7 @@ pub fn build_udp_packet(
     let udp_packet = UdpPacketBuilder::new(src_ip, dst_ip)
         .source(DEFAULT_LOCAL_UDP_PORT)
         .destination(dst_port)
-        .build();
+        .build()?;
 
     let ip_packet: Bytes = match (src_ip, dst_ip) {
         (IpAddr::V4(src), IpAddr::V4(dst)) => Ipv4PacketBuilder::new()
@@ -54,14 +54,14 @@ pub fn build_udp_packet(
             .protocol(IpNextProtocol::Udp)
             .flags(Ipv4Flags::DontFragment)
             .payload(udp_packet.to_bytes())
-            .build()
+            .build()?
             .to_bytes(),
         (IpAddr::V6(src), IpAddr::V6(dst)) => Ipv6PacketBuilder::new()
             .source(src)
             .destination(dst)
             .next_header(IpNextProtocol::Udp)
             .payload(udp_packet.to_bytes())
-            .build()
+            .build()?
             .to_bytes(),
         _ => anyhow::bail!("source and destination IP version mismatch"),
     };

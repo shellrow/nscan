@@ -19,11 +19,8 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     }
 
     let mut ports: Vec<Port> = Vec::new();
-    match args.proto {
-        HostScanProto::Tcp => {
-            ports = crate::cli::port::parse_ports(&args.ports, TransportProtocol::Tcp)?;
-        }
-        _ => {}
+    if args.proto == HostScanProto::Tcp {
+        ports = crate::cli::port::parse_ports(&args.ports, TransportProtocol::Tcp)?;
     }
 
     if !args.ordered {
@@ -33,14 +30,14 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         ports.shuffle(&mut rng);
     }
 
-    let target_endpoints = build_endpoints(target_hosts, &ports);
+    let target_endpoints = build_endpoints(target_hosts, &ports)?;
 
     let interface = resolve_interface(args.interface.as_deref())?;
     let concurrency = normalize_concurrency(args.concurrency);
 
     let probe_setting = ProbeSetting {
         if_index: interface.index,
-        target_endpoints: target_endpoints,
+        target_endpoints,
         host_concurrency: concurrency,
         port_concurrency: concurrency,
         task_timeout: Duration::from_secs(30),
@@ -71,14 +68,8 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         crate::output::host::print_report_tree(&hostscan_result);
     }
     if let Some(path) = &output {
-        match save_json_output(&hostscan_result, path, JsonStyle::Pretty) {
-            Ok(_) => {
-                if !no_stdout {
-                    tracing::info!("JSON output saved to {}", path.display());
-                }
-            }
-            Err(e) => tracing::error!("Failed to save JSON output: {}", e),
-        }
+        save_json_output(&hostscan_result, path, JsonStyle::Pretty)?;
+        tracing::info!("JSON output saved to {}", path.display());
     }
     Ok(())
 }

@@ -73,14 +73,14 @@ impl ProbeStatus {
     pub fn with_error_message(message: String) -> ProbeStatus {
         ProbeStatus {
             kind: ProbeStatusKind::Error,
-            message: message,
+            message,
         }
     }
     /// Create a new ProbeStatus with Timeout kind and message
     pub fn with_timeout_message(message: String) -> ProbeStatus {
         ProbeStatus {
             kind: ProbeStatusKind::Timeout,
-            message: message,
+            message,
         }
     }
 }
@@ -147,10 +147,10 @@ impl ProbeResult {
         sent_packet_size: usize,
     ) -> ProbeResult {
         ProbeResult {
-            seq: seq,
+            seq,
             mac_addr: MacAddr::zero(),
-            ip_addr: ip_addr,
-            host_name: host_name,
+            ip_addr,
+            host_name,
             port_number: None,
             port_status: None,
             ttl: 0,
@@ -160,9 +160,9 @@ impl ProbeResult {
                 "Request timeout for seq {}",
                 seq
             )),
-            protocol: protocol,
+            protocol,
             node_type: NodeType::Destination,
-            sent_packet_size: sent_packet_size,
+            sent_packet_size,
             received_packet_size: 0,
         }
     }
@@ -174,7 +174,7 @@ impl ProbeResult {
         node_type: NodeType,
     ) -> ProbeResult {
         ProbeResult {
-            seq: seq,
+            seq,
             mac_addr: MacAddr::zero(),
             ip_addr: IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
             host_name: None,
@@ -187,10 +187,22 @@ impl ProbeResult {
                 "Request timeout for seq {}",
                 seq
             )),
-            protocol: protocol,
-            node_type: node_type,
-            sent_packet_size: sent_packet_size,
+            protocol,
+            node_type,
+            sent_packet_size,
             received_packet_size: 0,
         }
+    }
+}
+
+impl Default for ProbeStatus {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for ProbeResult {
+    fn default() -> Self {
+        Self::new()
     }
 }

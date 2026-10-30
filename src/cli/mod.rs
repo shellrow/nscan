@@ -13,27 +13,27 @@ use crate::{config::default::DEFAULT_PORTS_CONCURRENCY, endpoint::TransportProto
 #[command(author, version, about = "nscan - Network scan tool for host and service discovery\nhttps://github.com/shellrow/nscan", long_about = None)]
 pub struct Cli {
     /// Global log level
-    #[arg(long, default_value = "info")]
+    #[arg(global = true, long, default_value = "info")]
     pub log_level: LogLevel,
 
-    /// Log to file (in addition to stdout)
-    #[arg(long, action = ArgAction::SetTrue, default_value_t = false)]
+    /// Log to file (in addition to stderr)
+    #[arg(global = true, long, action = ArgAction::SetTrue, default_value_t = false)]
     pub log_file: bool,
 
-    /// Log file path (default: ~/.nscan/logs/nscan.log)
-    #[arg(long, value_name = "FILE", value_parser = value_parser!(PathBuf))]
+    /// Log file path (default: ~/.nscan/nscan.log)
+    #[arg(global = true, long, value_name = "FILE", value_parser = value_parser!(PathBuf))]
     pub log_file_path: Option<PathBuf>,
 
     /// Suppress non-error logs
-    #[arg(long, action = ArgAction::SetTrue, default_value_t = false)]
+    #[arg(global = true, long, action = ArgAction::SetTrue, default_value_t = false)]
     pub quiet: bool,
 
     /// Save result to a JSON file
-    #[arg(short, long, value_name = "FILE", value_parser = value_parser!(PathBuf))]
+    #[arg(global = true, short, long, value_name = "FILE", value_parser = value_parser!(PathBuf))]
     pub output: Option<PathBuf>,
 
     /// Suppress stdout output (use with --output)
-    #[arg(long, action = ArgAction::SetTrue, default_value_t = false)]
+    #[arg(global = true, long, action = ArgAction::SetTrue, default_value_t = false)]
     pub no_stdout: bool,
 
     /// Subcommands
@@ -67,7 +67,7 @@ impl LogLevel {
 /// Subcommands
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Scan ports on target host(s) (TCP/UDP/QUIC)
+    /// Scan ports on target host(s) (TCP/QUIC)
     Port(PortScanArgs),
 
     /// Discover alive hosts (ICMP/UDP/TCP)
@@ -91,7 +91,6 @@ pub enum PortScanMethod {
 #[derive(Copy, Clone, Debug, ValueEnum, Eq, PartialEq)]
 pub enum PortScanTransport {
     Tcp,
-    Udp,
     Quic,
 }
 
@@ -100,7 +99,6 @@ impl PortScanTransport {
     pub fn to_transport(self) -> TransportProtocol {
         match self {
             PortScanTransport::Tcp => TransportProtocol::Tcp,
-            PortScanTransport::Udp => TransportProtocol::Udp,
             PortScanTransport::Quic => TransportProtocol::Quic,
         }
     }
@@ -108,7 +106,6 @@ impl PortScanTransport {
     pub fn as_str(self) -> &'static str {
         match self {
             PortScanTransport::Tcp => "tcp",
-            PortScanTransport::Udp => "udp",
             PortScanTransport::Quic => "quic",
         }
     }
@@ -173,7 +170,7 @@ pub struct PortScanArgs {
     pub interface: Option<String>,
 
     /// Concurrency (tasks)
-    #[arg(long, default_value_t = DEFAULT_PORTS_CONCURRENCY)]
+    #[arg(long, default_value_t = DEFAULT_PORTS_CONCURRENCY, value_parser = parse_concurrency)]
     pub concurrency: usize,
 
     /// Base connect timeout in ms (auto-adapted by RTT)
@@ -192,7 +189,7 @@ pub struct PortScanArgs {
     #[arg(long, default_value_t = 30000, value_parser = value_parser!(u64).range(1..=60_000))]
     pub task_timeout_ms: u64,
 
-    /// Scan ports in user-specified order (default is randomized)
+    /// Scan ports in ascending order (default is randomized)
     #[arg(long, action=ArgAction::SetTrue)]
     pub ordered: bool,
 
@@ -204,7 +201,7 @@ pub struct PortScanArgs {
 /// Host scan arguments
 #[derive(Args, Debug)]
 pub struct HostScanArgs {
-    /// Targets (CIDR, range, or list).
+    /// Targets (CIDR, IP, hostname, or @file).
     #[arg(required = true)]
     pub target: Vec<String>,
 
@@ -229,10 +226,10 @@ pub struct HostScanArgs {
     pub interface: Option<String>,
 
     /// Concurrency (in-flight probes)
-    #[arg(long, default_value_t = 512)]
+    #[arg(long, default_value_t = 512, value_parser = parse_concurrency)]
     pub concurrency: usize,
 
-    /// Scan hosts in user-specified order (default is randomized)
+    /// Scan hosts in ascending IP order (default is randomized)
     #[arg(long, action=ArgAction::SetTrue)]
     pub ordered: bool,
 }
@@ -249,15 +246,15 @@ pub struct DomainScanArgs {
     pub wordlist: Option<PathBuf>,
 
     /// DNS lookup concurrency
-    #[arg(long, default_value_t = 256)]
+    #[arg(long, default_value_t = 256, value_parser = parse_concurrency)]
     pub concurrency: usize,
 
     /// Total scan timeout (ms)
-    #[arg(long, default_value_t = 30000)]
+    #[arg(long, default_value_t = 30000, value_parser = value_parser!(u64).range(1..=86_400_000))]
     pub timeout_ms: u64,
 
     /// Per-lookup timeout (ms)
-    #[arg(long, default_value_t = 2000)]
+    #[arg(long, default_value_t = 2000, value_parser = value_parser!(u64).range(1..=60_000))]
     pub resolve_timeout_ms: u64,
 }
 
@@ -267,4 +264,12 @@ pub struct InterfaceArgs {
     /// Show all interfaces
     #[arg(short, long, action=ArgAction::SetTrue)]
     pub all: bool,
+}
+
+fn parse_concurrency(raw: &str) -> Result<usize, String> {
+    let value = raw.parse::<usize>().map_err(|e| e.to_string())?;
+    if !(1..=4096).contains(&value) {
+        return Err("concurrency must be between 1 and 4096".into());
+    }
+    Ok(value)
 }

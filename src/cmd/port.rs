@@ -20,6 +20,11 @@ use std::{path::PathBuf, time::Duration};
 
 /// Run port scan
 pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -> Result<()> {
+    if args.method == crate::cli::PortScanMethod::Syn
+        && args.proto != crate::cli::PortScanTransport::Tcp
+    {
+        anyhow::bail!("SYN scanning is supported only for TCP");
+    }
     let mut rep = ScanReport::new();
     // Parse target hosts
     let target_hosts: Vec<Host> = crate::cli::host::parse_target_hosts(&args.target).await?;
@@ -42,17 +47,39 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     }
 
     // Create target endpoints from hosts and ports
-    let target_endpoints = build_endpoints(target_hosts, &ports);
+    let mut target_endpoints = build_endpoints(target_hosts, &ports)?;
+    if let Some(name) = &args.sni {
+        for endpoint in &mut target_endpoints {
+            endpoint.hostname = Some(name.clone());
+        }
+    }
 
     // Get network interface
-    let interface = resolve_interface(args.interface.as_deref())?;
+    let uses_raw = args.method == crate::cli::PortScanMethod::Syn || args.os_detect;
+    anyhow::ensure!(
+        uses_raw || args.interface.is_none(),
+        "--interface applies to raw SYN/OS probes; connect scans use OS routing"
+    );
+    let interface = if uses_raw {
+        Some(resolve_interface(args.interface.as_deref())?)
+    } else {
+        None
+    };
     let concurrency = normalize_concurrency(args.concurrency);
 
     // Initial ping to check reachability and measure latency
-    let initial_rtt = if args.no_ping {
+    let initial_rtt = if args.no_ping || interface.is_none() {
         Duration::from_millis(200)
     } else {
-        match crate::ping::initial_ping(&interface, &first_host, Some(ports[0].number)).await {
+        match crate::ping::initial_ping(
+            interface
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("raw interface unavailable"))?,
+            &first_host,
+            Some(ports[0].number),
+        )
+        .await
+        {
             Ok(rtt) => rtt,
             Err(e) => {
                 tracing::warn!("Initial ping failed: {}. Proceeding with default RTT.", e);
@@ -66,13 +93,13 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
 
     // Create probe setting
     let probe_setting = ProbeSetting {
-        if_index: interface.index,
-        target_endpoints: target_endpoints,
+        if_index: interface.as_ref().map_or(0, |iface| iface.index),
+        target_endpoints,
         host_concurrency: concurrency,
         port_concurrency: concurrency,
         task_timeout: Duration::from_millis(args.task_timeout_ms),
         connect_timeout: conn_timeout,
-        wait_time: wait_time,
+        wait_time,
         send_rate: Duration::from_millis(1),
     };
 
@@ -145,7 +172,7 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         let os_detector = crate::os::OsDetector::new(os_probe_setting);
         let os_probe_result = os_detector.run().await?;
         tracing::info!("OS detection completed in {:?}", os_probe_result.probe_time);
-        if os_probe_result.endpoints.len() == 0 {
+        if os_probe_result.endpoints.is_empty() {
             tracing::info!("No OS detected");
         }
         for endpoint in &os_probe_result.endpoints {
@@ -214,14 +241,8 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         print_report_tree(&rep);
     }
     if let Some(path) = &output {
-        match save_json_output(&rep, path, JsonStyle::Pretty) {
-            Ok(_) => {
-                if !no_stdout {
-                    tracing::info!("JSON output saved to {}", path.display());
-                }
-            }
-            Err(e) => tracing::error!("Failed to save JSON output: {}", e),
-        }
+        save_json_output(&rep, path, JsonStyle::Pretty)?;
+        tracing::info!("JSON output saved to {}", path.display());
     }
     Ok(())
 }

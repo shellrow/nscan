@@ -40,18 +40,15 @@ fn looks_like_text_line(s: &str) -> bool {
 /// 3. If neither exists, use the first line (raw)
 fn parse_banner(bytes: &[u8], max_preview: usize) -> BannerLite {
     let raw = String::from_utf8_lossy(bytes);
-    let mut out = BannerLite::default();
-
-    out.raw_text = if raw.len() > max_preview {
-        raw[..max_preview].to_string()
-    } else {
-        raw.to_string()
+    let mut out = BannerLite {
+        raw_text: if raw.len() > max_preview {
+            raw[..raw.floor_char_boundary(max_preview)].to_string()
+        } else {
+            raw.to_string()
+        },
+        ..BannerLite::default()
     };
-
-    let mut lines = out
-        .raw_text
-        .split(|c| c == '\n')
-        .map(|l| l.trim_end_matches('\r'));
+    let mut lines = out.raw_text.split('\n').map(|l| l.trim_end_matches('\r'));
 
     let first = lines.next().unwrap_or("");
     let second = lines.next().unwrap_or("");
@@ -145,10 +142,10 @@ impl NullProbe {
         let mut svc = ServiceInfo::default();
         let tcp_svc_db = crate::db::service::tcp_service_db();
         svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
-        if let Some((_service_name, cpes)) = hit {
-            if !cpes.is_empty() {
-                svc.cpes = cpes;
-            }
+        if let Some((_service_name, cpes)) = hit
+            && !cpes.is_empty()
+        {
+            svc.cpes = cpes;
         }
         // Even if name is still unknown, keep the banner
         svc.banner = banner.first_line.clone();
@@ -162,5 +159,19 @@ impl NullProbe {
             service_info: svc,
         };
         Ok(probe_result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn banner_truncation_handles_multibyte_and_invalid_utf8() {
+        for bytes in ["ééé".as_bytes(), &[0xff, 0xfe, 0xfd]] {
+            for limit in 0..8 {
+                let banner = parse_banner(bytes, limit);
+                assert!(banner.raw_text.len() <= limit);
+            }
+        }
     }
 }

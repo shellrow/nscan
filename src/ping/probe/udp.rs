@@ -29,20 +29,20 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
         Some(interface) => interface,
         None => return Err(anyhow::anyhow!("Interface not found")),
     };
-    let src_ip_set: HashSet<IpAddr> = interface.ip_addrs().iter().map(|ip| ip.clone()).collect();
+    let src_ip_set: HashSet<IpAddr> = interface.ip_addrs().iter().copied().collect();
     // Create sender
-    let config = nex::datalink::Config {
-        write_buffer_size: 4096,
-        read_buffer_size: 4096,
-        read_timeout: Some(setting.receive_timeout),
-        write_timeout: None,
-        channel_type: nex::datalink::ChannelType::Layer2,
-        bpf_fd_attempts: 1000,
-        linux_fanout: None,
-        promiscuous: false,
-    };
+    let mut config = nex::datalink::Config::default();
+    config.write_buffer_size = 4096;
+    config.read_buffer_size = 4096;
+    config.read_timeout = Some(setting.receive_timeout);
+    config.write_timeout = None;
+    config.channel_type = nex::datalink::ChannelType::Layer2;
+    config.bpf_fd_attempts = 1000;
+    config.linux_fanout = None;
+    config.promiscuous = false;
 
-    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)? else {
+    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface.clone().into(), config)?
+    else {
         unreachable!();
     };
 
@@ -77,8 +77,9 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
             Ok(_) => {}
             Err(e) => eprintln!("Failed to send packet: {}", e),
         }
+        let receive_deadline = tokio::time::Instant::now() + setting.receive_timeout;
         loop {
-            match tokio::time::timeout(setting.receive_timeout, rx.next()).await {
+            match tokio::time::timeout_at(receive_deadline, rx.next()).await {
                 Ok(Some(Ok(packet))) => {
                     let rtt = send_time.elapsed();
                     let frame = match Frame::from_buf(&packet, parse_option.clone()) {
@@ -97,84 +98,79 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
                     }
                     if let Some(ip_layer) = &frame.ip {
                         // IPv4
-                        if let Some(ipv4_header) = &ip_layer.ipv4 {
-                            if IpAddr::V4(ipv4_header.source) == setting.dst_ip
-                                && src_ip_set.contains(&IpAddr::V4(ipv4_header.destination))
+                        if let Some(ipv4_header) = &ip_layer.ipv4
+                            && IpAddr::V4(ipv4_header.source) == setting.dst_ip
+                            && src_ip_set.contains(&IpAddr::V4(ipv4_header.destination))
+                        {
+                            // IPv4 ICMP
+                            if let Some(icmp_header) = &ip_layer.icmp
+                                && icmp_header.icmp_type == IcmpType::DestinationUnreachable
                             {
-                                // IPv4 ICMP
-                                if let Some(icmp_header) = &ip_layer.icmp {
-                                    if icmp_header.icmp_type == IcmpType::DestinationUnreachable {
-                                        let probe_result: ProbeResult = ProbeResult {
-                                            seq: seq,
-                                            mac_addr: mac_addr,
-                                            ip_addr: setting.dst_ip,
-                                            host_name: setting.dst_hostname.clone(),
-                                            port_number: None,
-                                            port_status: None,
-                                            ttl: ipv4_header.ttl,
-                                            hop: crate::util::ip::initial_ttl(ipv4_header.ttl)
-                                                - ipv4_header.ttl,
-                                            rtt: rtt,
-                                            probe_status: ProbeStatus::new(),
-                                            protocol: Protocol::Udp,
-                                            node_type: NodeType::Destination,
-                                            sent_packet_size: udp_packet.len(),
-                                            received_packet_size: packet.len(),
-                                        };
-                                        tracing::info!(
-                                            "Reply from {}, bytes={} RTT={:?} TTL={}",
-                                            setting.dst_ip,
-                                            packet.len(),
-                                            rtt,
-                                            ipv4_header.ttl
-                                        );
-                                        responses.push(probe_result);
-                                        header_span.pb_inc(1);
-                                        break;
-                                    }
-                                }
+                                let probe_result: ProbeResult = ProbeResult {
+                                    seq,
+                                    mac_addr,
+                                    ip_addr: setting.dst_ip,
+                                    host_name: setting.dst_hostname.clone(),
+                                    port_number: None,
+                                    port_status: None,
+                                    ttl: ipv4_header.ttl,
+                                    hop: crate::util::ip::initial_ttl(ipv4_header.ttl)
+                                        - ipv4_header.ttl,
+                                    rtt,
+                                    probe_status: ProbeStatus::new(),
+                                    protocol: Protocol::Udp,
+                                    node_type: NodeType::Destination,
+                                    sent_packet_size: udp_packet.len(),
+                                    received_packet_size: packet.len(),
+                                };
+                                tracing::info!(
+                                    "Reply from {}, bytes={} RTT={:?} TTL={}",
+                                    setting.dst_ip,
+                                    packet.len(),
+                                    rtt,
+                                    ipv4_header.ttl
+                                );
+                                responses.push(probe_result);
+                                header_span.pb_inc(1);
+                                break;
                             }
                         }
                         // IPv6
-                        if let Some(ipv6_header) = &ip_layer.ipv6 {
-                            if IpAddr::V6(ipv6_header.source) == setting.dst_ip
-                                && src_ip_set.contains(&IpAddr::V6(ipv6_header.destination))
+                        if let Some(ipv6_header) = &ip_layer.ipv6
+                            && IpAddr::V6(ipv6_header.source) == setting.dst_ip
+                            && src_ip_set.contains(&IpAddr::V6(ipv6_header.destination))
+                        {
+                            // ICMPv6
+                            if let Some(icmpv6_header) = &ip_layer.icmpv6
+                                && icmpv6_header.icmpv6_type == Icmpv6Type::DestinationUnreachable
                             {
-                                // ICMPv6
-                                if let Some(icmpv6_header) = &ip_layer.icmpv6 {
-                                    if icmpv6_header.icmpv6_type
-                                        == Icmpv6Type::DestinationUnreachable
-                                    {
-                                        let probe_result: ProbeResult = ProbeResult {
-                                            seq: seq,
-                                            mac_addr: mac_addr,
-                                            ip_addr: setting.dst_ip,
-                                            host_name: setting.dst_hostname.clone(),
-                                            port_number: None,
-                                            port_status: None,
-                                            ttl: ipv6_header.hop_limit,
-                                            hop: crate::util::ip::initial_ttl(
-                                                ipv6_header.hop_limit,
-                                            ) - ipv6_header.hop_limit,
-                                            rtt: rtt,
-                                            probe_status: ProbeStatus::new(),
-                                            protocol: Protocol::Udp,
-                                            node_type: NodeType::Destination,
-                                            sent_packet_size: udp_packet.len(),
-                                            received_packet_size: packet.len(),
-                                        };
-                                        tracing::info!(
-                                            "Reply from {}, bytes={} RTT={:?} TTL={}",
-                                            setting.dst_ip,
-                                            packet.len(),
-                                            rtt,
-                                            ipv6_header.hop_limit
-                                        );
-                                        responses.push(probe_result);
-                                        header_span.pb_inc(1);
-                                        break;
-                                    }
-                                }
+                                let probe_result: ProbeResult = ProbeResult {
+                                    seq,
+                                    mac_addr,
+                                    ip_addr: setting.dst_ip,
+                                    host_name: setting.dst_hostname.clone(),
+                                    port_number: None,
+                                    port_status: None,
+                                    ttl: ipv6_header.hop_limit,
+                                    hop: crate::util::ip::initial_ttl(ipv6_header.hop_limit)
+                                        - ipv6_header.hop_limit,
+                                    rtt,
+                                    probe_status: ProbeStatus::new(),
+                                    protocol: Protocol::Udp,
+                                    node_type: NodeType::Destination,
+                                    sent_packet_size: udp_packet.len(),
+                                    received_packet_size: packet.len(),
+                                };
+                                tracing::info!(
+                                    "Reply from {}, bytes={} RTT={:?} TTL={}",
+                                    setting.dst_ip,
+                                    packet.len(),
+                                    rtt,
+                                    ipv6_header.hop_limit
+                                );
+                                responses.push(probe_result);
+                                header_span.pb_inc(1);
+                                break;
                             }
                         }
                     }
@@ -271,7 +267,7 @@ pub async fn run_udp_ping(setting: &PingSetting) -> Result<PingResult> {
         responses: responses.clone(),
         probe_time: elapsed_time,
         transmitted_count: setting.count as usize,
-        received_count: received_count,
+        received_count,
         min: min_opt,
         avg: avg_opt,
         max: max_opt,

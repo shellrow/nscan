@@ -1,7 +1,7 @@
 use std::{collections::HashMap, net::SocketAddr};
 
 use anyhow::Result;
-use rustls_pki_types::ServerName;
+use rustls::pki_types::ServerName;
 use std::sync::Arc;
 use tokio::{io::AsyncWriteExt, net::TcpStream, time::timeout};
 use tokio_rustls::{
@@ -146,7 +146,10 @@ impl HttpProbe {
                     ctx.ip,
                     ctx.probe.port
                 );
-                let payload: Vec<u8> = payload_builder.payload(PayloadContext::default())?;
+                let payload: Vec<u8> = payload_builder.payload(PayloadContext {
+                    hostname: Some(&hostname),
+                    path: Some("/"),
+                })?;
                 timeout(ctx.timeout, tcp_stream.write_all(&payload)).await??;
                 tcp_stream.flush().await?;
                 let res: Vec<u8> =
@@ -159,12 +162,13 @@ impl HttpProbe {
                     ctx.probe.port,
                     http_res.header_text
                 );
-                let mut svc = ServiceInfo::default();
-                svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
-                svc.banner = http_res.status_line.clone();
-                svc.product = http_res.headers.get("server").cloned();
-                svc.raw = Some(http_res.raw_text.clone());
-
+                let mut svc = ServiceInfo {
+                    name: tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string()),
+                    banner: http_res.status_line.clone(),
+                    product: http_res.headers.get("server").cloned(),
+                    raw: Some(http_res.raw_text.clone()),
+                    ..ServiceInfo::default()
+                };
                 tracing::debug!(
                     "HTTP Probe: {}:{} - Banner: {:?}, Server {:?}",
                     ctx.ip,
@@ -196,15 +200,17 @@ impl HttpProbe {
                     ctx.probe.port
                 );
                 let payload_ctx = PayloadContext {
-                    hostname: ctx.hostname.as_deref(),
-                    path: Some("/".into()),
+                    hostname: Some(&hostname),
+                    path: Some("/"),
                 };
                 let payload: Vec<u8> = payload_builder.payload(payload_ctx)?;
 
                 // rustls config
                 let mut roots = RootCertStore::empty();
-                for cert in rustls_native_certs::load_native_certs()? {
-                    let _ = roots.add(cert);
+                if !ctx.skip_cert_verify {
+                    for cert in rustls_native_certs::load_native_certs().certs {
+                        let _ = roots.add(cert);
+                    }
                 }
                 let mut config = ClientConfig::builder()
                     .with_root_certificates(roots)
@@ -232,11 +238,11 @@ impl HttpProbe {
                 // server connection
                 let conn = tls_stream.get_ref().1;
 
-                let mut svc = ServiceInfo::default();
-                svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
-
-                svc.tls_info = super::tls::extract_tls_info(&ctx, &conn);
-
+                let mut svc = ServiceInfo {
+                    name: tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string()),
+                    tls_info: super::tls::extract_tls_info(&ctx, conn),
+                    ..ServiceInfo::default()
+                };
                 tls_stream.write_all(&payload).await?;
                 tls_stream.flush().await?;
                 let res: Vec<u8> =
@@ -284,7 +290,10 @@ impl HttpProbe {
                     ctx.ip,
                     ctx.probe.port
                 );
-                let payload: Vec<u8> = payload_builder.payload(PayloadContext::default())?;
+                let payload: Vec<u8> = payload_builder.payload(PayloadContext {
+                    hostname: Some(&hostname),
+                    path: Some("/"),
+                })?;
                 timeout(ctx.timeout, tcp_stream.write_all(&payload)).await??;
                 tcp_stream.flush().await?;
                 let res: Vec<u8> =
@@ -297,12 +306,13 @@ impl HttpProbe {
                     ctx.probe.port,
                     http_res.header_text
                 );
-                let mut svc = ServiceInfo::default();
-                svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
-                svc.banner = http_res.status_line.clone();
-                svc.product = http_res.headers.get("server").cloned();
-                svc.raw = Some(http_res.raw_text.clone());
-
+                let mut svc = ServiceInfo {
+                    name: tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string()),
+                    banner: http_res.status_line.clone(),
+                    product: http_res.headers.get("server").cloned(),
+                    raw: Some(http_res.raw_text.clone()),
+                    ..ServiceInfo::default()
+                };
                 tracing::debug!(
                     "HTTP Probe: {}:{} - Banner: {:?}, Server {:?}",
                     ctx.ip,

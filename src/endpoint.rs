@@ -35,7 +35,7 @@ pub enum TransportProtocol {
 
 impl TransportProtocol {
     /// Create a TransportProtocol from a string representation.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "tcp" => Some(TransportProtocol::Tcp),
             "udp" => Some(TransportProtocol::Udp),
@@ -105,7 +105,7 @@ pub enum PortState {
 
 impl PortState {
     /// Create a PortState from a string representation.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "open" => Some(PortState::Open),
             "closed" => Some(PortState::Closed),
@@ -133,7 +133,7 @@ pub enum NodeType {
 
 impl NodeType {
     /// Create a NodeType from a string representation.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "gateway" => Some(NodeType::Gateway),
             "hop" => Some(NodeType::Hop),
@@ -264,7 +264,6 @@ impl Host {
         Self {
             ip,
             hostname: Some(hostname),
-            ..Default::default()
         }
     }
 }

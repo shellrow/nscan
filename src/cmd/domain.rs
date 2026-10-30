@@ -23,7 +23,7 @@ pub async fn run(args: DomainScanArgs, no_stdout: bool, output: Option<PathBuf>)
             crate::db::domain::get_subdomain_wordlist()
         },
         timeout: Duration::from_millis(args.timeout_ms),
-        resolve_timeout: resolve_timeout,
+        resolve_timeout,
         concurrent_limit: args.concurrency,
     };
     let scanner = crate::dns::probe::DomainScanner::new(settings);
@@ -32,14 +32,8 @@ pub async fn run(args: DomainScanArgs, no_stdout: bool, output: Option<PathBuf>)
         crate::output::domain::print_domain_tree(&base, &result);
     }
     if let Some(path) = &output {
-        match save_json_output(&result, path, JsonStyle::Pretty) {
-            Ok(_) => {
-                if !no_stdout {
-                    tracing::info!("JSON output saved to {}", path.display());
-                }
-            }
-            Err(e) => tracing::error!("Failed to save JSON output: {}", e),
-        }
+        save_json_output(&result, path, JsonStyle::Pretty)?;
+        tracing::info!("JSON output saved to {}", path.display());
     }
     Ok(())
 }

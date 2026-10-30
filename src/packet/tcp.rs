@@ -58,7 +58,7 @@ pub fn build_tcp_syn_packet(
             TcpOptionPacket::timestamp(u32::MAX, u32::MIN),
             TcpOptionPacket::sack_perm(),
         ])
-        .build();
+        .build()?;
 
     let ip_packet = match (src_ip, dst_ip) {
         (IpAddr::V4(src), IpAddr::V4(dst)) => Ipv4PacketBuilder::new()
@@ -67,14 +67,14 @@ pub fn build_tcp_syn_packet(
             .protocol(IpNextProtocol::Tcp)
             .flags(Ipv4Flags::DontFragment)
             .payload(tcp_packet.to_bytes())
-            .build()
+            .build()?
             .to_bytes(),
         (IpAddr::V6(src), IpAddr::V6(dst)) => Ipv6PacketBuilder::new()
             .source(src)
             .destination(dst)
             .next_header(IpNextProtocol::Tcp)
             .payload(tcp_packet.to_bytes())
-            .build()
+            .build()?
             .to_bytes(),
         _ => unreachable!(),
     };

@@ -27,6 +27,12 @@ pub struct PingStat {
     pub max: Option<Duration>,
 }
 
+impl Default for PingStat {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PingStat {
     pub fn new() -> PingStat {
         PingStat {
@@ -51,6 +57,12 @@ pub struct PingResult {
     pub hostname: Option<String>,
     pub port_number: Option<u16>,
     pub protocol: Protocol,
+}
+
+impl Default for PingResult {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PingResult {
@@ -85,6 +97,12 @@ pub struct DeviceResolveResult {
     pub end_time: String,
     pub elapsed_time: Duration,
     pub protocol: Protocol,
+}
+
+impl Default for DeviceResolveResult {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DeviceResolveResult {

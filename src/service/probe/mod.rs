@@ -50,7 +50,7 @@ impl ServiceProbe {
         }
     }
     /// Create a ServiceProbe enum from its string representation.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "tcp:null" => Some(ServiceProbe::TcpNull),
             "tcp:generic_lines" => Some(ServiceProbe::TcpGenericLines),
@@ -218,4 +218,22 @@ pub struct PortProbeResult {
     pub transport: TransportProtocol,
     pub probe_id: ServiceProbe,
     pub service_info: ServiceInfo,
+}
+
+impl Default for PortProbeDb {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for ProbePayloadDb {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for ResponseSignaturesDb {
+    fn default() -> Self {
+        Self::new()
+    }
 }

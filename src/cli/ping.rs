@@ -14,7 +14,7 @@ pub async fn parse_target_host(host_str: &str) -> Result<Host> {
                 .await
                 .with_context(|| format!("resolve {host_str}"))?;
             // If multiple IPs are returned, use the first one (ips: LookupIp)
-            for ip in ips {
+            if let Some(ip) = ips.into_iter().next() {
                 return Ok(Host::with_hostname(ip, host_str.to_string()));
             }
             Err(anyhow::anyhow!("no IPs found"))

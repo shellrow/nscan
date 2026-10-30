@@ -95,7 +95,8 @@ impl ScanReport {
                 .and_modify(|e| e.merge(ep.clone()))
                 .or_insert_with(|| ep);
         }
-        self.stats.duration_scan = Some(ps.scan_time);
+        self.stats.duration_scan =
+            Some(self.stats.duration_scan.unwrap_or_default() + ps.scan_time);
         self.recompute_stats();
     }
 
@@ -270,5 +271,11 @@ pub fn print_report_tree(rep: &ScanReport) {
 
         root.push(ep_root);
     }
-    println!("{}", root);
+    println!("{}", crate::output::terminal_text(&root.to_string()));
+}
+
+impl Default for OsProbeResult {
+    fn default() -> Self {
+        Self::new()
+    }
 }

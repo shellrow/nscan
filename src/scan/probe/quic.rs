@@ -20,6 +20,7 @@ use tracing_indicatif::span_ext::IndicatifSpanExt;
 pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
     let concurrency = setting.port_concurrency.max(1);
     let connect_timeout = setting.connect_timeout;
+    let deadline = tokio::time::Instant::now() + setting.task_timeout;
     let start_time = std::time::Instant::now();
     let alpn: [&[u8]; 8] = [
         b"h3".as_slice(),
@@ -88,7 +89,7 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
 
                 let mut port_result = PortResult {
                     port: Port::new(port.number, TransportProtocol::Quic),
-                    state: PortState::Closed,
+                    state: PortState::Filtered,
                     service: ServiceInfo::default(),
                     rtt_ms: None,
                 };
@@ -97,7 +98,7 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
                     Ok(ep) => ep,
                     Err(e) => {
                         tracing::error!("Failed to create QUIC endpoint: {}", e);
-                        return (ip, port_result);
+                        return Err(anyhow::anyhow!("QUIC setup failed: {e}"));
                     }
                 };
                 endpoint.set_default_client_config(client_cfg);
@@ -106,7 +107,7 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
                     Ok(connecting) => connecting,
                     Err(e) => {
                         tracing::error!("Failed to connect to {}: {}", socket_addr, e);
-                        return (ip, port_result);
+                        return Err(anyhow::anyhow!("QUIC setup failed: {e}"));
                     }
                 };
 
@@ -132,12 +133,20 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
                     }
                 }
 
-                (ip, port_result)
+                Ok::<_, anyhow::Error>((ip, port_result))
             }
         })
         .buffer_unordered(concurrency);
 
-    while let Some((ip, port_result)) = connect_stream.next().await {
+    while let Some(item) = tokio::time::timeout_at(deadline, connect_stream.next())
+        .await
+        .map_err(|_| {
+            anyhow::anyhow!(
+                "port scan deadline exceeded; split the scan or increase --task-timeout-ms"
+            )
+        })?
+    {
+        let (ip, port_result) = item?;
         if let Some(endpoint) = endpoint_map.get_mut(&ip) {
             endpoint.upsert_port(port_result);
         }

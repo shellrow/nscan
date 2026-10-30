@@ -20,18 +20,18 @@ pub async fn run_os_probe(setting: ProbeSetting) -> Result<OsProbeResult> {
         None => return Err(anyhow::anyhow!("Interface not found")),
     };
     // Create sender
-    let config = nex::datalink::Config {
-        write_buffer_size: 4096,
-        read_buffer_size: 4096,
-        read_timeout: Some(setting.wait_time),
-        write_timeout: None,
-        channel_type: nex::datalink::ChannelType::Layer2,
-        bpf_fd_attempts: 1000,
-        linux_fanout: None,
-        promiscuous: false,
-    };
+    let mut config = nex::datalink::Config::default();
+    config.write_buffer_size = 4096;
+    config.read_buffer_size = 4096;
+    config.read_timeout = Some(setting.wait_time);
+    config.write_timeout = None;
+    config.channel_type = nex::datalink::ChannelType::Layer2;
+    config.bpf_fd_attempts = 1000;
+    config.linux_fanout = None;
+    config.promiscuous = false;
 
-    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface, config)? else {
+    let AsyncChannel::Ethernet(mut tx, mut rx) = async_channel(&interface.clone().into(), config)?
+    else {
         unreachable!();
     };
 
@@ -53,7 +53,11 @@ pub async fn run_os_probe(setting: ProbeSetting) -> Result<OsProbeResult> {
         header_span.pb_start();
 
         let mut detected: bool = false;
-        for port in &target.ports {
+        for port in target
+            .ports
+            .iter()
+            .filter(|port| port.transport == TransportProtocol::Tcp)
+        {
             let packet = crate::packet::tcp::build_tcp_syn_packet(
                 &interface,
                 target.ip,
@@ -68,8 +72,9 @@ pub async fn run_os_probe(setting: ProbeSetting) -> Result<OsProbeResult> {
                 }
                 Err(e) => tracing::error!("Failed to send packet: {}", e),
             }
+            let receive_deadline = tokio::time::Instant::now() + setting.wait_time;
             loop {
-                match tokio::time::timeout(setting.wait_time, rx.next()).await {
+                match tokio::time::timeout_at(receive_deadline, rx.next()).await {
                     Ok(Some(Ok(packet))) => {
                         let frame = match Frame::from_buf(&packet, parse_option.clone()) {
                             Some(frame) => frame,
@@ -98,10 +103,12 @@ pub async fn run_os_probe(setting: ProbeSetting) -> Result<OsProbeResult> {
                         }
                         if let Some(transport) = &frame.transport {
                             if let Some(tcp) = &transport.tcp {
-                                if tcp.destination != DEFAULT_LOCAL_TCP_PORT {
+                                if tcp.destination != DEFAULT_LOCAL_TCP_PORT
+                                    || tcp.source != port.number
+                                {
                                     continue;
                                 }
-                                if tcp.options.len() == 0 {
+                                if tcp.options.is_empty() {
                                     continue;
                                 }
                             } else {
@@ -125,10 +132,7 @@ pub async fn run_os_probe(setting: ProbeSetting) -> Result<OsProbeResult> {
                                 let endpoint_result = EndpointResult {
                                     ip: target.ip,
                                     hostname: target.hostname.clone(),
-                                    ports: BTreeMap::from([(
-                                        port_result.port.clone(),
-                                        port_result,
-                                    )]),
+                                    ports: BTreeMap::from([(port_result.port, port_result)]),
                                     mac_addr: target.mac_addr,
                                     vendor_name: None,
                                     os: OsGuess {

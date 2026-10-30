@@ -83,5 +83,5 @@ pub fn print_interface_tree(ifaces: &[Interface]) {
 
         root.push(node);
     }
-    println!("{}", root);
+    println!("{}", crate::output::terminal_text(&root.to_string()));
 }

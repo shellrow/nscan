@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::net::IpAddr;
 use std::time::Duration;
-use std::time::Instant;
 use tokio::sync::oneshot;
 
 /// Packet capture options
@@ -47,7 +46,7 @@ pub struct PacketCaptureOptions {
 }
 
 impl PacketCaptureOptions {
-    pub fn default() -> Result<PacketCaptureOptions, String> {
+    pub fn from_default_interface() -> Result<PacketCaptureOptions, String> {
         let iface = netdev::get_default_interface()?;
         let options = PacketCaptureOptions {
             interface_index: iface.index,
@@ -108,7 +107,7 @@ impl PacketCaptureOptions {
         Some(options)
     }
     pub fn from_interface(iface: &Interface) -> PacketCaptureOptions {
-        let options = PacketCaptureOptions {
+        PacketCaptureOptions {
             interface_index: iface.index,
             interface_name: iface.name.clone(),
             src_ips: HashSet::new(),
@@ -123,8 +122,7 @@ impl PacketCaptureOptions {
             receive_undefined: true,
             tunnel: iface.is_tun(),
             loopback: iface.is_loopback(),
-        };
-        options
+        }
     }
 }
 
@@ -134,13 +132,16 @@ pub async fn start_capture(
     capture_options: PacketCaptureOptions,
     ready_tx: oneshot::Sender<()>,
     stop_rx: &mut oneshot::Receiver<()>,
-) -> Vec<Frame> {
+) -> anyhow::Result<Vec<Frame>> {
     let mut frames = Vec::new();
-    let start_time = Instant::now();
+    let mut captured_bytes = 0usize;
+    let deadline = tokio::time::sleep(capture_options.capture_timeout);
+    tokio::pin!(deadline);
     let _ = ready_tx.send(());
     loop {
         tokio::select! {
             _ = &mut *stop_rx => break,
+            _ = &mut deadline => anyhow::bail!("packet capture deadline exceeded; reduce scan size or increase task timeout"),
             // Check if capture timeout is reached
             // Read next packet
             next_read = rx.next() => {
@@ -154,42 +155,49 @@ pub async fn start_capture(
                         }
                         match Frame::from_buf(&packet, parse_option) { Some(frame) => {
                             if filter_packet(&frame, &capture_options) {
+                                captured_bytes = captured_bytes.saturating_add(packet.len());
+                                anyhow::ensure!(captured_bytes <= 64 * 1024 * 1024 && frames.len() < 65_536,
+                                    "capture buffer limit exceeded; split the scan");
                                 frames.push(frame);
                             }
                         } _ => {
-                            eprintln!("Error parsing packet");
+                            tracing::debug!("Ignoring an unparseable packet");
                         }}
                     }
                     Some(Err(e)) => {
-                        eprintln!("Error reading packet: {}", e);
-                        break;
+                        return Err(e.into());
                     }
-                    None => {}
-                }
-                if start_time.elapsed() >= capture_options.capture_timeout {
-                    break;
+                    None => anyhow::bail!("packet capture stream ended unexpectedly")
                 }
             }
         }
     }
-    frames
+    Ok(frames)
 }
 
 fn filter_packet(frame: &Frame, capture_options: &PacketCaptureOptions) -> bool {
+    if !capture_options.ip_protocols.is_empty() && frame.ip.is_none() {
+        return false;
+    }
+    if (!capture_options.src_ports.is_empty() || !capture_options.dst_ports.is_empty())
+        && frame.transport.is_none()
+    {
+        return false;
+    }
     if let Some(datalink) = &frame.datalink {
-        if let Some(ethernet_header) = &datalink.ethernet {
-            if !filter_ether_type(ethernet_header.ethertype, capture_options) {
-                return false;
-            }
+        if let Some(ethernet_header) = &datalink.ethernet
+            && !filter_ether_type(ethernet_header.ethertype, capture_options)
+        {
+            return false;
         }
-        if let Some(arp_header) = &datalink.arp {
-            if !filter_host(
+        if let Some(arp_header) = &datalink.arp
+            && !filter_host(
                 IpAddr::V4(arp_header.sender_proto_addr),
                 IpAddr::V4(arp_header.target_proto_addr),
                 capture_options,
-            ) {
-                return false;
-            }
+            )
+        {
+            return false;
         }
     }
     if let Some(ip) = &frame.ip {
@@ -219,56 +227,93 @@ fn filter_packet(frame: &Frame, capture_options: &PacketCaptureOptions) -> bool 
         }
     }
     if let Some(transport) = &frame.transport {
-        if let Some(tcp_header) = &transport.tcp {
-            if !filter_port(tcp_header.source, tcp_header.destination, capture_options) {
-                return false;
-            }
+        if let Some(tcp_header) = &transport.tcp
+            && !filter_port(tcp_header.source, tcp_header.destination, capture_options)
+        {
+            return false;
         }
-        if let Some(udp_header) = &transport.udp {
-            if !filter_port(udp_header.source, udp_header.destination, capture_options) {
-                return false;
-            }
+        if let Some(udp_header) = &transport.udp
+            && !filter_port(udp_header.source, udp_header.destination, capture_options)
+        {
+            return false;
         }
     }
     true
 }
 
 fn filter_host(src_ip: IpAddr, dst_ip: IpAddr, capture_options: &PacketCaptureOptions) -> bool {
-    if capture_options.src_ips.len() == 0 && capture_options.dst_ips.len() == 0 {
-        return true;
-    }
-    if capture_options.src_ips.contains(&src_ip) || capture_options.dst_ips.contains(&dst_ip) {
-        return true;
-    } else {
-        return false;
-    }
+    (capture_options.src_ips.is_empty() || capture_options.src_ips.contains(&src_ip))
+        && (capture_options.dst_ips.is_empty() || capture_options.dst_ips.contains(&dst_ip))
 }
 
 fn filter_port(src_port: u16, dst_port: u16, capture_options: &PacketCaptureOptions) -> bool {
-    if capture_options.src_ports.len() == 0 && capture_options.dst_ports.len() == 0 {
-        return true;
-    }
-    if capture_options.src_ports.contains(&src_port)
-        || capture_options.dst_ports.contains(&dst_port)
-    {
-        return true;
-    } else {
-        return false;
-    }
+    (capture_options.src_ports.is_empty() || capture_options.src_ports.contains(&src_port))
+        && (capture_options.dst_ports.is_empty() || capture_options.dst_ports.contains(&dst_port))
 }
 
 fn filter_ether_type(ether_type: EtherType, capture_options: &PacketCaptureOptions) -> bool {
-    if capture_options.ether_types.len() == 0 || capture_options.ether_types.contains(&ether_type) {
-        return true;
-    } else {
-        return false;
-    }
+    capture_options.ether_types.is_empty() || capture_options.ether_types.contains(&ether_type)
 }
 
 fn filter_ip_protocol(protocol: IpNextProtocol, capture_options: &PacketCaptureOptions) -> bool {
-    if capture_options.ip_protocols.len() == 0 || capture_options.ip_protocols.contains(&protocol) {
-        return true;
-    } else {
-        return false;
+    capture_options.ip_protocols.is_empty() || capture_options.ip_protocols.contains(&protocol)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn options() -> PacketCaptureOptions {
+        PacketCaptureOptions {
+            interface_index: 0,
+            interface_name: String::new(),
+            src_ips: HashSet::new(),
+            dst_ips: HashSet::new(),
+            src_ports: HashSet::new(),
+            dst_ports: HashSet::new(),
+            ether_types: HashSet::new(),
+            ip_protocols: HashSet::new(),
+            capture_timeout: Duration::from_millis(10),
+            read_timeout: Duration::from_millis(10),
+            promiscuous: false,
+            receive_undefined: false,
+            tunnel: false,
+            loopback: false,
+        }
+    }
+
+    #[test]
+    fn filters_require_both_source_and_destination() {
+        let mut options = options();
+        let src = "192.0.2.1".parse().unwrap();
+        let dst = "192.0.2.2".parse().unwrap();
+        options.src_ips.insert(src);
+        options.dst_ips.insert(dst);
+        options.src_ports.insert(443);
+        options.dst_ports.insert(44322);
+        assert!(filter_host(src, dst, &options));
+        assert!(!filter_host(src, src, &options));
+        assert!(!filter_host(dst, dst, &options));
+        assert!(filter_port(443, 44322, &options));
+        assert!(!filter_port(443, 80, &options));
+        assert!(!filter_port(80, 44322, &options));
+    }
+
+    #[tokio::test]
+    async fn idle_and_ended_receivers_terminate() {
+        let (ready, _) = oneshot::channel();
+        let (_stop, mut stop_rx) = oneshot::channel();
+        let mut rx: Box<dyn AsyncRawReceiver> = Box::new(futures::stream::pending());
+        let result = tokio::time::timeout(
+            Duration::from_secs(1),
+            start_capture(&mut rx, options(), ready, &mut stop_rx),
+        )
+        .await
+        .unwrap();
+        assert!(result.unwrap_err().to_string().contains("deadline"));
+        let (ready, _) = oneshot::channel();
+        let mut rx: Box<dyn AsyncRawReceiver> = Box::new(futures::stream::empty());
+        let result = start_capture(&mut rx, options(), ready, &mut stop_rx).await;
+        assert!(result.unwrap_err().to_string().contains("ended"));
     }
 }

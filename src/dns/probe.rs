@@ -1,6 +1,6 @@
 use anyhow::Result;
 use futures::stream::{self, StreamExt};
-use rand::{Rng, distr::Alphanumeric};
+use rand::{RngExt, distr::Alphanumeric};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{net::IpAddr, time::Instant};
@@ -54,7 +54,7 @@ impl DomainScanner {
 
 /// Normalize a domain label by trimming trailing dots and converting to lowercase.
 fn normalize_label(s: &str) -> String {
-    s.trim_end_matches('.').to_ascii_lowercase()
+    s.trim().trim_end_matches('.').to_ascii_lowercase()
 }
 
 /// Check if the base domain has wildcard DNS records.
@@ -70,24 +70,42 @@ async fn is_wildcard_domain(
         .collect();
     let test = format!("{}.{}", rand_label, base);
     match timeout(rt, resolver.lookup_ip(test)).await {
-        Ok(Ok(lip)) => !lip.as_lookup().is_empty(),
+        Ok(Ok(lip)) => !lip.as_lookup().answers().is_empty(),
         _ => false,
     }
 }
 
 /// Scan subdomains based on the provided settings.
 pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanResult> {
+    anyhow::ensure!(
+        setting.concurrent_limit > 0,
+        "DNS concurrency must be positive"
+    );
+    anyhow::ensure!(
+        !setting.timeout.is_zero() && !setting.resolve_timeout.is_zero(),
+        "DNS timeouts must be positive"
+    );
+    let start_time = Instant::now();
     let base = normalize_label(&setting.base_domain);
+    hickory_proto::rr::Name::from_ascii(format!("{base}."))?;
 
-    let target_domains: Vec<String> = setting
+    let mut target_domains: Vec<String> = setting
         .word_list
         .iter()
-        .map(|w| format!("{}.{}", normalize_label(w), base))
+        .map(|w| format!("{}.{}.", normalize_label(w), base))
         .collect();
 
+    target_domains.sort();
+    target_domains.dedup();
+    let total = target_domains.len();
     let resolver = Arc::new(super::resolver::get_resolver()?);
 
-    let wildcard = is_wildcard_domain(&resolver, &base, setting.resolve_timeout).await;
+    let wildcard = is_wildcard_domain(
+        &resolver,
+        &base,
+        setting.resolve_timeout.min(setting.timeout),
+    )
+    .await;
 
     let header_span = tracing::info_span!("subdomain_scan");
     header_span.pb_set_style(&crate::output::progress::get_progress_style());
@@ -96,8 +114,6 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
     header_span.pb_set_position(0);
     header_span.pb_start();
 
-    let start_time = Instant::now();
-
     // Parallel resolution stream
     let results = stream::iter(target_domains)
         .map(|domain_name| {
@@ -105,17 +121,14 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
             let rt = setting.resolve_timeout;
             async move {
                 let mut d = Domain {
-                    name: domain_name.clone(),
+                    name: domain_name.trim_end_matches('.').to_string(),
                     ips: Vec::new(),
                 };
-                match timeout(rt, resolver.lookup_ip(domain_name)).await {
-                    Ok(Ok(lip)) => {
-                        let mut uniq: Vec<IpAddr> = lip.iter().collect();
-                        uniq.sort();
-                        uniq.dedup();
-                        d.ips = uniq;
-                    }
-                    _ => {}
+                if let Ok(Ok(lip)) = timeout(rt, resolver.lookup_ip(domain_name)).await {
+                    let mut uniq: Vec<IpAddr> = lip.iter().collect();
+                    uniq.sort();
+                    uniq.dedup();
+                    d.ips = uniq;
                 }
                 d
             }
@@ -126,6 +139,7 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
     tokio::pin!(results);
     let deadline = start_time + setting.timeout;
     let mut domains: Vec<Domain> = Vec::new();
+    let mut attempted = 0;
 
     loop {
         let now = Instant::now();
@@ -142,6 +156,7 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
             maybe = results.next() => {
                 match maybe {
                     Some(d) => {
+                        attempted += 1;
                         if !d.ips.is_empty() {
                             domains.push(d);
                         }
@@ -156,18 +171,20 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
     drop(header_span);
 
     if wildcard {
-        if let Some(first) = domains.first().map(|d| d.ips.clone()) {
-            let all_same = domains.iter().all(|d| d.ips == first);
-            if all_same {
-                domains.clear();
-            }
-        }
+        tracing::warn!("Wildcard DNS detected; results may include wildcard responses");
+    }
+    if attempted < total {
+        tracing::warn!("DNS scan timed out after {attempted}/{total} candidates");
     }
 
     domains.sort_by(|a, b| a.name.cmp(&b.name));
 
     Ok(DomainScanResult {
         domains,
+        wildcard_detected: wildcard,
+        complete: attempted == total,
+        attempted,
+        total,
         scan_time: start_time.elapsed().min(setting.timeout),
     })
 }

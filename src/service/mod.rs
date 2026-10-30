@@ -20,6 +20,7 @@ pub mod probe;
 /// Configuration for service probing
 #[derive(Clone, Debug)]
 pub struct ServiceProbeConfig {
+    /// Per-operation timeout; each complete probe is bounded by four times this value.
     pub timeout: Duration,
     pub max_concurrency: usize,
     pub max_read_size: usize,
@@ -139,20 +140,24 @@ async fn run_probes_for_target_port(
                 skip_cert_verify: config.skip_cert_verify,
             };
 
-            let r = match probe {
-                ServiceProbe::TcpHTTPGet
-                | ServiceProbe::TcpHTTPSGet
-                | ServiceProbe::TcpHTTPOptions => probe::http::HttpProbe::run(ctx).await,
-                ServiceProbe::TcpTlsSession => probe::tls::TlsProbe::run(ctx).await,
-                ServiceProbe::TcpGenericLines | ServiceProbe::TcpHelp => {
-                    probe::generic::GenericProbe::run(ctx).await
+            let r = timeout(config.timeout.saturating_mul(4), async {
+                match probe {
+                    ServiceProbe::TcpHTTPGet
+                    | ServiceProbe::TcpHTTPSGet
+                    | ServiceProbe::TcpHTTPOptions => probe::http::HttpProbe::run(ctx).await,
+                    ServiceProbe::TcpTlsSession => probe::tls::TlsProbe::run(ctx).await,
+                    ServiceProbe::TcpGenericLines | ServiceProbe::TcpHelp => {
+                        probe::generic::GenericProbe::run(ctx).await
+                    }
+                    ServiceProbe::UdpDNSVersionBindReq | ServiceProbe::TcpDNSVersionBindReq => {
+                        probe::dns::DnsProbe::run(ctx).await
+                    }
+                    ServiceProbe::UdpQuic => probe::quic::QuicProbe::run(ctx).await,
+                    _ => probe::null::NullProbe::run(ctx).await,
                 }
-                ServiceProbe::UdpDNSVersionBindReq | ServiceProbe::TcpDNSVersionBindReq => {
-                    probe::dns::DnsProbe::run(ctx).await
-                }
-                ServiceProbe::UdpQuic => probe::quic::QuicProbe::run(ctx).await,
-                _ => probe::null::NullProbe::run(ctx).await,
-            };
+            })
+            .await
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("service probe timed out")));
             results.push(r);
         }
     } else {
@@ -165,7 +170,14 @@ async fn run_probes_for_target_port(
             sni: config.sni,
             skip_cert_verify: config.skip_cert_verify,
         };
-        results.push(probe::null::NullProbe::run(ctx).await);
+        results.push(
+            timeout(
+                config.timeout.saturating_mul(4),
+                probe::null::NullProbe::run(ctx),
+            )
+            .await
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("service probe timed out"))),
+        );
     }
 
     results
@@ -267,4 +279,74 @@ fn expand_cpe_templates(cpe_list: &[String], caps: &regex::Captures) -> Vec<Stri
         out.push(s);
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::AsyncWriteExt;
+
+    #[tokio::test]
+    async fn bounded_reads_stop_on_idle_and_reject_oversized_responses() {
+        let (mut tx, mut rx) = tokio::io::duplex(64);
+        tx.write_all(b"banner").await.unwrap();
+        let data = read_timeout(
+            &mut rx,
+            Duration::from_millis(10),
+            Duration::from_millis(100),
+            64,
+        )
+        .await
+        .unwrap();
+        assert_eq!(data, b"banner");
+        tx.write_all(b"too large").await.unwrap();
+        assert!(
+            read_timeout(
+                &mut rx,
+                Duration::from_millis(10),
+                Duration::from_millis(100),
+                2
+            )
+            .await
+            .is_err()
+        );
+    }
+}
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+    use crate::endpoint::TransportProtocol;
+    use tokio::io::AsyncWriteExt;
+
+    #[tokio::test]
+    async fn service_detection_keeps_banner_when_peer_leaves_connection_open() {
+        crate::db::DbInitializer::with_all().init().await;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            stream.write_all(b"SSH-2.0-OpenSSH_9.9\r\n").await.unwrap();
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        });
+        let config = ServiceProbeConfig {
+            timeout: Duration::from_millis(50),
+            max_concurrency: 1,
+            max_read_size: 4096,
+            sni: true,
+            skip_cert_verify: true,
+        };
+        let results = run_probes_for_target_port(
+            &config,
+            "127.0.0.1".parse().unwrap(),
+            None,
+            Port::new(port, TransportProtocol::Tcp),
+        )
+        .await;
+        server.abort();
+        assert!(results.iter().any(|r| {
+            r.as_ref()
+                .is_ok_and(|r| r.service_info.banner.as_deref() == Some("SSH-2.0-OpenSSH_9.9"))
+        }));
+    }
 }

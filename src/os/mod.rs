@@ -71,6 +71,12 @@ pub struct OsMatchResult {
     pub cpes: Vec<String>,
 }
 
+impl Default for OsMatchResult {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OsMatchResult {
     pub fn new() -> Self {
         OsMatchResult {
@@ -205,18 +211,18 @@ fn ttl_class_from_packet(frame: &Frame) -> Option<u8> {
 
 /// Extract signature features from a Frame
 pub fn extract_signature(frame: &Frame) -> Option<SignatureFeatures> {
-    if let Some(transport) = &frame.transport {
-        if let Some(tcp) = &transport.tcp {
-            let tokens = tcp_option_tokens(tcp);
-            let token_set = tcp_option_token_set(tcp);
-            let sig = SignatureFeatures {
-                order_key: order_key(&tokens),
-                set_key: set_key(&token_set),
-                window: tcp.window,
-                ttl_class: ttl_class_from_packet(frame),
-            };
-            return Some(sig);
-        }
+    if let Some(transport) = &frame.transport
+        && let Some(tcp) = &transport.tcp
+    {
+        let tokens = tcp_option_tokens(tcp);
+        let token_set = tcp_option_token_set(tcp);
+        let sig = SignatureFeatures {
+            order_key: order_key(&tokens),
+            set_key: set_key(&token_set),
+            window: tcp.window,
+            ttl_class: ttl_class_from_packet(frame),
+        };
+        return Some(sig);
     }
     None
 }
@@ -241,23 +247,23 @@ fn score_signature(sig: &SignatureKey, feat: &SignatureFeatures) -> (u8, Vec<&'s
     let mut score: u8 = 0;
     let mut evid: Vec<&'static str> = Vec::new();
 
-    if let Some(ok) = &sig.order_key {
-        if ok == &feat.order_key {
-            score = score.saturating_add(60);
-            evid.push("order");
-        }
+    if let Some(ok) = &sig.order_key
+        && ok == &feat.order_key
+    {
+        score = score.saturating_add(60);
+        evid.push("order");
     }
-    if let Some(sk) = &sig.set_key {
-        if sk == &feat.set_key {
-            score = score.saturating_add(40);
-            evid.push("set");
-        }
+    if let Some(sk) = &sig.set_key
+        && sk == &feat.set_key
+    {
+        score = score.saturating_add(40);
+        evid.push("set");
     }
-    if let Some(buckets) = &sig.win_bucket {
-        if buckets.iter().any(|&w| w == feat.window) {
-            score = score.saturating_add(20);
-            evid.push("win");
-        }
+    if let Some(buckets) = &sig.win_bucket
+        && buckets.contains(&feat.window)
+    {
+        score = score.saturating_add(20);
+        evid.push("win");
     }
     if let Some(_ttl) = feat.ttl_class {
         score = score.saturating_add(10);
@@ -314,10 +320,10 @@ pub fn match_tcpip_signatures(frame: &Frame) -> Option<OsMatchResult> {
         if evid.contains(&"win") {
             parts.push(format!("win={}", feat.window));
         }
-        if let Some(ttl) = feat.ttl_class {
-            if evid.contains(&"ttl?") {
-                parts.push(format!("ttl~{}", ttl));
-            }
+        if let Some(ttl) = feat.ttl_class
+            && evid.contains(&"ttl?")
+        {
+            parts.push(format!("ttl~{}", ttl));
         }
         if parts.is_empty() {
             "heuristic".to_string()

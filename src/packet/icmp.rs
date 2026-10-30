@@ -50,14 +50,14 @@ pub fn build_icmp_packet(
             .icmp_code(icmp::echo_request::IcmpCodes::NoCode)
             .echo_fields(0x1234, 0x1)
             .payload(Bytes::from_static(b"hello"))
-            .build()
+            .build()?
             .to_bytes(),
         (IpAddr::V6(src), IpAddr::V6(dst)) => Icmpv6PacketBuilder::new(src, dst)
             .icmpv6_type(Icmpv6Type::EchoRequest)
             .icmpv6_code(icmpv6::echo_request::Icmpv6Codes::NoCode)
             .echo_fields(0x1234, 0x1)
             .payload(Bytes::from_static(b"hello"))
-            .build()
+            .build()?
             .to_bytes(),
         _ => anyhow::bail!("source and destination IP version mismatch"),
     };
@@ -69,14 +69,14 @@ pub fn build_icmp_packet(
             .protocol(IpNextProtocol::Icmp)
             .flags(Ipv4Flags::DontFragment)
             .payload(icmp_packet)
-            .build()
+            .build()?
             .to_bytes(),
         (IpAddr::V6(src), IpAddr::V6(dst)) => Ipv6PacketBuilder::new()
             .source(src)
             .destination(dst)
             .next_header(IpNextProtocol::Icmpv6)
             .payload(icmp_packet)
-            .build()
+            .build()?
             .to_bytes(),
         _ => unreachable!(),
     };
