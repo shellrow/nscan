@@ -23,6 +23,7 @@ pub struct Identification {
     pub error: Option<String>,
     #[serde(default)]
     pub warnings: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub hosts: Vec<HostDetails>,
 }
 
@@ -167,6 +168,7 @@ impl Nmap {
         })
     }
 
+    /// Supplement native observations only for TCP ports already observed as open.
     /// Retain successful host results if a later invocation fails or times out.
     pub async fn identify(
         &self,
@@ -186,8 +188,8 @@ impl Nmap {
         let deadline = tokio::time::Instant::now() + budget;
         for target in targets {
             let ports: Vec<u16> = target
-                .ports
-                .keys()
+                .get_open_ports()
+                .into_iter()
                 .filter(|p| p.transport == TransportProtocol::Tcp)
                 .map(|p| p.number)
                 .collect();
@@ -196,12 +198,32 @@ impl Nmap {
             }
             let arguments = arguments(target.ip, &ports, services, os);
             let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            tracing::info!(
+                "{}: Starting identification on {} open TCP port(s), timeout {:.1}s",
+                target.ip,
+                ports.len(),
+                remaining.as_secs_f64()
+            );
+            let started = tokio::time::Instant::now();
             let outcome = async {
                 ensure!(
                     !remaining.is_zero(),
                     "Nmap identification deadline exceeded"
                 );
-                let (xml, stderr) = execute(&self.executable, &arguments, remaining).await?;
+                let execution = execute(&self.executable, &arguments, remaining);
+                tokio::pin!(execution);
+                let (xml, stderr) = loop {
+                    tokio::select! {
+                        result = &mut execution => break result?,
+                        _ = tokio::time::sleep(Duration::from_secs(5)) => {
+                            tracing::info!(
+                                "{}: Identification in progress ({:.0}s elapsed, {:.0}s remaining)",
+                                target.ip, started.elapsed().as_secs_f64(),
+                                deadline.saturating_duration_since(tokio::time::Instant::now()).as_secs_f64()
+                            );
+                        }
+                    }
+                };
                 let (version, host) = parse(&xml, target.ip, &ports)?;
                 ensure!(
                     version == self.version,
@@ -212,6 +234,11 @@ impl Nmap {
             .await;
             match outcome {
                 Ok((host, stderr)) => {
+                    tracing::info!(
+                        "{}: Identification completed in {:?}",
+                        target.ip,
+                        started.elapsed()
+                    );
                     result.hosts.push(host);
                     if !stderr.is_empty() {
                         result.warnings.push(crate::output::terminal_text(
@@ -386,6 +413,94 @@ mod tests {
         assert_eq!(decoded.ports[0].port, 22);
         assert_eq!(decoded.os_matches[0].name, "Linux");
         assert_eq!(port_spec(&(1..=65535).collect::<Vec<_>>()), "1-65535");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn identification_only_requests_open_tcp_ports() {
+        use crate::endpoint::{Port, PortResult, PortState};
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("fake-nmap");
+        std::fs::write(&path, format!(
+            "#!/bin/sh\nwhile [ \"$1\" != \"-p\" ]; do shift; done\n[ \"$2\" = \"22\" ] || exit 1\ncat <<'XML'\n{XML}\nXML\n"
+        )).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let nmap = Nmap {
+            executable: path,
+            version: "7.99".into(),
+        };
+        let mut ep = EndpointResult::new("127.0.0.1".parse().unwrap());
+        for (number, transport, state) in [
+            (22, TransportProtocol::Tcp, PortState::Open),
+            (80, TransportProtocol::Tcp, PortState::Closed),
+            (443, TransportProtocol::Tcp, PortState::Filtered),
+            (53, TransportProtocol::Udp, PortState::Open),
+        ] {
+            ep.upsert_port(PortResult {
+                port: Port::new(number, transport),
+                state,
+                rtt_ms: None,
+                service: Default::default(),
+            });
+        }
+        let mut failing_host = ep.clone();
+        failing_host.ip = "127.0.0.2".parse().unwrap();
+        let partial = nmap
+            .identify(
+                &[ep.clone(), failing_host],
+                true,
+                true,
+                Duration::from_secs(2),
+            )
+            .await;
+        assert!(!partial.complete);
+        assert!(partial.error.is_some());
+        assert_eq!(partial.hosts.len(), 1);
+        let mut report = crate::output::port::ScanReport::new();
+        report.endpoints.insert(ep.ip, ep.clone());
+        report.apply_identification(partial);
+        assert_eq!(
+            report.endpoints[&ep.ip].ports[&Port::new(22, TransportProtocol::Tcp)]
+                .service
+                .product
+                .as_deref(),
+            Some("OpenSSH")
+        );
+        let result = nmap
+            .identify(&[ep], true, true, Duration::from_secs(2))
+            .await;
+        assert!(result.complete, "{:?}", result.error);
+        assert_eq!(result.hosts.len(), 1);
+        let empty = EndpointResult::new("127.0.0.1".parse().unwrap());
+        let result = nmap.identify(&[empty], true, true, Duration::ZERO).await;
+        assert!(result.complete);
+        assert!(result.hosts.is_empty());
+    }
+
+    #[test]
+    fn service_identification_uses_exactly_the_discovered_ports() {
+        let args = arguments(
+            "192.168.10.50".parse().unwrap(),
+            &[22, 80, 139, 443, 445, 9999],
+            true,
+            false,
+        );
+        assert_eq!(
+            args,
+            [
+                "-n",
+                "-Pn",
+                "-sT",
+                "-oX",
+                "-",
+                "-p",
+                "22,80,139,443,445,9999",
+                "-sV",
+                "192.168.10.50",
+            ]
+        );
     }
 
     #[test]

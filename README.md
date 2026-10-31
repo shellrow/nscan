@@ -121,8 +121,6 @@ For detailed TCP service/version detection, add `--nmap`. Use `--os-detect` (`-O
 nscan port example.com --ports 22,80,443 --nmap --output scan.json
 ```
 
-Detailed results appear separately under `identification`. If identification fails or times out, basic results are retained and the command exits with status `1`.
-
 ## Output
 
 Reports are printed to stdout; logs and progress use stderr. Use `--no-stdout` to suppress the report and `--quiet` to suppress non-error diagnostics. `--log-file-path` enables file logging. Global options can appear before or after the subcommand.

@@ -103,8 +103,9 @@ fn basic_scan_does_not_need_nmap_or_signature_databases() {
         .arg(&missing_nmap)
         .output()
         .unwrap();
-    assert!(!output.status.success());
+    assert!(output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("Nmap unavailable"));
+    assert!(String::from_utf8_lossy(&output.stdout).contains("state: Open"));
 }
 
 #[cfg(unix)]
@@ -120,7 +121,7 @@ mod external_identification {
     }
 
     #[test]
-    fn external_result_is_separate_from_basic_observations() {
+    fn external_result_is_merged_with_basic_observations() {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port().to_string();
         let dir = tempfile::tempdir().unwrap();
@@ -155,20 +156,27 @@ XML"#
         );
         let json: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
         assert_eq!(json["endpoints"]["127.0.0.1"]["ports"][0]["state"], "open");
-        assert!(json["endpoints"]["127.0.0.1"]["ports"][0]["service"]["product"].is_null());
+        assert_eq!(
+            json["endpoints"]["127.0.0.1"]["ports"][0]["service"]["product"],
+            "External Product"
+        );
         assert_eq!(json["identification"]["version"], "7.99");
         assert_eq!(json["identification"]["complete"], true);
         assert_eq!(
-            json["identification"]["hosts"][0]["ports"][0]["service"]["product"],
+            json["endpoints"]["127.0.0.1"]["ports"][0]["service"]["product"],
             "External Product"
         );
         let text = String::from_utf8_lossy(&output.stdout);
         assert!(text.contains("External Product"));
         assert!(text.contains("External OS"));
+        assert_eq!(text.matches("External Product").count(), 1);
+        assert_eq!(text.matches("External OS").count(), 1);
+        assert!(!text.contains("Nmap 7.99"));
+        assert!(json["identification"].get("hosts").is_none());
     }
 
     #[test]
-    fn failures_keep_basic_results_and_exit_unsuccessfully() {
+    fn failures_warn_and_keep_basic_results_with_successful_exit() {
         for body in [
             "echo failure >&2; exit 1",
             "echo '<invalid'",
@@ -183,23 +191,21 @@ XML"#
             let output = nscan()
                 .args(["port", "127.0.0.1", "-p", &port, "--nmap", "--nmap-path"])
                 .arg(fake)
-                .args([
-                    "--nmap-timeout-ms",
-                    "50",
-                    "--quiet",
-                    "--no-stdout",
-                    "--output",
-                ])
+                .args(["--nmap-timeout-ms", "50", "--output"])
                 .arg(&path)
                 .output()
                 .unwrap();
             assert!(started.elapsed() < std::time::Duration::from_secs(5));
-            assert!(!output.status.success());
+            assert!(output.status.success());
             let json: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
             assert_eq!(json["endpoints"]["127.0.0.1"]["ports"][0]["state"], "open");
             assert_eq!(json["identification"]["complete"], false);
             assert!(json["identification"]["error"].is_string());
-            assert!(output.stdout.is_empty());
+            assert!(String::from_utf8_lossy(&output.stdout).contains("state: Open"));
+            assert!(
+                String::from_utf8_lossy(&output.stderr)
+                    .contains("Optional identification incomplete")
+            );
         }
     }
 }

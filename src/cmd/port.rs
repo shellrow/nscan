@@ -25,15 +25,12 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     {
         anyhow::bail!("SYN scanning is supported only for TCP");
     }
-    let external = if args.nmap || args.os_detect {
+    if args.nmap || args.os_detect {
         anyhow::ensure!(
             args.proto == crate::cli::PortScanTransport::Tcp,
             "Nmap identification currently supports TCP scans only"
         );
-        Some(crate::nmap::Nmap::preflight(&args.nmap_path).await?)
-    } else {
-        None
-    };
+    }
     if args.service_detect {
         crate::service::select_probe(args.service_probe, Port::new(1, args.proto.to_transport()))?;
         if args.quic {
@@ -225,17 +222,45 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         rep.apply_service_detection(service_result);
     }
 
-    if let Some(nmap) = external {
-        let targets = rep.endpoints.values().cloned().collect::<Vec<_>>();
-        rep.identification = Some(
-            nmap.identify(
-                &targets,
-                args.nmap,
-                args.os_detect,
-                Duration::from_millis(args.nmap_timeout_ms),
-            )
-            .await,
-        );
+    if args.nmap || args.os_detect {
+        let targets = rep
+            .endpoints
+            .values()
+            .filter(|ep| {
+                ep.get_open_ports()
+                    .iter()
+                    .any(|port| port.transport == TransportProtocol::Tcp)
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        if !targets.is_empty() {
+            let details = match crate::nmap::Nmap::preflight(&args.nmap_path).await {
+                Ok(nmap) => {
+                    nmap.identify(
+                        &targets,
+                        args.nmap,
+                        args.os_detect,
+                        Duration::from_millis(args.nmap_timeout_ms),
+                    )
+                    .await
+                }
+                Err(error) => crate::nmap::Identification {
+                    source: "nmap".into(),
+                    version: String::new(),
+                    complete: false,
+                    error: Some(format!("{error:#}")),
+                    warnings: Vec::new(),
+                    hosts: Vec::new(),
+                },
+            };
+            if !details.complete {
+                tracing::warn!(
+                    "Optional identification incomplete; scan results and available details retained: {}",
+                    details.error.as_deref().unwrap_or("unknown error")
+                );
+            }
+            rep.apply_identification(details);
+        }
     }
     rep.finish();
 
@@ -245,13 +270,6 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     if let Some(path) = &output {
         save_json_output(&rep, path, JsonStyle::Pretty)?;
         tracing::info!("JSON output saved to {}", path.display());
-    }
-    if let Some(details) = &rep.identification {
-        anyhow::ensure!(
-            details.complete,
-            "Nmap identification failed; basic scan results were retained: {}",
-            details.error.as_deref().unwrap_or("unknown error")
-        );
     }
     Ok(())
 }
