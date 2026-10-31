@@ -17,6 +17,15 @@ pub fn resolve_interface(interface_name: Option<&str>) -> Result<Interface> {
         .map_err(|e| anyhow::anyhow!("failed to get default interface: {}", e))
 }
 
+/// Reject loopback raw probes instead of silently reporting missed responses.
+pub fn validate_raw_targets(interface: &Interface, targets: &[Endpoint]) -> Result<()> {
+    anyhow::ensure!(
+        !interface.is_loopback() && !targets.iter().any(|target| target.ip.is_loopback()),
+        "raw scans on loopback are unsupported; use a TCP connect scan for local ports"
+    );
+    Ok(())
+}
+
 /// Build endpoints by applying the same port list to each host.
 pub fn build_endpoints(hosts: Vec<Host>, ports: &[Port]) -> Result<Vec<Endpoint>> {
     anyhow::ensure!(

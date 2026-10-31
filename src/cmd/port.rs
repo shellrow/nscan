@@ -76,7 +76,9 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         "--interface applies to raw SYN probes; connect scans use OS routing"
     );
     let interface = if uses_raw {
-        Some(resolve_interface(args.interface.as_deref())?)
+        let interface = resolve_interface(args.interface.as_deref())?;
+        crate::cmd::common::validate_raw_targets(&interface, &target_endpoints)?;
+        Some(interface)
     } else {
         None
     };
@@ -103,7 +105,16 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         }
     };
 
-    let conn_timeout = derive_connect_timeout(initial_rtt, args.connect_timeout_ms);
+    let mut conn_timeout = derive_connect_timeout(initial_rtt, args.connect_timeout_ms);
+    // Windows can take roughly two seconds to report a refused TCP connection.
+    // Allow that notification to arrive before classifying the port as filtered.
+    if cfg!(windows)
+        && !uses_raw
+        && transport == TransportProtocol::Tcp
+        && args.connect_timeout_ms.is_none()
+    {
+        conn_timeout = conn_timeout.max(Duration::from_secs(3));
+    }
     let wait_time = derive_wait_time(initial_rtt, args.wait_ms);
 
     // Create probe setting

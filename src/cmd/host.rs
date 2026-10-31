@@ -33,6 +33,7 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     let target_endpoints = build_endpoints(target_hosts, &ports)?;
 
     let interface = resolve_interface(args.interface.as_deref())?;
+    crate::cmd::common::validate_raw_targets(&interface, &target_endpoints)?;
     let concurrency = normalize_concurrency(args.concurrency);
 
     let probe_setting = ProbeSetting {

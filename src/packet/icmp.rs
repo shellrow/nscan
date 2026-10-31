@@ -48,15 +48,15 @@ pub fn build_icmp_packet(
         (IpAddr::V4(src), IpAddr::V4(dst)) => IcmpPacketBuilder::new(src, dst)
             .icmp_type(IcmpType::EchoRequest)
             .icmp_code(icmp::echo_request::IcmpCodes::NoCode)
-            .echo_fields(0x1234, 0x1)
             .payload(Bytes::from_static(b"hello"))
+            .echo_fields(0x1234, 0x1)
             .build()?
             .to_bytes(),
         (IpAddr::V6(src), IpAddr::V6(dst)) => Icmpv6PacketBuilder::new(src, dst)
             .icmpv6_type(Icmpv6Type::EchoRequest)
             .icmpv6_code(icmpv6::echo_request::Icmpv6Codes::NoCode)
-            .echo_fields(0x1234, 0x1)
             .payload(Bytes::from_static(b"hello"))
+            .echo_fields(0x1234, 0x1)
             .build()?
             .to_bytes(),
         _ => anyhow::bail!("source and destination IP version mismatch"),
@@ -106,5 +106,21 @@ pub fn build_icmp_packet(
             .to_vec())
     } else {
         Ok(ethernet_packet.to_bytes().to_vec())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn echo_packets_preserve_identifier_sequence_and_payload() {
+        for (destination, header_size) in [("192.0.2.1", 20), ("2001:db8::1", 40)] {
+            let packet =
+                build_icmp_packet(&Interface::dummy(), destination.parse().unwrap(), true).unwrap();
+            let icmp = &packet[header_size..];
+            assert_eq!(&icmp[4..8], &[0x12, 0x34, 0, 1]);
+            assert_eq!(&icmp[8..], b"hello");
+        }
     }
 }
