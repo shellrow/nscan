@@ -144,7 +144,7 @@ pub async fn parse_target_hosts(inputs: &[String]) -> Result<Vec<Host>> {
         Some(crate::dns::resolver::get_resolver()?)
     };
 
-    let dns_resolved = stream::iter(hostnames.into_iter())
+    let dns_resolved = stream::iter(hostnames)
         .map(|name| {
             let resolver = resolver.clone();
             async move {
