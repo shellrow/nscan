@@ -176,6 +176,34 @@ XML"#
     }
 
     #[test]
+    fn identification_budget_includes_version_check() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port().to_string();
+        let dir = tempfile::tempdir().unwrap();
+        let fake = fake_nmap(dir.path(), "exit 1");
+        fs::write(&fake, "#!/bin/sh\nexec sleep 10\n").unwrap();
+        let started = std::time::Instant::now();
+        let output = nscan()
+            .args([
+                "port",
+                "127.0.0.1",
+                "-p",
+                &port,
+                "--nmap",
+                "--nmap-timeout-ms",
+                "50",
+                "--nmap-path",
+            ])
+            .arg(fake)
+            .output()
+            .unwrap();
+        assert!(started.elapsed() < std::time::Duration::from_secs(2));
+        assert!(output.status.success());
+        assert!(String::from_utf8_lossy(&output.stdout).contains("state: Open"));
+        assert!(String::from_utf8_lossy(&output.stderr).contains("timed out"));
+    }
+
+    #[test]
     fn failures_warn_and_keep_basic_results_with_successful_exit() {
         for body in [
             "echo failure >&2; exit 1",

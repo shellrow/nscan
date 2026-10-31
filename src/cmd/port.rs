@@ -234,13 +234,15 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
             .cloned()
             .collect::<Vec<_>>();
         if !targets.is_empty() {
-            let details = match crate::nmap::Nmap::preflight(&args.nmap_path).await {
+            let budget = Duration::from_millis(args.nmap_timeout_ms);
+            let deadline = tokio::time::Instant::now() + budget;
+            let details = match crate::nmap::Nmap::preflight(&args.nmap_path, budget).await {
                 Ok(nmap) => {
                     nmap.identify(
                         &targets,
                         args.nmap,
                         args.os_detect,
-                        Duration::from_millis(args.nmap_timeout_ms),
+                        deadline.saturating_duration_since(tokio::time::Instant::now()),
                     )
                     .await
                 }

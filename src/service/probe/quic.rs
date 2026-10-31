@@ -1,5 +1,4 @@
 use anyhow::Result;
-use bytes::{Buf, BytesMut};
 use http::{Method, Request};
 use quinn::{ClientConfig, Endpoint};
 use rustls::{ClientConfig as RustlsClientConfig, RootCertStore};
@@ -30,6 +29,21 @@ pub fn quic_client_config(skip_verify: bool, alpn: &[&[u8]]) -> Result<ClientCon
     tls.alpn_protocols = alpn.iter().map(|p| p.to_vec()).collect();
     let client_conf = quinn::crypto::rustls::QuicClientConfig::try_from(tls)?;
     Ok(ClientConfig::new(Arc::new(client_conf)))
+}
+
+/// Build an HTTP/3 request for the actual target authority.
+fn request(host: &str, port: u16) -> Result<Request<()>> {
+    let authority = if host.parse::<std::net::Ipv6Addr>().is_ok() {
+        format!("[{host}]:{port}")
+    } else {
+        format!("{host}:{port}")
+    };
+    Ok(Request::builder()
+        .method(Method::GET)
+        .uri(format!("https://{authority}/"))
+        .header("Host", authority)
+        .header("User-Agent", concat!("nscan/", env!("CARGO_PKG_VERSION")))
+        .body(())?)
 }
 
 /// Probe implementation for UDP QUIC (with optional HTTP/3)
@@ -153,13 +167,7 @@ impl QuicProbe {
             let request = async move {
                 let mut svc = ServiceInfo::default();
                 // Simple GET request
-                let req = Request::builder()
-                    .method(Method::GET)
-                    .uri("https://".to_string() + server_name + "/")
-                    .header("Host", server_name)
-                    .header("User-Agent", "nscan/0.1 (probe)")
-                    .body(())
-                    .map_err(|e| anyhow::anyhow!("failed to build HTTP/3 request: {}", e))?;
+                let req = request(&hostname, ctx.probe.port)?;
 
                 tracing::debug!(
                     "HTTP/3 Probe: {}:{} - Sending request",
@@ -168,7 +176,6 @@ impl QuicProbe {
                 );
                 // Send request
                 let mut stream = send_request.send_request(req).await?;
-                //let mut stream = tokio::time::timeout(ctx.timeout, send_request.send_request(req)).await??;
                 stream.finish().await?;
 
                 // Receive response (headers)
@@ -188,19 +195,7 @@ impl QuicProbe {
                     svc.server_header = Some(s.to_string());
                 }
 
-                // receiving potential response body
-                let mut read = 0usize;
-                let max_body = 8 * 1024;
-                let mut body_bytes = BytesMut::new();
-                while let Some(chunk) = stream.recv_data().await? {
-                    let bytes: &[u8] = chunk.chunk();
-                    body_bytes.extend_from_slice(bytes);
-                    read += bytes.len();
-                    if read >= max_body {
-                        break;
-                    }
-                }
-
+                // Headers identify HTTP/3; do not wait for an arbitrary response body.
                 svc.raw = Some(format!("alpn=h3; status={}", res.status()));
 
                 Ok::<ServiceInfo, anyhow::Error>(svc)
@@ -260,5 +255,25 @@ impl QuicProbe {
         endpoint.close(0u32.into(), b"probe completed");
 
         Ok(probe_result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn http3_request_preserves_target_authority() {
+        for (host, port, authority) in [
+            ("example.com", 8443, "example.com:8443"),
+            ("127.0.0.1", 443, "127.0.0.1:443"),
+            ("::1", 8443, "[::1]:8443"),
+        ] {
+            let req = request(host, port).unwrap();
+            assert_eq!(req.uri().authority().unwrap().as_str(), authority);
+            assert_eq!(req.headers()["host"], authority);
+            assert_eq!(req.uri().scheme_str(), Some("https"));
+        }
+        assert!(request("example.com\r\nInjected: value", 443).is_err());
     }
 }

@@ -147,15 +147,19 @@ pub struct Nmap {
 
 impl Nmap {
     /// Check availability only when external identification was requested.
-    pub async fn preflight(path: &Path) -> Result<Self> {
-        let (stdout, _) = execute(path, &["--version".into()], Duration::from_secs(5))
-            .await
-            .with_context(|| {
-                format!(
-                    "Nmap unavailable at {}; install Nmap or set --nmap-path",
-                    path.display()
-                )
-            })?;
+    pub async fn preflight(path: &Path, budget: Duration) -> Result<Self> {
+        let (stdout, _) = execute(
+            path,
+            &["--version".into()],
+            budget.min(Duration::from_secs(5)),
+        )
+        .await
+        .with_context(|| {
+            format!(
+                "Nmap unavailable at {}; install Nmap or set --nmap-path",
+                path.display()
+            )
+        })?;
         let text = std::str::from_utf8(&stdout)?;
         let version = text
             .lines()
