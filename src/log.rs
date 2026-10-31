@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
 use std::{fs::File, io::IsTerminal};
 use tracing::level_filters::LevelFilter;
-use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::{filter::Targets, fmt, prelude::*, registry};
 
 use crate::{cli::Cli, time::LocalTimeOnly};
@@ -18,12 +17,11 @@ pub fn init_logger(args: &Cli) -> Result<()> {
             .with_default(LevelFilter::OFF)
             .with_target("nscan", level)
     };
-    let progress = IndicatifLayer::new();
     let console = fmt::layer()
         .with_target(false)
         .with_ansi(std::io::stderr().is_terminal())
         .with_timer(LocalTimeOnly)
-        .with_writer(progress.get_stderr_writer())
+        .with_writer(std::io::stderr)
         .with_filter(filter());
     let file = if args.log_file || args.log_file_path.is_some() {
         let path = match &args.log_file_path {
@@ -49,10 +47,6 @@ pub fn init_logger(args: &Cli) -> Result<()> {
             .with_writer(file)
             .with_filter(filter())
     });
-    registry()
-        .with(progress.with_filter(filter()))
-        .with(console)
-        .with(file_layer)
-        .try_init()?;
+    registry().with(console).with(file_layer).try_init()?;
     Ok(())
 }

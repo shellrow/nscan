@@ -123,7 +123,7 @@ nscan port example.com --ports 22,80,443 --nmap --output scan.json
 
 ## Output
 
-Reports are printed to stdout; logs and progress use stderr. Use `--no-stdout` to suppress the report and `--quiet` to suppress non-error diagnostics. `--log-file-path` enables file logging. Global options can appear before or after the subcommand.
+Reports are printed to stdout; logs use stderr. Use `--no-stdout` to suppress the report and `--quiet` to suppress non-error diagnostics. `--log-file-path` enables file logging. Global options can appear before or after the subcommand.
 
 `--output` writes JSON, replacing the destination atomically. The parent directory must exist. A failed serialization or write leaves the previous report intact.
 

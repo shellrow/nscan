@@ -12,7 +12,6 @@ use netdev::{Interface, MacAddr};
 use nex::datalink::async_io::{AsyncChannel, AsyncRawSender, async_channel};
 use nex::packet::frame::Frame;
 use nex::packet::ip::IpNextProtocol;
-use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 /// Send UDP packets for host scanning.
 pub async fn send_hostscan_packets(
@@ -20,13 +19,6 @@ pub async fn send_hostscan_packets(
     interface: &Interface,
     scan_setting: &ProbeSetting,
 ) -> Result<()> {
-    let header_span = tracing::info_span!("udp_host_scan");
-    header_span.pb_set_style(&crate::output::progress::get_progress_style());
-    header_span.pb_set_message("HostScan");
-    header_span.pb_set_length(scan_setting.target_endpoints.len() as u64);
-    header_span.pb_set_position(0);
-    header_span.pb_start();
-
     for target in &scan_setting.target_endpoints {
         let packet = match crate::packet::udp::build_udp_packet(
             interface,
@@ -49,9 +41,7 @@ pub async fn send_hostscan_packets(
             }
             Err(e) => return Err(e.into()),
         }
-        header_span.pb_inc(1);
     }
-    drop(header_span);
     Ok(())
 }
 

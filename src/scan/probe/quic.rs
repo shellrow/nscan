@@ -14,7 +14,6 @@ use crate::{
 };
 use anyhow::Result;
 use futures::stream::{self, StreamExt};
-use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 /// Run a QUIC connect scan based on the provided probe settings.
 pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
@@ -65,12 +64,6 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
     }
 
     let client_cfg = quic_client_config(true, &alpn)?;
-    let header_span = tracing::info_span!("quic_connect_scan");
-    header_span.pb_set_style(&crate::output::progress::get_progress_style());
-    header_span.pb_set_message("QUIC PortScan");
-    header_span.pb_set_length(work_items.len() as u64);
-    header_span.pb_set_position(0);
-    header_span.pb_start();
 
     let mut connect_stream = stream::iter(work_items)
         .map(move |(ip, hostname, port)| {
@@ -150,10 +143,7 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
         if let Some(endpoint) = endpoint_map.get_mut(&ip) {
             endpoint.upsert_port(port_result);
         }
-        header_span.pb_inc(1);
     }
-
-    drop(header_span);
 
     let mut result = ScanResult::new();
     result.endpoints = endpoint_map.into_values().collect();

@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{net::IpAddr, time::Instant};
 use tokio::time::timeout;
-use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 use crate::dns::{Domain, DomainScanResult};
 
@@ -107,13 +106,6 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
     )
     .await;
 
-    let header_span = tracing::info_span!("subdomain_scan");
-    header_span.pb_set_style(&crate::output::progress::get_progress_style());
-    header_span.pb_set_message(&format!("Subdomain Scan ({})", base));
-    header_span.pb_set_length(target_domains.len() as u64);
-    header_span.pb_set_position(0);
-    header_span.pb_start();
-
     // Parallel resolution stream
     let results = stream::iter(target_domains)
         .map(|domain_name| {
@@ -160,15 +152,12 @@ pub async fn scan_subdomain(setting: &DomainScanSetting) -> Result<DomainScanRes
                         if !d.ips.is_empty() {
                             domains.push(d);
                         }
-                        header_span.pb_inc(1);
                     }
                     None => break, // All done
                 }
             }
         }
     }
-
-    drop(header_span);
 
     if wildcard {
         tracing::warn!("Wildcard DNS detected; results may include wildcard responses");

@@ -5,7 +5,6 @@ use tokio::{
     io::{AsyncRead, AsyncReadExt},
     time::{Instant, timeout},
 };
-use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 use crate::{
     endpoint::{Endpoint, Port},
@@ -65,13 +64,6 @@ impl ServiceDetector {
             });
         }
 
-        let header_span = tracing::info_span!("detect_services");
-        header_span.pb_set_style(&crate::output::progress::get_progress_style());
-        header_span.pb_set_message("Service Probe");
-        header_span.pb_set_length(work_items.len() as u64);
-        header_span.pb_set_position(0);
-        header_span.pb_start();
-
         let config = self.config.clone();
         let mut stream = stream::iter(work_items)
             .map(move |(ip, hostname, port)| {
@@ -88,10 +80,8 @@ impl ServiceDetector {
                     Err(e) => tracing::error!("Probe failed: {}", e),
                 }
             }
-            header_span.pb_inc(1);
         }
 
-        drop(header_span);
         Ok(ServiceDetectionResult {
             results,
             scan_time: start_time.elapsed(),

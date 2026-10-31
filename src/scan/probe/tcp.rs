@@ -9,7 +9,6 @@ use nex::packet::tcp::TcpFlags;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use tokio::net::TcpStream;
-use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 use crate::capture::pcap::PacketCaptureOptions;
 use crate::cli::PortScanMethod;
@@ -55,13 +54,6 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
         return Ok(result);
     }
 
-    let header_span = tracing::info_span!("tcp_connect_scan");
-    header_span.pb_set_style(&crate::output::progress::get_progress_style());
-    header_span.pb_set_message("TCP PortScan");
-    header_span.pb_set_length(work_items.len() as u64);
-    header_span.pb_set_position(0);
-    header_span.pb_start();
-
     let mut connect_stream = stream::iter(work_items)
         .map(move |(ip, port)| async move {
             let socket_addr = SocketAddr::new(ip, port.number);
@@ -100,10 +92,7 @@ pub async fn run_connect_scan(setting: ProbeSetting) -> Result<ScanResult> {
         if let Some(endpoint) = endpoint_map.get_mut(&ip) {
             endpoint.upsert_port(port_result);
         }
-        header_span.pb_inc(1);
     }
-
-    drop(header_span);
 
     let mut result = ScanResult::new();
     result.endpoints = endpoint_map.into_values().collect();
@@ -119,13 +108,6 @@ pub async fn send_portscan_packets(
     scan_setting: &ProbeSetting,
 ) -> Result<()> {
     for target in &scan_setting.target_endpoints {
-        let header_span = tracing::info_span!("tcp_syn_scan");
-        header_span.pb_set_style(&crate::output::progress::get_progress_style());
-        header_span.pb_set_message(&format!("PortScan ({})", target.ip));
-        header_span.pb_set_length(target.ports.len() as u64);
-        header_span.pb_set_position(0);
-        header_span.pb_start();
-
         for port in &target.ports {
             let packet = match crate::packet::tcp::build_tcp_syn_packet(
                 interface,
@@ -154,9 +136,7 @@ pub async fn send_portscan_packets(
                 }
                 Err(e) => return Err(e.into()),
             }
-            header_span.pb_inc(1);
         }
-        drop(header_span);
     }
     Ok(())
 }
@@ -167,13 +147,6 @@ pub async fn send_hostscan_packets(
     interface: &Interface,
     scan_setting: &ProbeSetting,
 ) -> Result<()> {
-    let header_span = tracing::info_span!("tcp_syn_host_scan");
-    header_span.pb_set_style(&crate::output::progress::get_progress_style());
-    header_span.pb_set_message("HostScan");
-    header_span.pb_set_length(scan_setting.target_endpoints.len() as u64);
-    header_span.pb_set_position(0);
-    header_span.pb_start();
-
     for target in &scan_setting.target_endpoints {
         for port in &target.ports {
             let packet = match crate::packet::tcp::build_tcp_syn_packet(
@@ -204,9 +177,7 @@ pub async fn send_hostscan_packets(
                 Err(e) => return Err(e.into()),
             }
         }
-        header_span.pb_inc(1);
     }
-    drop(header_span);
     Ok(())
 }
 

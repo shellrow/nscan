@@ -16,7 +16,6 @@ use nex::packet::tcp::TcpFlags;
 use std::collections::HashSet;
 use std::net::IpAddr;
 use std::time::{Duration, Instant};
-use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 /// Run TCP Ping and return the results.
 pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
@@ -55,13 +54,6 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
         parse_option.from_ip_packet = true;
         parse_option.offset = payload_offset;
     }
-
-    let header_span = tracing::info_span!("ping");
-    header_span.pb_set_style(&crate::output::progress::get_progress_style());
-    header_span.pb_set_message(&format!("ping ({})", setting.dst_ip));
-    header_span.pb_set_length(setting.count as u64);
-    header_span.pb_set_position(0);
-    header_span.pb_start();
 
     let start_time = Instant::now();
     let tcp_packet =
@@ -136,7 +128,6 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                                 ipv4_header.ttl
                             );
                             responses.push(probe_result);
-                            header_span.pb_inc(1);
                             break;
                         }
                         // IPv6
@@ -183,19 +174,16 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                                 ipv6_header.hop_limit
                             );
                             responses.push(probe_result);
-                            header_span.pb_inc(1);
                             break;
                         }
                     }
                 }
                 Ok(Some(Err(e))) => {
                     tracing::error!("Failed to receive packet: {}", e);
-                    header_span.pb_inc(1);
                     break;
                 }
                 Ok(None) => {
                     tracing::error!("Channel closed");
-                    header_span.pb_inc(1);
                     break;
                 }
                 Err(_) => {
@@ -209,7 +197,6 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                     );
                     responses.push(probe_result);
 
-                    header_span.pb_inc(1);
                     break;
                 }
             }
@@ -226,7 +213,6 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
                 );
                 responses.push(probe_result);
 
-                header_span.pb_inc(1);
                 break;
             }
         }
@@ -234,9 +220,6 @@ pub async fn run_tcp_ping(setting: &PingSetting) -> Result<PingResult> {
             tokio::time::sleep(setting.send_rate).await;
         }
     }
-
-    // Finish header span
-    drop(header_span);
 
     let elapsed_time = start_time.elapsed();
     let received_count: usize = responses

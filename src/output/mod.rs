@@ -8,7 +8,6 @@ pub mod host;
 pub mod interface;
 pub mod ping;
 pub mod port;
-pub mod progress;
 
 /// Convert a string into a tree label.
 fn tree_label<S: Into<String>>(s: S) -> String {
