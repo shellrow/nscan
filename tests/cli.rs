@@ -67,6 +67,19 @@ fn logging_setup_errors_are_visible() {
 }
 
 #[test]
+fn raw_loopback_scans_fail_explicitly() {
+    for args in [
+        vec!["port", "127.0.0.1", "--method", "syn", "--no-ping"],
+        vec!["host", "::1"],
+    ] {
+        let output = nscan().args(args).output().unwrap();
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("raw scans on loopback"));
+    }
+}
+
+#[test]
 fn basic_scan_does_not_need_nmap_or_signature_databases() {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port().to_string();
@@ -223,7 +236,13 @@ XML"#
                 .arg(&path)
                 .output()
                 .unwrap();
-            assert!(started.elapsed() < std::time::Duration::from_secs(5));
+            assert!(
+                started.elapsed() < std::time::Duration::from_secs(5),
+                "{body}: elapsed {:?}; stdout: {}; stderr: {}",
+                started.elapsed(),
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
             assert!(output.status.success());
             let json: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
             assert_eq!(json["endpoints"]["127.0.0.1"]["ports"][0]["state"], "open");

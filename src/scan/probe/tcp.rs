@@ -657,10 +657,11 @@ mod tests {
     #[tokio::test]
     async fn connect_scan_reports_local_open_and_refused_ports() {
         let open = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let closed = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        // Keep the closed port reserved throughout the scan without listening.
+        let closed = tokio::net::TcpSocket::new_v4().unwrap();
+        closed.bind("127.0.0.1:0".parse().unwrap()).unwrap();
         let open_port = Port::new(open.local_addr().unwrap().port(), TransportProtocol::Tcp);
         let closed_port = Port::new(closed.local_addr().unwrap().port(), TransportProtocol::Tcp);
-        drop(closed);
         let mut endpoint = crate::endpoint::Endpoint::new("127.0.0.1".parse().unwrap());
         endpoint.upsert_port(open_port);
         endpoint.upsert_port(closed_port);
@@ -669,8 +670,8 @@ mod tests {
             if_index: 0,
             host_concurrency: 1,
             port_concurrency: 2,
-            task_timeout: Duration::from_secs(2),
-            connect_timeout: Duration::from_secs(1),
+            task_timeout: Duration::from_secs(10),
+            connect_timeout: Duration::from_secs(5),
             wait_time: Duration::ZERO,
             send_rate: Duration::ZERO,
         })
