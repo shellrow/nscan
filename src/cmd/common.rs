@@ -4,7 +4,7 @@ use anyhow::Result;
 use netdev::Interface;
 
 use crate::endpoint::{Endpoint, Host, Port};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 /// Resolve the interface from CLI option. Falls back to default interface.
 pub fn resolve_interface(interface_name: Option<&str>) -> Result<Interface> {
@@ -23,14 +23,19 @@ pub fn build_endpoints(hosts: Vec<Host>, ports: &[Port]) -> Result<Vec<Endpoint>
         hosts.len().saturating_mul(ports.len().max(1)) <= 1_000_000,
         "scan exceeds 1,000,000 host/port pairs; split the scan"
     );
+    // Deduplicate once while preserving randomized or explicitly ordered scans.
+    let mut seen = HashSet::new();
+    let ports: Vec<Port> = ports
+        .iter()
+        .copied()
+        .filter(|port| seen.insert(*port))
+        .collect();
     Ok(hosts
         .into_iter()
         .map(|host| {
             let mut endpoint = Endpoint::new(host.ip);
             endpoint.hostname = host.hostname;
-            for port in ports {
-                endpoint.upsert_port(*port);
-            }
+            endpoint.ports = ports.clone();
             endpoint
         })
         .collect())
@@ -72,5 +77,29 @@ pub fn derive_wait_time(initial_rtt: Duration, override_ms: Option<u64>) -> Dura
             let adapted = (initial_rtt.as_millis() as f64 * 2.0) as u64;
             Duration::from_millis(adapted.clamp(100, 5000))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::endpoint::TransportProtocol;
+
+    #[test]
+    fn endpoint_construction_preserves_order_and_removes_duplicates() {
+        let ports = [443, 22, 80, 22].map(|port| Port::new(port, TransportProtocol::Tcp));
+        let hosts = vec![
+            Host::new("127.0.0.1".parse().unwrap()),
+            Host::new("::1".parse().unwrap()),
+        ];
+        let endpoints = build_endpoints(hosts, &ports).unwrap();
+        for endpoint in endpoints {
+            assert_eq!(endpoint.ports, ports[..3]);
+        }
+        let all_ports = (1..=65535)
+            .map(|port| Port::new(port, TransportProtocol::Tcp))
+            .collect::<Vec<_>>();
+        let endpoints = build_endpoints(vec![Host::default()], &all_ports).unwrap();
+        assert_eq!(endpoints[0].ports, all_ports);
     }
 }

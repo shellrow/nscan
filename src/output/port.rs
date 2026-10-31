@@ -113,9 +113,22 @@ impl ScanReport {
                     continue;
                 }
                 if let Some(service) = port.service {
+                    // Registry guesses are not evidence of a running service.
+                    if service.method.as_deref() != Some("probed") {
+                        continue;
+                    }
                     let existing = &mut pr.service;
+                    let product_conflicts = existing
+                        .product
+                        .as_ref()
+                        .zip(service.product.as_ref())
+                        .is_some_and(|(native, external)| !native.eq_ignore_ascii_case(external));
                     existing.name = existing.name.take().or(service.name);
                     existing.product = existing.product.take().or(service.product);
+                    // A version and CPEs must not be attached to a different product.
+                    if product_conflicts {
+                        continue;
+                    }
                     existing.version = existing.version.take().or(service.version);
                     for cpe in service.cpes {
                         if !existing.cpes.contains(&cpe) {
@@ -255,6 +268,45 @@ mod tests {
     use crate::endpoint::{PortResult, ServiceInfo, TransportProtocol};
 
     #[test]
+    fn identification_rejects_registry_guesses_and_conflicting_product_details() {
+        let ip = "127.0.0.1".parse().unwrap();
+        let port = Port::new(22, TransportProtocol::Tcp);
+        for method in ["table", "probed", "unknown"] {
+            let mut report = ScanReport::new();
+            let mut ep = EndpointResult::new(ip);
+            ep.upsert_port(PortResult {
+                port,
+                state: PortState::Open,
+                rtt_ms: None,
+                service: ServiceInfo {
+                    product: Some("NativeSSH".into()),
+                    ..Default::default()
+                },
+            });
+            report.endpoints.insert(ip, ep);
+            report.apply_identification(
+                serde_json::from_value(serde_json::json!({
+                    "source": "nmap", "version": "7.99", "complete": true, "error": null,
+                    "hosts": [{"ip": "127.0.0.1", "ports": [{
+                        "port": 22, "protocol": "tcp", "state": {"state": "open"},
+                        "service": {"name": "ssh", "product": "OtherSSH", "method": method,
+                            "version": "9.9", "cpes": ["cpe:/a:other:ssh:9.9"]}
+                    }], "os_matches": []}]
+                }))
+                .unwrap(),
+            );
+            let service = &report.endpoints[&ip].ports[&port].service;
+            assert_eq!(service.product.as_deref(), Some("NativeSSH"));
+            assert!(service.version.is_none());
+            assert!(service.cpes.is_empty());
+            assert_eq!(
+                service.name.as_deref(),
+                (method == "probed").then_some("ssh")
+            );
+        }
+    }
+
+    #[test]
     fn identification_fills_gaps_and_preserves_native_observations() {
         let ip = "127.0.0.1".parse().unwrap();
         let port = Port::new(22, TransportProtocol::Tcp);
@@ -278,7 +330,7 @@ mod tests {
                 "source": "nmap", "version": "7.99", "complete": true, "error": null,
                 "hosts": [{"ip": "127.0.0.1", "ports": [{
                     "port": 22, "protocol": "tcp", "state": {"state": "closed"},
-                    "service": {"name": "external", "product": "external product",
+                    "service": {"name": "external", "product": "native product", "method": "probed",
                         "version": "9.9", "cpes": ["shared", "additional", "additional"]}
                 }], "os_matches": [{"name": "Linux", "accuracy": 95}]}]
             }))

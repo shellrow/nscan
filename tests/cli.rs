@@ -129,7 +129,7 @@ mod external_identification {
             dir.path(),
             &format!(
                 r#"cat <<'XML'
-<nmaprun scanner="nmap" version="7.99"><host><address addr="127.0.0.1" addrtype="ipv4"/><ports><port protocol="tcp" portid="{port}"><state state="closed"/><service name="example" product="External Product"/></port></ports><os><osmatch name="External OS" accuracy="90"/></os></host><runstats><finished exit="success"/></runstats></nmaprun>
+<nmaprun scanner="nmap" version="7.99"><host><address addr="127.0.0.1" addrtype="ipv4"/><ports><port protocol="tcp" portid="{port}"><state state="closed"/><service name="example" product="External Product" method="probed"/></port></ports><os><osmatch name="External OS" accuracy="90"/></os></host><runstats><finished exit="success"/></runstats></nmaprun>
 XML"#
             ),
         );
