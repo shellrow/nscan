@@ -83,13 +83,9 @@ nscan domain --help
 TCP connect scans, QUIC probes, DNS enumeration, and interface listing do not require raw-socket privileges. TCP SYN scans and host discovery require raw packet access and an appropriate interface. `--interface` applies to nscan raw probes; connect scans use operating-system routing. OS identification uses Nmap and requires the privileges and capture driver needed by Nmap.
 
 ## Notes for Windows Users
-- Npcap/WinPcap Installation:
-    - Ensure that [Npcap](https://npcap.com/#download) or WinPcap is installed on your system.
-    - If using Npcap, install it with the "Install Npcap in WinPcap API-compatible Mode" option.
-- Build Dependencies:
-    - Place the Packet.lib file from the [Npcap SDK](https://npcap.com/#download) or WinPcap Developers pack in a directory named lib at the root of this repository.
-    - The file can be found in the %LIB% or $Env:LIB environment variables.
-    - Locate Packet.lib in <SDK>/Lib/x64/Packet.lib for the 64-bit toolchain or <SDK>/Lib/Packet.lib for the 32-bit toolchain.
+- [Npcap](https://npcap.com/#download) is required only for raw SYN scans and host discovery. Run as administrator if required by your Npcap installation.
+- Npcap is loaded at runtime from its standard installation directory or a WinPcap-compatible installation. Building does not require the Npcap SDK or `Packet.lib`.
+- TCP connect scans default to a three-second timeout because Windows can delay connection-refused errors. Set `--connect-timeout-ms` to override it; shorter timeouts may report closed ports as `filtered`.
 
 ## Examples
 
@@ -155,3 +151,5 @@ TCP ports are reported as `closed` after a connection refusal or reset. Timeouts
 Wildcard DNS answers are retained and marked with `wildcard_detected`. Detection uses one random name and may miss rotating or intermittent wildcard responses.
 
 Raw scans do not retry adaptively. Packet loss, filtering, and ICMP rate limits can cause hosts to be missed. Raw routing relies on the selected interface and gateway; VPNs, multiple interfaces, scoped IPv6 addresses, and simultaneous scans may produce unreliable results. QUIC/HTTP3 interoperability testing is limited.
+
+Raw loopback scans are not supported. Use TCP connect scans (the default) for `127.0.0.1` and `::1`.
