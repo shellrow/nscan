@@ -140,14 +140,16 @@ async fn respond<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin>(mut st
 
 #[tokio::test]
 async fn quic_http3_probe_and_combined_transport_reports() {
+    let (tcp, udp) = bind_tcp_udp_pair().await.unwrap();
+    let addr = tcp.local_addr().unwrap();
     let crypto = quinn::crypto::rustls::QuicServerConfig::try_from(tls_config(b"h3")).unwrap();
-    let endpoint = quinn::Endpoint::server(
-        quinn::ServerConfig::with_crypto(Arc::new(crypto)),
-        "127.0.0.1:0".parse().unwrap(),
+    let endpoint = quinn::Endpoint::new(
+        quinn::EndpointConfig::default(),
+        Some(quinn::ServerConfig::with_crypto(Arc::new(crypto))),
+        udp,
+        Arc::new(quinn::TokioRuntime),
     )
     .unwrap();
-    let addr = endpoint.local_addr().unwrap();
-    let tcp = tokio::net::TcpListener::bind(addr).await.unwrap();
     let server = tokio::spawn(async move {
         let mut tasks = tokio::task::JoinSet::new();
         while let Some(incoming) = endpoint.accept().await {
@@ -227,4 +229,23 @@ async fn quic_http3_probe_and_combined_transport_reports() {
     assert_eq!(combined["stats"]["open_ports"], 2);
     drop(tcp);
     server.abort();
+}
+
+async fn bind_tcp_udp_pair() -> std::io::Result<(tokio::net::TcpListener, std::net::UdpSocket)> {
+    // TCP and UDP have independent port allocations and exclusions. Keep both
+    // sockets bound so another test cannot claim the port before server startup.
+    for attempt in 0..32 {
+        let tcp = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+        match std::net::UdpSocket::bind(tcp.local_addr()?) {
+            Ok(udp) => return Ok((tcp, udp)),
+            Err(error)
+                if attempt < 31
+                    && matches!(
+                        error.kind(),
+                        std::io::ErrorKind::AddrInUse | std::io::ErrorKind::PermissionDenied
+                    ) => {}
+            Err(error) => return Err(error),
+        }
+    }
+    unreachable!("the final bind attempt returns its error")
 }
