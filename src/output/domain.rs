@@ -80,5 +80,5 @@ pub fn print_domain_tree(base_domain: &Domain, res: &DomainScanResult) {
     root.push(base_node);
 
     println!("Scan report(s)");
-    println!("{}", root);
+    println!("{}", crate::output::terminal_text(&root.to_string()));
 }

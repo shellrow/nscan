@@ -5,37 +5,19 @@ use std::{
 };
 
 use crate::{
-    endpoint::{EndpointResult, Port, PortResult, PortState, ServiceInfo, TransportProtocol},
+    endpoint::{EndpointResult, Port, PortState},
     output::{ScanResult, tree_label},
-    service::{ServiceDetectionResult, probe::ServiceProbe},
+    service::ServiceDetectionResult,
 };
-use nex::packet::frame::Frame;
 use serde::{Deserialize, Serialize};
 use termtree::Tree;
-
-/// Results of OS probing
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OsProbeResult {
-    pub endpoints: Vec<EndpointResult>,
-    pub probe_time: Duration,
-    pub fingerprints: Vec<Frame>,
-}
-
-impl OsProbeResult {
-    /// Construct a new, empty OsProbeResult.
-    pub fn new() -> Self {
-        Self {
-            endpoints: Vec::new(),
-            probe_time: Duration::new(0, 0),
-            fingerprints: Vec::new(),
-        }
-    }
-}
 
 /// Comprehensive scan report combining various scan results.
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ScanReport {
     pub meta: ReportMeta,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identification: Option<crate::nmap::Identification>,
     /// Keep IP as key for merging
     #[serde(default)]
     pub endpoints: BTreeMap<IpAddr, EndpointResult>,
@@ -71,14 +53,6 @@ pub struct ReportStats {
     pub open_ports: usize,
     pub duration_scan: Option<Duration>,    // PortScan
     pub duration_service: Option<Duration>, // ServiceDetect
-    pub duration_os: Option<Duration>,      // OS probe
-}
-
-/// An attempt to probe a service on a port
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PortProbeAttempt {
-    pub probe_id: ServiceProbe,
-    pub result: Result<ServiceInfo, String>,
 }
 
 impl ScanReport {
@@ -95,7 +69,8 @@ impl ScanReport {
                 .and_modify(|e| e.merge(ep.clone()))
                 .or_insert_with(|| ep);
         }
-        self.stats.duration_scan = Some(ps.scan_time);
+        self.stats.duration_scan =
+            Some(self.stats.duration_scan.unwrap_or_default() + ps.scan_time);
         self.recompute_stats();
     }
 
@@ -110,53 +85,81 @@ impl ScanReport {
                 number: r.port,
                 transport: r.transport,
             };
-            let pr = ep.ports.entry(port_key).or_insert_with(|| PortResult {
-                port: port_key,
-                state: PortState::Open,
-                service: r.service_info.clone(),
-                rtt_ms: None,
-            });
-
-            pr.state = PortState::Open;
-            pr.port = port_key;
-            pr.service = select_better_service(pr.service.clone(), r.service_info);
+            if let Some(pr) = ep.ports.get_mut(&port_key) {
+                pr.service = r.service_info;
+            }
         }
         self.stats.duration_service = Some(sd.scan_time);
         self.recompute_stats();
     }
 
-    /// Apply OS probe results: replace with the more confident one
-    pub fn apply_os_probe(&mut self, osr: OsProbeResult) {
-        for ep2 in osr.endpoints {
-            if let Some(ep) = self.endpoints.get_mut(&ep2.ip) {
-                ep.merge(ep2);
-            } else {
-                self.endpoints.insert(ep2.ip, ep2);
+    /// Fill missing observations with identification data, keeping native results first.
+    pub fn apply_identification(&mut self, mut details: crate::nmap::Identification) {
+        for host in details.hosts.drain(..) {
+            let Some(ep) = self.endpoints.get_mut(&host.ip) else {
+                continue;
+            };
+            for port in host.ports {
+                let Some(transport) = crate::endpoint::TransportProtocol::parse(&port.protocol)
+                else {
+                    continue;
+                };
+                let Some(pr) = ep.ports.get_mut(&Port::new(port.port, transport)) else {
+                    continue;
+                };
+                if transport != crate::endpoint::TransportProtocol::Tcp
+                    || pr.state != PortState::Open
+                {
+                    continue;
+                }
+                if let Some(service) = port.service {
+                    // Registry guesses are not evidence of a running service.
+                    if service.method.as_deref() != Some("probed") {
+                        continue;
+                    }
+                    let existing = &mut pr.service;
+                    let product_conflicts = existing
+                        .product
+                        .as_ref()
+                        .zip(service.product.as_ref())
+                        .is_some_and(|(native, external)| !native.eq_ignore_ascii_case(external));
+                    existing.name = existing.name.take().or(service.name);
+                    existing.product = existing.product.take().or(service.product);
+                    // A version and CPEs must not be attached to a different product.
+                    if product_conflicts {
+                        continue;
+                    }
+                    existing.version = existing.version.take().or(service.version);
+                    for cpe in service.cpes {
+                        if !existing.cpes.contains(&cpe) {
+                            existing.cpes.push(cpe);
+                        }
+                    }
+                }
+            }
+            if ep.os.family.is_none()
+                && let Some(os) = host.os_matches.into_iter().max_by_key(|os| os.accuracy)
+            {
+                ep.os.family = Some(os.name);
+                ep.os.confidence = Some(f32::from(os.accuracy) / 100.0);
+                for class in os.classes {
+                    for cpe in class.cpes {
+                        if !ep.cpes.contains(&cpe) {
+                            ep.cpes.push(cpe);
+                        }
+                    }
+                }
             }
         }
-        self.stats.duration_os = Some(osr.probe_time);
-        self.recompute_stats();
+        self.identification = Some(details);
     }
 
     pub fn finish(&mut self) {
         self.meta.finished_at = Some(SystemTime::now());
-        let tcp_svc_db = crate::db::service::tcp_service_db();
-        let udp_svc_db = crate::db::service::udp_service_db();
-        // check service name. if service name is not in result, set it.
         for ep in self.endpoints.values_mut() {
             for (port, pr) in &mut ep.ports {
-                if pr.service.name.is_none() {
-                    match port.transport {
-                        TransportProtocol::Tcp => {
-                            pr.service.name =
-                                tcp_svc_db.get_name(port.number).map(|s| s.to_string());
-                        }
-                        TransportProtocol::Udp | TransportProtocol::Quic => {
-                            pr.service.name =
-                                udp_svc_db.get_name(port.number).map(|s| s.to_string());
-                        }
-                    }
-                }
+                pr.service.registered_name =
+                    crate::db::service::registered_name(port.number, port.transport);
             }
         }
     }
@@ -181,34 +184,7 @@ impl ScanReport {
     }
 }
 
-/// Choose the better ServiceInfo based on a simple scoring system.
-fn select_better_service(cur: ServiceInfo, newv: ServiceInfo) -> ServiceInfo {
-    let old_score = score_service(&cur);
-    let new_score = score_service(&newv);
-    if new_score >= old_score { newv } else { cur }
-}
-
-/// Score a ServiceInfo based on the presence of certain fields.
-fn score_service(s: &ServiceInfo) -> usize {
-    let mut sc = 0;
-    if s.name.is_some() {
-        sc += 1;
-    }
-    if s.product.is_some() {
-        sc += 1;
-    }
-    if let Some(b) = &s.banner {
-        sc += 1;
-        // Check for HTTP 200 OK for additional points
-        if b.contains("HTTP") && b.contains("200 OK") {
-            sc += 1;
-        }
-    }
-    sc += s.cpes.len();
-    sc
-}
-
-/// Match and print OS detection results in a tree structure.
+/// Print the merged scan observations.
 pub fn print_report_tree(rep: &ScanReport) {
     let mut root = Tree::new(tree_label("Scan report(s)"));
     for ep in rep.endpoints.values() {
@@ -219,23 +195,17 @@ pub fn print_report_tree(rep: &ScanReport) {
         };
         let mut ep_root = Tree::new(title);
 
-        // OS
-        if ep.os.family.is_some() || !ep.cpes.is_empty() {
-            let mut os_node = Tree::new(tree_label("os"));
-            if let Some(f) = &ep.os.family {
-                os_node.push(Tree::new(tree_label(format!("family: {}", f))));
-            }
-            if let Some(v) = &ep.os.ttl_observed {
-                os_node.push(Tree::new(tree_label(format!("TTL: {}", v))));
-            }
-            if !ep.cpes.is_empty() {
-                let mut cpe_node = Tree::new(tree_label("cpes"));
-                for c in &ep.cpes {
-                    cpe_node.push(Tree::new(c.clone()));
-                }
-                os_node.push(cpe_node);
-            }
-            ep_root.push(os_node);
+        if let Some(ttl) = ep.os.ttl_observed {
+            ep_root.push(Tree::new(format!("observed TTL: {ttl}")));
+        }
+
+        if let Some(os) = &ep.os.family {
+            let confidence = ep
+                .os
+                .confidence
+                .map(|value| format!(" ({:.0}%)", value * 100.0))
+                .unwrap_or_default();
+            ep_root.push(Tree::new(format!("OS: {os}{confidence}")));
         }
 
         // Ports
@@ -252,11 +222,22 @@ pub fn print_report_tree(rep: &ScanReport) {
             if let Some(name) = &pr.service.name {
                 pnode.push(Tree::new(tree_label(format!("service: {}", name))));
             }
+            if let Some(label) = &pr.service.registered_name
+                && pr.service.name.as_ref() != Some(label)
+            {
+                pnode.push(Tree::new(format!("registered service: {label}")));
+            }
+            if let Some(server) = &pr.service.server_header {
+                pnode.push(Tree::new(format!("HTTP Server header: {server}")));
+            }
             if let Some(b) = &pr.service.banner {
                 pnode.push(Tree::new(tree_label(format!("banner: {}", b))));
             }
             if let Some(p) = &pr.service.product {
                 pnode.push(Tree::new(tree_label(format!("product: {}", p))));
+            }
+            if let Some(version) = &pr.service.version {
+                pnode.push(Tree::new(format!("version: {version}")));
             }
             if !pr.service.cpes.is_empty() {
                 let mut c = Tree::new(tree_label("cpes"));
@@ -270,5 +251,109 @@ pub fn print_report_tree(rep: &ScanReport) {
 
         root.push(ep_root);
     }
-    println!("{}", root);
+    if let Some(details) = &rep.identification {
+        for warning in &details.warnings {
+            root.push(Tree::new(format!("warning: {warning}")));
+        }
+        if let Some(error) = &details.error {
+            root.push(Tree::new(format!("warning: {error}")));
+        }
+    }
+    println!("{}", crate::output::terminal_text(&root.to_string()));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::endpoint::{PortResult, ServiceInfo, TransportProtocol};
+
+    #[test]
+    fn identification_rejects_registry_guesses_and_conflicting_product_details() {
+        let ip = "127.0.0.1".parse().unwrap();
+        let port = Port::new(22, TransportProtocol::Tcp);
+        for method in ["table", "probed", "unknown"] {
+            let mut report = ScanReport::new();
+            let mut ep = EndpointResult::new(ip);
+            ep.upsert_port(PortResult {
+                port,
+                state: PortState::Open,
+                rtt_ms: None,
+                service: ServiceInfo {
+                    product: Some("NativeSSH".into()),
+                    ..Default::default()
+                },
+            });
+            report.endpoints.insert(ip, ep);
+            report.apply_identification(
+                serde_json::from_value(serde_json::json!({
+                    "source": "nmap", "version": "7.99", "complete": true, "error": null,
+                    "hosts": [{"ip": "127.0.0.1", "ports": [{
+                        "port": 22, "protocol": "tcp", "state": {"state": "open"},
+                        "service": {"name": "ssh", "product": "OtherSSH", "method": method,
+                            "version": "9.9", "cpes": ["cpe:/a:other:ssh:9.9"]}
+                    }], "os_matches": []}]
+                }))
+                .unwrap(),
+            );
+            let service = &report.endpoints[&ip].ports[&port].service;
+            assert_eq!(service.product.as_deref(), Some("NativeSSH"));
+            assert!(service.version.is_none());
+            assert!(service.cpes.is_empty());
+            assert_eq!(
+                service.name.as_deref(),
+                (method == "probed").then_some("ssh")
+            );
+        }
+    }
+
+    #[test]
+    fn identification_fills_gaps_and_preserves_native_observations() {
+        let ip = "127.0.0.1".parse().unwrap();
+        let port = Port::new(22, TransportProtocol::Tcp);
+        let mut ep = EndpointResult::new(ip);
+        ep.os.ttl_observed = Some(64);
+        ep.upsert_port(PortResult {
+            port,
+            state: PortState::Open,
+            rtt_ms: Some(10),
+            service: ServiceInfo {
+                name: Some("native service".into()),
+                product: Some("native product".into()),
+                cpes: vec!["shared".into()],
+                ..Default::default()
+            },
+        });
+        let mut report = ScanReport::new();
+        report.endpoints.insert(ip, ep);
+        let details = || {
+            serde_json::from_value(serde_json::json!({
+                "source": "nmap", "version": "7.99", "complete": true, "error": null,
+                "hosts": [{"ip": "127.0.0.1", "ports": [{
+                    "port": 22, "protocol": "tcp", "state": {"state": "closed"},
+                    "service": {"name": "external", "product": "native product", "method": "probed",
+                        "version": "9.9", "cpes": ["shared", "additional", "additional"]}
+                }], "os_matches": [{"name": "Linux", "accuracy": 95}]}]
+            }))
+            .unwrap()
+        };
+        report.apply_identification(details());
+        report.apply_identification(details());
+        let ep = &report.endpoints[&ip];
+        let pr = &ep.ports[&port];
+        assert_eq!(pr.state, PortState::Open);
+        assert_eq!(pr.rtt_ms, Some(10));
+        assert_eq!(pr.service.name.as_deref(), Some("native service"));
+        assert_eq!(pr.service.product.as_deref(), Some("native product"));
+        assert_eq!(pr.service.version.as_deref(), Some("9.9"));
+        assert_eq!(pr.service.cpes, ["shared", "additional"]);
+        assert_eq!(ep.os.family.as_deref(), Some("Linux"));
+        assert_eq!(ep.os.ttl_observed, Some(64));
+        report.endpoints.get_mut(&ip).unwrap().os.family = Some("native OS".into());
+        report.apply_identification(details());
+        assert_eq!(
+            report.endpoints[&ip].os.family.as_deref(),
+            Some("native OS")
+        );
+        assert!(report.identification.unwrap().hosts.is_empty());
+    }
 }

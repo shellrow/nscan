@@ -20,11 +20,15 @@ impl Pinger {
     }
     /// Run the ping based on the specified protocol and return the results.
     pub async fn run(&self) -> Result<PingResult> {
-        match self.ping_setting.protocol {
-            Protocol::Icmp => super::probe::icmp::run_icmp_ping(&self.ping_setting).await,
-            Protocol::Udp => super::probe::udp::run_udp_ping(&self.ping_setting).await,
-            Protocol::Tcp => super::probe::tcp::run_tcp_ping(&self.ping_setting).await,
-            _ => Err(anyhow::anyhow!("Unsupported protocol")),
-        }
+        tokio::time::timeout(self.ping_setting.probe_timeout, async {
+            match self.ping_setting.protocol {
+                Protocol::Icmp => super::probe::icmp::run_icmp_ping(&self.ping_setting).await,
+                Protocol::Udp => super::probe::udp::run_udp_ping(&self.ping_setting).await,
+                Protocol::Tcp => super::probe::tcp::run_tcp_ping(&self.ping_setting).await,
+                _ => Err(anyhow::anyhow!("Unsupported protocol")),
+            }
+        })
+        .await
+        .map_err(|_| anyhow::anyhow!("ping deadline exceeded"))?
     }
 }

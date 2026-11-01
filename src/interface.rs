@@ -19,35 +19,29 @@ pub fn get_interface_by_ip(ip_addr: IpAddr) -> Option<Interface> {
             }
         }
     }
-    return None;
+    None
 }
 
 /// Get interface information by index.
 pub fn get_interface_by_index(index: u32) -> Option<Interface> {
-    for iface in netdev::interface::get_interfaces() {
-        if iface.index == index {
-            return Some(iface);
-        }
-    }
-    return None;
+    netdev::interface::get_interfaces()
+        .into_iter()
+        .find(|iface| iface.index == index)
 }
 
 /// Get interface information by name.
 pub fn get_interface_by_name(name: String) -> Option<Interface> {
-    for iface in netdev::interface::get_interfaces() {
-        if iface.name == name {
-            return Some(iface);
-        }
-    }
-    return None;
+    netdev::interface::get_interfaces()
+        .into_iter()
+        .find(|iface| iface.name == name)
 }
 
 /// Get the first IPv4 address of the interface.
 pub fn get_interface_ipv4(iface: &Interface) -> Option<Ipv4Addr> {
-    for ip in iface.ipv4.clone() {
+    if let Some(ip) = iface.ipv4.clone().into_iter().next() {
         return Some(ip.addr());
     }
-    return None;
+    None
 }
 
 /// Get the first global IPv6 address of the interface.
@@ -57,7 +51,7 @@ pub fn get_interface_global_ipv6(iface: &Interface) -> Option<Ipv6Addr> {
             return Some(ip.addr());
         }
     }
-    return None;
+    None
 }
 
 /// Get the first local IPv6 address of the interface.
@@ -67,7 +61,7 @@ pub fn get_interface_local_ipv6(iface: &Interface) -> Option<Ipv6Addr> {
             return Some(ip.addr());
         }
     }
-    return None;
+    None
 }
 
 /// Get all IP addresses of the interface as strings.
@@ -149,7 +143,7 @@ pub fn get_local_ip_map() -> HashMap<IpAddr, String> {
 pub fn get_usable_interfaces() -> Vec<Interface> {
     let mut usable_interfaces: Vec<Interface> = Vec::new();
     for iface in netdev::interface::get_interfaces() {
-        if iface.is_up() && (iface.ipv4.len() > 0 || iface.ipv6.len() > 0) {
+        if iface.is_up() && (!iface.ipv4.is_empty() || !iface.ipv6.is_empty()) {
             usable_interfaces.push(iface);
         }
     }
@@ -159,7 +153,7 @@ pub fn get_usable_interfaces() -> Vec<Interface> {
 /// Get the MAC address of the interface, or MacAddr::zero() if not available.
 pub fn get_interface_macaddr(iface: &Interface) -> MacAddr {
     match &iface.mac_addr {
-        Some(mac_addr) => mac_addr.clone(),
+        Some(mac_addr) => *mac_addr,
         None => MacAddr::zero(),
     }
 }
@@ -167,7 +161,7 @@ pub fn get_interface_macaddr(iface: &Interface) -> MacAddr {
 /// Get the MAC address of the gateway, or MacAddr::zero() if not available.
 pub fn get_gateway_macaddr(iface: &Interface) -> MacAddr {
     match &iface.gateway {
-        Some(gateway) => gateway.mac_addr.clone(),
+        Some(gateway) => gateway.mac_addr,
         None => MacAddr::zero(),
     }
 }

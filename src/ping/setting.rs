@@ -55,13 +55,13 @@ impl PingSetting {
             dst_hostname: dst_host.hostname,
             dst_port: None,
             hop_limit: 64,
-            count: count,
+            count,
             protocol: Protocol::Icmp,
             receive_timeout: Duration::from_secs(1),
             probe_timeout: Duration::from_secs(30),
             send_rate: Duration::from_secs(1),
             tunnel: use_tun,
-            loopback: loopback,
+            loopback,
         };
         Ok(setting)
     }
@@ -81,13 +81,13 @@ impl PingSetting {
             dst_hostname: dst_host.hostname,
             dst_port: Some(dst_port),
             hop_limit: 64,
-            count: count,
+            count,
             protocol: Protocol::Tcp,
             receive_timeout: Duration::from_secs(1),
             probe_timeout: Duration::from_secs(30),
             send_rate: Duration::from_secs(1),
             tunnel: use_tun,
-            loopback: loopback,
+            loopback,
         };
         Ok(setting)
     }
@@ -102,13 +102,13 @@ impl PingSetting {
             dst_hostname: dst_host.hostname,
             dst_port: Some(DEFAULT_BASE_TARGET_UDP_PORT),
             hop_limit: 64,
-            count: count,
+            count,
             protocol: Protocol::Udp,
             receive_timeout: Duration::from_secs(1),
             probe_timeout: Duration::from_secs(30),
             send_rate: Duration::from_secs(1),
             tunnel: use_tun,
-            loopback: loopback,
+            loopback,
         };
         Ok(setting)
     }

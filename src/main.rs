@@ -7,9 +7,8 @@ pub mod dns;
 pub mod endpoint;
 pub mod interface;
 pub mod log;
-pub mod os;
+pub mod nmap;
 pub mod output;
-pub mod packet;
 pub mod ping;
 pub mod probe;
 pub mod protocol;
@@ -18,50 +17,48 @@ pub mod service;
 pub mod time;
 pub mod util;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use cli::{Cli, Command};
 
-use crate::db::DbInitializer;
-
 #[tokio::main]
-async fn main() {
+async fn main() -> std::process::ExitCode {
     // Parse command line arguments
     let cli = Cli::parse();
     // Initialize logger
-    let _ = log::init_logger(&cli);
+    if let Err(e) = log::init_logger(&cli) {
+        eprintln!("Failed to initialize logging: {e:#}");
+        return std::process::ExitCode::FAILURE;
+    }
     // Start nscan
     let start_time = std::time::Instant::now();
     tracing::info!("nscan v{} started", env!("CARGO_PKG_VERSION"));
 
     if let Err(e) = run_command(cli).await {
-        tracing::error!("{}", e);
+        tracing::error!("{e:#}");
+        return std::process::ExitCode::FAILURE;
     }
     tracing::info!(
         "nscan v{} completed in {:?}",
         env!("CARGO_PKG_VERSION"),
         start_time.elapsed()
     );
+    std::process::ExitCode::SUCCESS
 }
 
 async fn run_command(cli: Cli) -> Result<()> {
     match cli.command {
-        Command::Port(args) => {
-            DbInitializer::with_all().init().await;
-            cmd::port::run(args, cli.no_stdout, cli.output)
-                .await
-                .map_err(|e| anyhow::anyhow!("Port scan failed: {}", e))
-        }
-        Command::Host(args) => {
-            DbInitializer::new().with_os_db().with_oui_db().init().await;
-            cmd::host::run(args, cli.no_stdout, cli.output)
-                .await
-                .map_err(|e| anyhow::anyhow!("Host scan failed: {}", e))
-        }
+        Command::Port(args) => cmd::port::run(args, cli.no_stdout, cli.output)
+            .await
+            .context("Port scan failed"),
+        Command::Host(args) => cmd::host::run(args, cli.no_stdout, cli.output)
+            .await
+            .context("Host scan failed"),
         Command::Domain(args) => cmd::domain::run(args, cli.no_stdout, cli.output)
             .await
-            .map_err(|e| anyhow::anyhow!("Domain scan failed: {}", e)),
-        Command::Interface(args) => cmd::interface::show(&args)
-            .map_err(|e| anyhow::anyhow!("Show interfaces failed: {}", e)),
+            .context("Domain scan failed"),
+        Command::Interface(args) => {
+            cmd::interface::show(&args, cli.no_stdout, cli.output).context("Show interfaces failed")
+        }
     }
 }

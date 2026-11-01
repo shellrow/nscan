@@ -1,5 +1,4 @@
 use anyhow::Result;
-use bytes::{Buf, BytesMut};
 use http::{Method, Request};
 use quinn::{ClientConfig, Endpoint};
 use rustls::{ClientConfig as RustlsClientConfig, RootCertStore};
@@ -14,8 +13,10 @@ use crate::{
 /// Create a QUIC client configuration with optional certificate verification skipping and ALPN protocols.
 pub fn quic_client_config(skip_verify: bool, alpn: &[&[u8]]) -> Result<ClientConfig> {
     let mut roots = RootCertStore::empty();
-    for cert in rustls_native_certs::load_native_certs()? {
-        let _ = roots.add(cert);
+    if !skip_verify {
+        for cert in rustls_native_certs::load_native_certs().certs {
+            let _ = roots.add(cert);
+        }
     }
     let mut tls = RustlsClientConfig::builder()
         .with_root_certificates(roots)
@@ -24,10 +25,25 @@ pub fn quic_client_config(skip_verify: bool, alpn: &[&[u8]]) -> Result<ClientCon
         tls.dangerous()
             .set_certificate_verifier(SkipServerVerification::new());
     }
-    tls.enable_early_data = true;
+    tls.enable_early_data = false;
     tls.alpn_protocols = alpn.iter().map(|p| p.to_vec()).collect();
     let client_conf = quinn::crypto::rustls::QuicClientConfig::try_from(tls)?;
     Ok(ClientConfig::new(Arc::new(client_conf)))
+}
+
+/// Build an HTTP/3 request for the actual target authority.
+fn request(host: &str, port: u16) -> Result<Request<()>> {
+    let authority = if host.parse::<std::net::Ipv6Addr>().is_ok() {
+        format!("[{host}]:{port}")
+    } else {
+        format!("{host}:{port}")
+    };
+    Ok(Request::builder()
+        .method(Method::GET)
+        .uri(format!("https://{authority}/"))
+        .header("Host", authority)
+        .header("User-Agent", concat!("nscan/", env!("CARGO_PKG_VERSION")))
+        .body(())?)
 }
 
 /// Probe implementation for UDP QUIC (with optional HTTP/3)
@@ -72,10 +88,10 @@ impl QuicProbe {
         // QUIC connection is established. Get ALPN
         let alpn_proto = match quinn_conn.handshake_data() {
             Some(data) => match data.downcast::<quinn::crypto::rustls::HandshakeData>() {
-                Ok(hd) => match hd.protocol {
-                    Some(ref p) => Some(String::from_utf8_lossy(p).to_string()),
-                    None => None,
-                },
+                Ok(hd) => hd
+                    .protocol
+                    .as_ref()
+                    .map(|p| String::from_utf8_lossy(p).to_string()),
                 Err(_) => None,
             },
             None => None,
@@ -91,154 +107,141 @@ impl QuicProbe {
             .map(|der| der.to_vec());
 
         // Construct TlsInfo
-        let mut tls_info = TlsInfo::default();
-        tls_info.alpn = alpn_proto.clone();
+        let mut tls_info = TlsInfo {
+            alpn: alpn_proto.clone(),
+            ..TlsInfo::default()
+        };
         // Fixed to TLS 1.3 for QUIC
         tls_info.version = Some("TLSv1_3".into());
-        if let Some(bytes) = cert_der_bytes.as_deref() {
-            if let Ok((_, x509)) = x509_parser::prelude::X509Certificate::from_der(bytes) {
-                tls_info.subject = x509
-                    .subject()
-                    .iter_common_name()
-                    .next()
-                    .and_then(|cn| cn.as_str().ok())
-                    .map(|s| s.to_string());
-                tls_info.issuer = x509
-                    .issuer()
-                    .iter_common_name()
-                    .next()
-                    .and_then(|cn| cn.as_str().ok())
-                    .map(|s| s.to_string());
-                let mut sans = Vec::new();
-                for ext in x509.extensions() {
-                    if let x509_parser::extensions::ParsedExtension::SubjectAlternativeName(san) =
-                        ext.parsed_extension()
-                    {
-                        for name in san.general_names.iter() {
-                            sans.push(name.to_string());
-                        }
+        if let Some(bytes) = cert_der_bytes.as_deref()
+            && let Ok((_, x509)) = x509_parser::prelude::X509Certificate::from_der(bytes)
+        {
+            tls_info.subject = x509
+                .subject()
+                .iter_common_name()
+                .next()
+                .and_then(|cn| cn.as_str().ok())
+                .map(|s| s.to_string());
+            tls_info.issuer = x509
+                .issuer()
+                .iter_common_name()
+                .next()
+                .and_then(|cn| cn.as_str().ok())
+                .map(|s| s.to_string());
+            let mut sans = Vec::new();
+            for ext in x509.extensions() {
+                if let x509_parser::extensions::ParsedExtension::SubjectAlternativeName(san) =
+                    ext.parsed_extension()
+                {
+                    for name in san.general_names.iter() {
+                        sans.push(name.to_string());
                     }
                 }
-                tls_info.san_list = sans;
-                tls_info.not_before = Some(x509.validity().not_before.to_string());
-                tls_info.not_after = Some(x509.validity().not_after.to_string());
-                tls_info.serial_hex = Some(x509.raw_serial_as_string());
-                tls_info.sig_algorithm = Some(crate::db::tls::oid_sig_name(
-                    x509.signature_algorithm.oid().to_id_string().as_str(),
-                ));
-                tls_info.pubkey_algorithm = Some(crate::db::tls::oid_pubkey_name(
-                    x509.public_key().algorithm.oid().to_id_string().as_str(),
-                ));
             }
+            tls_info.san_list = sans;
+            tls_info.not_before = Some(x509.validity().not_before.to_string());
+            tls_info.not_after = Some(x509.validity().not_after.to_string());
+            tls_info.serial_hex = Some(x509.raw_serial_as_string());
+            tls_info.sig_algorithm = Some(crate::service::probe::tls::oid_name(
+                x509.signature_algorithm.oid().to_id_string().as_str(),
+            ));
+            tls_info.pubkey_algorithm = Some(crate::service::probe::tls::oid_name(
+                x509.public_key().algorithm.oid().to_id_string().as_str(),
+            ));
         }
 
         // If ALPN indicates HTTP/3, perform a simple GET request
-        if let Some(alpn_s) = &alpn_proto {
-            if alpn_s.starts_with("h3") {
-                // HTTP/3 client initialization
-                tracing::debug!("HTTP/3 Probe: {}:{} - Connecting", ctx.ip, ctx.probe.port);
-                let h3_quinn_conn = h3_quinn::Connection::new(quinn_conn);
-                let (mut driver, mut send_request) = h3::client::new(h3_quinn_conn).await?;
-                let drive = async move {
-                    return Err::<(), h3::error::ConnectionError>(
-                        futures::future::poll_fn(|cx| driver.poll_close(cx)).await,
-                    );
-                };
+        if let Some(alpn_s) = &alpn_proto
+            && alpn_s.starts_with("h3")
+        {
+            // HTTP/3 client initialization
+            tracing::debug!("HTTP/3 Probe: {}:{} - Connecting", ctx.ip, ctx.probe.port);
+            let h3_quinn_conn = h3_quinn::Connection::new(quinn_conn);
+            let (mut driver, mut send_request) = h3::client::new(h3_quinn_conn).await?;
+            let drive = async move {
+                Err::<(), h3::error::ConnectionError>(
+                    futures::future::poll_fn(|cx| driver.poll_close(cx)).await,
+                )
+            };
 
-                let request = async move {
-                    let mut svc = ServiceInfo::default();
-                    // Simple GET request
-                    let req = Request::builder()
-                        .method(Method::GET)
-                        .uri("https://".to_string() + server_name + "/")
-                        .header("Host", server_name)
-                        .header("User-Agent", "nscan/0.1 (probe)")
-                        .body(())
-                        .map_err(|e| anyhow::anyhow!("failed to build HTTP/3 request: {}", e))?;
+            let request = async move {
+                let mut svc = ServiceInfo::default();
+                // Simple GET request
+                let req = request(&hostname, ctx.probe.port)?;
 
+                tracing::debug!(
+                    "HTTP/3 Probe: {}:{} - Sending request",
+                    ctx.ip,
+                    ctx.probe.port
+                );
+                // Send request
+                let mut stream = send_request.send_request(req).await?;
+                stream.finish().await?;
+
+                // Receive response (headers)
+                tracing::debug!(
+                    "HTTP/3 Probe: {}:{} - Receiving response",
+                    ctx.ip,
+                    ctx.probe.port
+                );
+                let res = stream.recv_response().await?;
+                // Extract status and Server headers
+                svc.name = Some("http".into());
+                svc.banner = Some(format!("HTTP/3 {}", res.status()));
+                svc.quic_version = Some("1".into());
+                if let Some(val) = res.headers().get("server")
+                    && let Ok(s) = val.to_str()
+                {
+                    svc.server_header = Some(s.to_string());
+                }
+
+                // Headers identify HTTP/3; do not wait for an arbitrary response body.
+                svc.raw = Some(format!("alpn=h3; status={}", res.status()));
+
+                Ok::<ServiceInfo, anyhow::Error>(svc)
+            };
+
+            let req_res = tokio::select! {
+                result = request => result,
+                result = drive => Err(anyhow::anyhow!("HTTP/3 connection ended: {result:?}")),
+                _ = tokio::time::sleep(ctx.timeout) => Err(anyhow::anyhow!("HTTP/3 request timed out")),
+            };
+            match req_res {
+                Ok(mut svc) => {
                     tracing::debug!(
-                        "HTTP/3 Probe: {}:{} - Sending request",
+                        "HTTP/3 Probe: {}:{} - Request succeeded",
                         ctx.ip,
                         ctx.probe.port
                     );
-                    // Send request
-                    let mut stream = send_request.send_request(req).await?;
-                    //let mut stream = tokio::time::timeout(ctx.timeout, send_request.send_request(req)).await??;
-                    stream.finish().await?;
-
-                    // Receive response (headers)
-                    tracing::debug!(
-                        "HTTP/3 Probe: {}:{} - Receiving response",
+                    tracing::debug!("HTTP/3 Probe Result: {:?}", svc);
+                    svc.tls_info = Some(tls_info.clone());
+                    let probe_result = PortProbeResult {
+                        ip: ctx.ip,
+                        hostname: ctx.hostname,
+                        port: ctx.probe.port,
+                        transport: ctx.probe.transport,
+                        probe_id: ctx.probe.probe_id,
+                        service_info: svc,
+                    };
+                    return Ok(probe_result);
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "HTTP/3 Probe: {}:{} - Request failed: {}",
                         ctx.ip,
-                        ctx.probe.port
+                        ctx.probe.port,
+                        e
                     );
-                    let res = stream.recv_response().await?;
-                    // Extract status and Server headers
-                    let udp_svc_db = crate::db::service::udp_service_db();
-                    svc.name = udp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
-                    svc.banner = Some(format!("HTTP/3 {}", res.status()));
-                    svc.quic_version = Some("1".into());
-                    if let Some(val) = res.headers().get("server") {
-                        if let Ok(s) = val.to_str() {
-                            svc.product = Some(s.to_string());
-                        }
-                    }
-
-                    // receiving potential response body
-                    let mut read = 0usize;
-                    let max_body = 8 * 1024;
-                    let mut body_bytes = BytesMut::new();
-                    while let Some(chunk) = stream.recv_data().await? {
-                        let bytes: &[u8] = chunk.chunk();
-                        body_bytes.extend_from_slice(bytes);
-                        read += bytes.len();
-                        if read >= max_body {
-                            break;
-                        }
-                    }
-
-                    svc.raw = Some(format!("alpn=h3; status={}", res.status()));
-
-                    Ok::<ServiceInfo, anyhow::Error>(svc)
-                };
-
-                let (req_res, _drive_res) = tokio::join!(request, drive);
-                match req_res {
-                    Ok(mut svc) => {
-                        tracing::debug!(
-                            "HTTP/3 Probe: {}:{} - Request succeeded",
-                            ctx.ip,
-                            ctx.probe.port
-                        );
-                        tracing::debug!("HTTP/3 Probe Result: {:?}", svc);
-                        svc.tls_info = Some(tls_info.clone());
-                        let probe_result = PortProbeResult {
-                            ip: ctx.ip,
-                            hostname: ctx.hostname,
-                            port: ctx.probe.port,
-                            transport: ctx.probe.transport,
-                            probe_id: ctx.probe.probe_id,
-                            service_info: svc,
-                        };
-                        return Ok(probe_result);
-                    }
-                    Err(e) => {
-                        tracing::error!(
-                            "HTTP/3 Probe: {}:{} - Request failed: {}",
-                            ctx.ip,
-                            ctx.probe.port,
-                            e
-                        );
-                    }
                 }
             }
         }
 
-        let mut svc = ServiceInfo::default();
-        svc.name = Some("quic".into());
-        svc.quic_version = Some("1".into());
-        svc.tls_info = Some(tls_info);
-
+        let svc = ServiceInfo {
+            name: Some("quic".into()),
+            quic_version: Some("1".into()),
+            tls_info: Some(tls_info),
+            ..ServiceInfo::default()
+        };
         let probe_result = PortProbeResult {
             ip: ctx.ip,
             hostname: ctx.hostname,
@@ -248,9 +251,29 @@ impl QuicProbe {
             service_info: svc,
         };
 
-        // Wait for the connection to be closed
-        endpoint.wait_idle().await;
+        // Close without waiting for the peer to terminate an idle connection.
+        endpoint.close(0u32.into(), b"probe completed");
 
         Ok(probe_result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn http3_request_preserves_target_authority() {
+        for (host, port, authority) in [
+            ("example.com", 8443, "example.com:8443"),
+            ("127.0.0.1", 443, "127.0.0.1:443"),
+            ("::1", 8443, "[::1]:8443"),
+        ] {
+            let req = request(host, port).unwrap();
+            assert_eq!(req.uri().authority().unwrap().as_str(), authority);
+            assert_eq!(req.headers()["host"], authority);
+            assert_eq!(req.uri().scheme_str(), Some("https"));
+        }
+        assert!(request("example.com\r\nInjected: value", 443).is_err());
     }
 }

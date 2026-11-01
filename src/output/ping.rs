@@ -38,10 +38,11 @@ pub fn print_ping_tree(res: &PingResult) {
     // summary
     let first_res = res.first_response();
     let mut summary = Tree::new("Summary".to_string());
-    if let Some(r) = first_res {
-        if r.mac_addr != MacAddr::zero() && !nex::net::ip::is_global_ip(&r.ip_addr) {
-            summary.push(Tree::new(format!("MAC: {}", r.mac_addr)));
-        }
+    if let Some(r) = first_res
+        && r.mac_addr != MacAddr::zero()
+        && !nex::net::ip::is_global_ip(&r.ip_addr)
+    {
+        summary.push(Tree::new(format!("MAC: {}", r.mac_addr)));
     }
     summary.push(Tree::new(format!("IP: {}", res.ip_addr)));
     if let Some(hostname) = &res.hostname {
@@ -124,5 +125,5 @@ pub fn print_ping_tree(res: &PingResult) {
         root.push(replies);
     }
 
-    println!("{}", root);
+    println!("{}", crate::output::terminal_text(&root.to_string()));
 }

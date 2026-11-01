@@ -20,9 +20,29 @@ use std::{path::PathBuf, time::Duration};
 
 /// Run port scan
 pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -> Result<()> {
+    if args.method == crate::cli::PortScanMethod::Syn
+        && args.proto != crate::cli::PortScanTransport::Tcp
+    {
+        anyhow::bail!("SYN scanning is supported only for TCP");
+    }
+    if args.nmap || args.os_detect {
+        anyhow::ensure!(
+            args.proto == crate::cli::PortScanTransport::Tcp,
+            "Nmap identification currently supports TCP scans only"
+        );
+    }
+    if args.service_detect {
+        crate::service::select_probe(args.service_probe, Port::new(1, args.proto.to_transport()))?;
+        if args.quic {
+            crate::service::select_probe(
+                args.service_probe,
+                Port::new(1, TransportProtocol::Quic),
+            )?;
+        }
+    }
     let mut rep = ScanReport::new();
     // Parse target hosts
-    let target_hosts: Vec<Host> = crate::cli::host::parse_target_hosts(&args.target).await?;
+    let mut target_hosts: Vec<Host> = crate::cli::host::parse_target_hosts(&args.target).await?;
     if target_hosts.is_empty() {
         anyhow::bail!("no targets resolved");
     }
@@ -39,20 +59,41 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         // Randomize the order of ports
         let mut rng = rand::rng();
         ports.shuffle(&mut rng);
+        target_hosts.shuffle(&mut rng);
     }
 
     // Create target endpoints from hosts and ports
-    let target_endpoints = build_endpoints(target_hosts, &ports);
+    let mut target_endpoints = build_endpoints(target_hosts, &ports)?;
+    if let Some(name) = &args.sni {
+        for endpoint in &mut target_endpoints {
+            endpoint.hostname = Some(name.clone());
+        }
+    }
 
     // Get network interface
-    let interface = resolve_interface(args.interface.as_deref())?;
+    let uses_raw = args.method == crate::cli::PortScanMethod::Syn;
+    anyhow::ensure!(
+        uses_raw || args.interface.is_none(),
+        "--interface applies to raw SYN probes; connect scans use OS routing"
+    );
+    let interface = if uses_raw && args.interface.is_some() {
+        let interface = resolve_interface(args.interface.as_deref())?;
+        crate::cmd::common::validate_raw_targets(&interface, &target_endpoints)?;
+        Some(interface)
+    } else {
+        None
+    };
     let concurrency = normalize_concurrency(args.concurrency);
 
     // Initial ping to check reachability and measure latency
-    let initial_rtt = if args.no_ping {
+    let initial_rtt = if args.no_ping || !uses_raw {
         Duration::from_millis(200)
     } else {
-        match crate::ping::initial_ping(&interface, &first_host, Some(ports[0].number)).await {
+        let ping_interface = match &interface {
+            Some(iface) => iface.clone(),
+            None => crate::scan::raw::interface_for_target(first_host.ip).await?,
+        };
+        match crate::ping::initial_ping(&ping_interface, &first_host, Some(ports[0].number)).await {
             Ok(rtt) => rtt,
             Err(e) => {
                 tracing::warn!("Initial ping failed: {}. Proceeding with default RTT.", e);
@@ -61,18 +102,27 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         }
     };
 
-    let conn_timeout = derive_connect_timeout(initial_rtt, args.connect_timeout_ms);
+    let mut conn_timeout = derive_connect_timeout(initial_rtt, args.connect_timeout_ms);
+    // Windows can take roughly two seconds to report a refused TCP connection.
+    // Allow that notification to arrive before classifying the port as filtered.
+    if cfg!(windows)
+        && !uses_raw
+        && transport == TransportProtocol::Tcp
+        && args.connect_timeout_ms.is_none()
+    {
+        conn_timeout = conn_timeout.max(Duration::from_secs(3));
+    }
     let wait_time = derive_wait_time(initial_rtt, args.wait_ms);
 
     // Create probe setting
     let probe_setting = ProbeSetting {
-        if_index: interface.index,
-        target_endpoints: target_endpoints,
+        if_index: interface.as_ref().map_or(0, |iface| iface.index),
+        target_endpoints,
         host_concurrency: concurrency,
         port_concurrency: concurrency,
         task_timeout: Duration::from_millis(args.task_timeout_ms),
         connect_timeout: conn_timeout,
-        wait_time: wait_time,
+        wait_time,
         send_rate: Duration::from_millis(1),
     };
 
@@ -126,41 +176,13 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         tracing::info!("{}: Open ports: {:?}", endpoint.ip, open_ports);
     }
 
-    if args.os_detect {
-        // OS detection
-        let os_probe_setting = ProbeSetting {
-            target_endpoints: active_endpoints.clone(),
-            if_index: probe_setting.if_index,
-            host_concurrency: probe_setting.host_concurrency,
-            port_concurrency: probe_setting.port_concurrency,
-            task_timeout: probe_setting.task_timeout,
-            connect_timeout: probe_setting.connect_timeout,
-            wait_time: probe_setting.wait_time,
-            send_rate: probe_setting.send_rate,
-        };
-        tracing::info!(
-            "Starting OS detection on {} host(s)",
-            os_probe_setting.target_endpoints.len()
-        );
-        let os_detector = crate::os::OsDetector::new(os_probe_setting);
-        let os_probe_result = os_detector.run().await?;
-        tracing::info!("OS detection completed in {:?}", os_probe_result.probe_time);
-        if os_probe_result.endpoints.len() == 0 {
-            tracing::info!("No OS detected");
-        }
-        for endpoint in &os_probe_result.endpoints {
-            tracing::debug!("[OS] Guess {}: {:?}", endpoint.ip, endpoint.cpes);
-        }
-
-        rep.apply_os_probe(os_probe_result);
-    }
-
     if args.service_detect {
         // service detection
         let service_probe_setting = ServiceProbeConfig {
             timeout: Duration::from_millis(args.read_timeout_ms.unwrap_or(2_000)),
             max_concurrency: concurrency,
             max_read_size: 1024 * 1024,
+            mode: args.service_probe,
             sni: true,
             skip_cert_verify: true,
         };
@@ -208,20 +230,56 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         rep.apply_service_detection(service_result);
     }
 
+    if args.nmap || args.os_detect {
+        let targets = rep
+            .endpoints
+            .values()
+            .filter(|ep| {
+                ep.get_open_ports()
+                    .iter()
+                    .any(|port| port.transport == TransportProtocol::Tcp)
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        if !targets.is_empty() {
+            let budget = Duration::from_millis(args.nmap_timeout_ms);
+            let deadline = tokio::time::Instant::now() + budget;
+            let details = match crate::nmap::Nmap::preflight(&args.nmap_path, budget).await {
+                Ok(nmap) => {
+                    nmap.identify(
+                        &targets,
+                        args.nmap,
+                        args.os_detect,
+                        deadline.saturating_duration_since(tokio::time::Instant::now()),
+                    )
+                    .await
+                }
+                Err(error) => crate::nmap::Identification {
+                    source: "nmap".into(),
+                    version: String::new(),
+                    complete: false,
+                    error: Some(format!("{error:#}")),
+                    warnings: Vec::new(),
+                    hosts: Vec::new(),
+                },
+            };
+            if !details.complete {
+                tracing::warn!(
+                    "Optional identification incomplete; scan results and available details retained: {}",
+                    details.error.as_deref().unwrap_or("unknown error")
+                );
+            }
+            rep.apply_identification(details);
+        }
+    }
     rep.finish();
 
     if !no_stdout {
         print_report_tree(&rep);
     }
     if let Some(path) = &output {
-        match save_json_output(&rep, path, JsonStyle::Pretty) {
-            Ok(_) => {
-                if !no_stdout {
-                    tracing::info!("JSON output saved to {}", path.display());
-                }
-            }
-            Err(e) => tracing::error!("Failed to save JSON output: {}", e),
-        }
+        save_json_output(&rep, path, JsonStyle::Pretty)?;
+        tracing::info!("JSON output saved to {}", path.display());
     }
     Ok(())
 }

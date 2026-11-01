@@ -76,15 +76,15 @@ pub fn extract_tls_info(
     client_conn: &ClientConnection,
 ) -> Option<TlsInfo> {
     let mut tls_info = TlsInfo::default();
-    if let Some(version) = client_conn.protocol_version() {
-        if let Some(version) = version.as_str() {
-            tls_info.version = Some(version.to_string());
-        }
+    if let Some(version) = client_conn.protocol_version()
+        && let Some(version) = version.as_str()
+    {
+        tls_info.version = Some(version.to_string());
     }
-    if let Some(cs) = client_conn.negotiated_cipher_suite() {
-        if let Some(cs) = cs.suite().as_str() {
-            tls_info.cipher_suite = Some(cs.to_string());
-        }
+    if let Some(cs) = client_conn.negotiated_cipher_suite()
+        && let Some(cs) = cs.suite().as_str()
+    {
+        tls_info.cipher_suite = Some(cs.to_string());
     }
     if let Some(alpn) = client_conn.alpn_protocol() {
         tls_info.alpn = Some(String::from_utf8_lossy(alpn).to_string());
@@ -95,7 +95,10 @@ pub fn extract_tls_info(
         .and_then(|v| v.first())
         .cloned()
     {
-        tls_info.sni = probe_ctx.hostname.clone();
+        tls_info.sni = probe_ctx
+            .hostname
+            .clone()
+            .filter(|name| probe_ctx.sni && name.parse::<std::net::IpAddr>().is_err());
         match X509Certificate::from_der(&cert) {
             Ok((_, x509)) => {
                 // Subject
@@ -130,11 +133,11 @@ pub fn extract_tls_info(
                 tls_info.not_before = Some(x509.validity().not_before.to_string());
                 tls_info.not_after = Some(x509.validity().not_after.to_string());
                 tls_info.serial_hex = Some(x509.raw_serial_as_string());
-                let sig_alg_name = crate::db::tls::oid_sig_name(
+                let sig_alg_name = crate::service::probe::tls::oid_name(
                     x509.signature_algorithm.oid().to_id_string().as_str(),
                 );
                 tls_info.sig_algorithm = Some(sig_alg_name);
-                let pubkey_alg_name = crate::db::tls::oid_pubkey_name(
+                let pubkey_alg_name = crate::service::probe::tls::oid_name(
                     x509.public_key().algorithm.oid().to_id_string().as_str(),
                 );
                 tls_info.pubkey_algorithm = Some(pubkey_alg_name);
@@ -159,8 +162,10 @@ impl TlsProbe {
 
         // rustls config
         let mut roots = RootCertStore::empty();
-        for cert in rustls_native_certs::load_native_certs()? {
-            let _ = roots.add(cert);
+        if !ctx.skip_cert_verify {
+            for cert in rustls_native_certs::load_native_certs().certs {
+                let _ = roots.add(cert);
+            }
         }
         let mut config = ClientConfig::builder()
             .with_root_certificates(roots)
@@ -172,21 +177,18 @@ impl TlsProbe {
                 .set_certificate_verifier(SkipServerVerification::new());
         }
 
+        config.enable_sni = ctx.sni;
         let connector = TlsConnector::from(Arc::new(config));
-        let sni_name = if ctx.sni {
-            ServerName::try_from(hostname)?
-        } else {
-            ServerName::try_from("localhost")?
-        };
+        let sni_name = ServerName::try_from(hostname)?;
 
         let tls_stream = timeout(ctx.timeout, connector.connect(sni_name, tcp_stream)).await??;
         let conn = tls_stream.get_ref().1; // server connection
 
-        let mut svc = ServiceInfo::default();
-        let tcp_svc_db = crate::db::service::tcp_service_db();
-        svc.name = tcp_svc_db.get_name(ctx.probe.port).map(|s| s.to_string());
-
-        svc.tls_info = crate::service::probe::tls::extract_tls_info(&ctx, &conn);
+        let svc = ServiceInfo {
+            name: Some("tls".into()),
+            tls_info: extract_tls_info(&ctx, conn),
+            ..Default::default()
+        };
 
         let probe_result: PortProbeResult = PortProbeResult {
             ip: ctx.ip,
@@ -197,6 +199,19 @@ impl TlsProbe {
             service_info: svc,
         };
         tracing::debug!("TLS Probe Result: {:?}", probe_result);
-        return Ok(probe_result);
+        Ok(probe_result)
     }
+}
+
+/// Use the library registry where possible and preserve unknown numeric OIDs.
+pub fn oid_name(value: &str) -> String {
+    use std::sync::LazyLock;
+    use x509_parser::oid_registry::{Oid, OidRegistry};
+    static REGISTRY: LazyLock<OidRegistry<'static>> =
+        LazyLock::new(|| OidRegistry::default().with_all_crypto());
+    value
+        .parse::<Oid>()
+        .ok()
+        .and_then(|oid| REGISTRY.get(&oid).map(|entry| entry.sn().to_string()))
+        .unwrap_or_else(|| value.to_string())
 }

@@ -29,7 +29,7 @@ pub async fn initial_ping(
     }
 
     // 1. Try ICMP ping
-    let icmp_setting: PingSetting = PingSetting::icmp_ping(&interface, dst_host.clone(), 1)?;
+    let icmp_setting: PingSetting = PingSetting::icmp_ping(interface, dst_host.clone(), 1)?;
     let pinger = Pinger::new(icmp_setting);
     match pinger.run().await {
         Ok(r) => {
@@ -43,7 +43,7 @@ pub async fn initial_ping(
     }
 
     // 2. Try UDP ping
-    let udp_setting: PingSetting = PingSetting::udp_ping(&interface, dst_host.clone(), 1)?;
+    let udp_setting: PingSetting = PingSetting::udp_ping(interface, dst_host.clone(), 1)?;
     let pinger = Pinger::new(udp_setting);
     match pinger.run().await {
         Ok(r) => {
@@ -59,7 +59,7 @@ pub async fn initial_ping(
     // 3. Try TCP ping
     let target_port = port.unwrap_or(80);
     let tcp_setting: PingSetting =
-        PingSetting::tcp_ping(&interface, dst_host.clone(), target_port, 1)?;
+        PingSetting::tcp_ping(interface, dst_host.clone(), target_port, 1)?;
     let pinger = Pinger::new(tcp_setting);
     match pinger.run().await {
         Ok(r) => {
