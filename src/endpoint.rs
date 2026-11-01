@@ -1,6 +1,6 @@
 use netdev::MacAddr;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::net::{IpAddr, SocketAddr};
 
 mod ports_vec {
@@ -187,9 +187,9 @@ pub struct TlsInfo {
     pub sni: Option<String>,
     pub subject: Option<String>,
     pub issuer: Option<String>,
-    /// Not before date in RFC2822 format
+    /// Certificate validity start as formatted by x509-parser.
     pub not_before: Option<String>,
-    /// Not after date in RFC2822 format
+    /// Certificate validity end as formatted by x509-parser.
     pub not_after: Option<String>,
     pub san_list: Vec<String>,
     pub serial_hex: Option<String>,
@@ -333,11 +333,9 @@ impl Endpoint {
             }
         }
 
-        for p in other.ports {
-            if !self.ports.contains(&p) {
-                self.ports.push(p);
-            }
-        }
+        let mut seen: HashSet<Port> = self.ports.iter().copied().collect();
+        self.ports
+            .extend(other.ports.into_iter().filter(|port| seen.insert(*port)));
     }
     /// Get the SocketAddr instances for the specified transport protocol.
     pub fn socket_addrs(&self, transport: TransportProtocol) -> Vec<SocketAddr> {
@@ -411,7 +409,6 @@ impl EndpointResult {
             self.vendor_name = other.vendor_name;
         }
 
-        //self.cpes = other.cpes;
         let incoming: Vec<String> = other
             .cpes
             .into_iter()
@@ -496,6 +493,26 @@ impl From<IpAddr> for EndpointResult {
 mod tests {
     use super::*;
     use serde_json::{from_str, to_string_pretty};
+
+    #[test]
+    fn merging_full_port_ranges_preserves_transport_and_order() {
+        let mut tcp = Endpoint::new("127.0.0.1".parse().unwrap());
+        tcp.ports = (1..=65535)
+            .map(|p| Port::new(p, TransportProtocol::Tcp))
+            .collect();
+        let mut quic = tcp.clone();
+        quic.ports = (1..=65535)
+            .map(|p| Port::new(p, TransportProtocol::Quic))
+            .collect();
+        tcp.merge(quic.clone());
+        tcp.merge(quic);
+        assert_eq!(tcp.ports.len(), 131070);
+        assert_eq!(tcp.ports[65535], Port::new(1, TransportProtocol::Quic));
+        assert_eq!(
+            tcp.ports.last(),
+            Some(&Port::new(65535, TransportProtocol::Quic))
+        );
+    }
 
     #[test]
     fn ports_roundtrip() {
