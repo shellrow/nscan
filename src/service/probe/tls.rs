@@ -95,7 +95,10 @@ pub fn extract_tls_info(
         .and_then(|v| v.first())
         .cloned()
     {
-        tls_info.sni = probe_ctx.hostname.clone();
+        tls_info.sni = probe_ctx
+            .hostname
+            .clone()
+            .filter(|name| probe_ctx.sni && name.parse::<std::net::IpAddr>().is_err());
         match X509Certificate::from_der(&cert) {
             Ok((_, x509)) => {
                 // Subject
@@ -174,12 +177,9 @@ impl TlsProbe {
                 .set_certificate_verifier(SkipServerVerification::new());
         }
 
+        config.enable_sni = ctx.sni;
         let connector = TlsConnector::from(Arc::new(config));
-        let sni_name = if ctx.sni {
-            ServerName::try_from(hostname)?
-        } else {
-            ServerName::try_from("localhost")?
-        };
+        let sni_name = ServerName::try_from(hostname)?;
 
         let tls_stream = timeout(ctx.timeout, connector.connect(sni_name, tcp_stream)).await??;
         let conn = tls_stream.get_ref().1; // server connection

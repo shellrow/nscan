@@ -1,18 +1,15 @@
 use crate::{
     endpoint::ServiceInfo,
-    service::{
-        probe::{
-            PortProbeResult, ProbeContext, ServiceProbe,
-            tls::{SkipServerVerification, extract_tls_info},
-        },
-        read_timeout,
+    service::probe::{
+        PortProbeResult, ProbeContext, ServiceProbe,
+        tls::{SkipServerVerification, extract_tls_info},
     },
 };
 use anyhow::{Result, ensure};
 use rustls::{ClientConfig, RootCertStore, pki_types::ServerName};
 use std::sync::Arc;
 use tokio::{
-    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     net::TcpStream,
     time::timeout,
 };
@@ -66,7 +63,32 @@ async fn exchange<S: AsyncRead + AsyncWrite + Unpin>(
     ctx: &ProbeContext,
 ) -> Result<ServiceInfo> {
     timeout(ctx.timeout, stream.write_all(payload)).await??;
-    let response = read_timeout(stream, ctx.timeout, ctx.timeout, ctx.max_read_size).await?;
+    let response = timeout(ctx.timeout, async {
+        let mut response = Vec::new();
+        let mut buffer = [0; 4096];
+        loop {
+            let size = stream.read(&mut buffer).await?;
+            ensure!(size != 0, "incomplete HTTP response headers");
+            let search_start = response.len().saturating_sub(3);
+            response.extend_from_slice(&buffer[..size]);
+            if let Some(end) = response[search_start..]
+                .windows(4)
+                .position(|bytes| bytes == b"\r\n\r\n")
+            {
+                response.truncate(search_start + end + 4);
+                ensure!(
+                    response.len() <= ctx.max_read_size,
+                    "HTTP headers exceed size limit"
+                );
+                return Ok::<_, anyhow::Error>(response);
+            }
+            ensure!(
+                response.len() < ctx.max_read_size,
+                "HTTP headers exceed size limit"
+            );
+        }
+    })
+    .await??;
     parse_response(&response)
 }
 
@@ -112,6 +134,41 @@ impl HttpProbe {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn detection_stops_at_headers_without_reading_a_large_body() {
+        use crate::{endpoint::TransportProtocol, service::probe::PortProbe};
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        let task = tokio::spawn(async move {
+            let mut request = [0; 1024];
+            assert!(server.read(&mut request).await.unwrap() > 0);
+            server
+                .write_all(b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 2000000\r\n\r\n")
+                .await
+                .unwrap();
+            let _ = server.write_all(&vec![b'x'; 2_000_000]).await;
+        });
+        let ctx = ProbeContext {
+            ip: "127.0.0.1".parse().unwrap(),
+            hostname: None,
+            probe: PortProbe {
+                probe_id: ServiceProbe::TcpHTTPGet,
+                port: 80,
+                transport: TransportProtocol::Tcp,
+            },
+            timeout: std::time::Duration::from_secs(1),
+            max_read_size: 1024,
+            sni: true,
+            skip_cert_verify: true,
+        };
+        let service = exchange(&mut client, &request("localhost", 80).unwrap(), &ctx)
+            .await
+            .unwrap();
+        assert_eq!(service.server_header.as_deref(), Some("test"));
+        assert!(service.raw.unwrap().ends_with("\r\n\r\n"));
+        task.abort();
+    }
+
     #[test]
     fn http_observations_are_not_product_identification() {
         let result = parse_response(b"HTTP/1.1 200 OK\r\nServer: custom\r\n\r\nbody").unwrap();
