@@ -46,7 +46,8 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         .transpose()?;
     crate::cmd::common::validate_raw_targets(
         interface.as_ref().unwrap_or(&netdev::Interface::dummy()),
-        &target_endpoints,
+        // The raw host scanner excludes local targets before resolving routes.
+        &[],
     )?;
     let concurrency = normalize_concurrency(args.concurrency);
 
@@ -64,7 +65,7 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     let host_scanner = HostScanner::new(probe_setting.clone(), args.proto);
     if !probe_setting.target_endpoints.is_empty() {
         tracing::info!(
-            "Starting {} host scan. Target: {} host(s), {} port(s)",
+            "Starting {} host scan. Requested: {} host(s), {} port(s)",
             args.proto.as_str().to_uppercase(),
             probe_setting.target_endpoints.len(),
             probe_setting.target_endpoints[0].ports.len()
