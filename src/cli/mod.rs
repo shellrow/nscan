@@ -197,7 +197,7 @@ pub struct PortScanArgs {
     #[arg(long, value_parser = value_parser!(u64).range(1..=10_000))]
     pub read_timeout_ms: Option<u64>,
 
-    /// Wait after sending probes (ms)
+    /// Minimum raw response window per probe (ms; combined with the probe timeout)
     #[arg(short='w', long, value_parser = value_parser!(u64).range(10..=5000))]
     pub wait_ms: Option<u64>,
 
@@ -229,7 +229,7 @@ pub struct HostScanArgs {
     #[arg(short, long, default_value = "80")]
     pub ports: String,
 
-    /// Wait after sending probes (ms)
+    /// Minimum raw response window per probe (ms; combined with the probe timeout)
     #[arg(short='w', long, default_value_t = 300, value_parser = value_parser!(u64).range(10..=5000))]
     pub wait_ms: u64,
 

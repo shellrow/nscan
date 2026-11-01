@@ -19,8 +19,15 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     }
 
     let mut ports: Vec<Port> = Vec::new();
-    if args.proto == HostScanProto::Tcp {
-        ports = crate::cli::port::parse_ports(&args.ports, TransportProtocol::Tcp)?;
+    if args.proto != HostScanProto::Icmp {
+        ports = crate::cli::port::parse_ports(
+            &args.ports,
+            if args.proto == HostScanProto::Tcp {
+                TransportProtocol::Tcp
+            } else {
+                TransportProtocol::Udp
+            },
+        )?;
     }
 
     if !args.ordered {
@@ -32,12 +39,19 @@ pub async fn run(args: HostScanArgs, no_stdout: bool, output: Option<PathBuf>) -
 
     let target_endpoints = build_endpoints(target_hosts, &ports)?;
 
-    let interface = resolve_interface(args.interface.as_deref())?;
-    crate::cmd::common::validate_raw_targets(&interface, &target_endpoints)?;
+    let interface = args
+        .interface
+        .as_deref()
+        .map(|name| resolve_interface(Some(name)))
+        .transpose()?;
+    crate::cmd::common::validate_raw_targets(
+        interface.as_ref().unwrap_or(&netdev::Interface::dummy()),
+        &target_endpoints,
+    )?;
     let concurrency = normalize_concurrency(args.concurrency);
 
     let probe_setting = ProbeSetting {
-        if_index: interface.index,
+        if_index: interface.as_ref().map_or(0, |iface| iface.index),
         target_endpoints,
         host_concurrency: concurrency,
         port_concurrency: concurrency,

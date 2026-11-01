@@ -21,7 +21,7 @@ pub struct PingStat {
     pub received_count: usize,
     /// Minimum RTT
     pub min: Option<Duration>,
-    /// Avarage RTT
+    /// Average RTT
     pub avg: Option<Duration>,
     /// Maximum RTT
     pub max: Option<Duration>,

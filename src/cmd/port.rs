@@ -42,7 +42,7 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     }
     let mut rep = ScanReport::new();
     // Parse target hosts
-    let target_hosts: Vec<Host> = crate::cli::host::parse_target_hosts(&args.target).await?;
+    let mut target_hosts: Vec<Host> = crate::cli::host::parse_target_hosts(&args.target).await?;
     if target_hosts.is_empty() {
         anyhow::bail!("no targets resolved");
     }
@@ -59,6 +59,7 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         // Randomize the order of ports
         let mut rng = rand::rng();
         ports.shuffle(&mut rng);
+        target_hosts.shuffle(&mut rng);
     }
 
     // Create target endpoints from hosts and ports
@@ -75,7 +76,7 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
         uses_raw || args.interface.is_none(),
         "--interface applies to raw SYN probes; connect scans use OS routing"
     );
-    let interface = if uses_raw {
+    let interface = if uses_raw && args.interface.is_some() {
         let interface = resolve_interface(args.interface.as_deref())?;
         crate::cmd::common::validate_raw_targets(&interface, &target_endpoints)?;
         Some(interface)
@@ -85,18 +86,14 @@ pub async fn run(args: PortScanArgs, no_stdout: bool, output: Option<PathBuf>) -
     let concurrency = normalize_concurrency(args.concurrency);
 
     // Initial ping to check reachability and measure latency
-    let initial_rtt = if args.no_ping || interface.is_none() {
+    let initial_rtt = if args.no_ping || !uses_raw {
         Duration::from_millis(200)
     } else {
-        match crate::ping::initial_ping(
-            interface
-                .as_ref()
-                .ok_or_else(|| anyhow::anyhow!("raw interface unavailable"))?,
-            &first_host,
-            Some(ports[0].number),
-        )
-        .await
-        {
+        let ping_interface = match &interface {
+            Some(iface) => iface.clone(),
+            None => crate::scan::raw::interface_for_target(first_host.ip).await?,
+        };
+        match crate::ping::initial_ping(&ping_interface, &first_host, Some(ports[0].number)).await {
             Ok(rtt) => rtt,
             Err(e) => {
                 tracing::warn!("Initial ping failed: {}. Proceeding with default RTT.", e);

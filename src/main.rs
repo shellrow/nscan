@@ -9,7 +9,6 @@ pub mod interface;
 pub mod log;
 pub mod nmap;
 pub mod output;
-pub mod packet;
 pub mod ping;
 pub mod probe;
 pub mod protocol;
@@ -18,7 +17,7 @@ pub mod service;
 pub mod time;
 pub mod util;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use cli::{Cli, Command};
 
@@ -51,14 +50,15 @@ async fn run_command(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Port(args) => cmd::port::run(args, cli.no_stdout, cli.output)
             .await
-            .map_err(|e| anyhow::anyhow!("Port scan failed: {}", e)),
+            .context("Port scan failed"),
         Command::Host(args) => cmd::host::run(args, cli.no_stdout, cli.output)
             .await
-            .map_err(|e| anyhow::anyhow!("Host scan failed: {}", e)),
+            .context("Host scan failed"),
         Command::Domain(args) => cmd::domain::run(args, cli.no_stdout, cli.output)
             .await
-            .map_err(|e| anyhow::anyhow!("Domain scan failed: {}", e)),
-        Command::Interface(args) => cmd::interface::show(&args, cli.no_stdout, cli.output)
-            .map_err(|e| anyhow::anyhow!("Show interfaces failed: {}", e)),
+            .context("Domain scan failed"),
+        Command::Interface(args) => {
+            cmd::interface::show(&args, cli.no_stdout, cli.output).context("Show interfaces failed")
+        }
     }
 }
