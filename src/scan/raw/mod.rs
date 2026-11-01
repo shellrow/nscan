@@ -244,7 +244,7 @@ pub(crate) async fn run(setting: ProbeSetting, kind: Kind, port_scan: bool) -> R
 }
 
 async fn run_inner(
-    setting: ProbeSetting,
+    mut setting: ProbeSetting,
     kind: Kind,
     port_scan: bool,
     hop_limit: u8,
@@ -255,6 +255,17 @@ async fn run_inner(
     );
     let start = Instant::now();
     let routes = tokio::task::spawn_blocking(Routes::load).await??;
+    if !port_scan {
+        let requested = setting.target_endpoints.len();
+        routes.prepare_host_targets(&mut setting.target_endpoints)?;
+        if setting.target_endpoints.len() != requested {
+            tracing::info!(
+                "Scanning {} non-local host(s); skipped {} local address(es)",
+                setting.target_endpoints.len(),
+                requested - setting.target_endpoints.len()
+            );
+        }
+    }
     let mut network = Network {
         senders: HashMap::new(),
         probes: Arc::default(),

@@ -17,6 +17,30 @@ pub(crate) struct Routes {
 }
 
 impl Routes {
+    fn is_local(&self, ip: IpAddr) -> bool {
+        ip.is_loopback()
+            || self
+                .interfaces
+                .iter()
+                .any(|iface| iface.ip_addrs().contains(&ip))
+    }
+
+    pub fn prepare_host_targets(&self, targets: &mut Vec<crate::endpoint::Endpoint>) -> Result<()> {
+        ensure!(
+            targets.iter().any(|target| !self.is_local(target.ip)),
+            "raw host scans require at least one non-local target; scanning this machine's own addresses is unsupported"
+        );
+        targets.retain(|target| {
+            if self.is_local(target.ip) {
+                tracing::warn!("Skipping local address {} in host scan", target.ip);
+                false
+            } else {
+                true
+            }
+        });
+        Ok(())
+    }
+
     pub fn load() -> Result<Self> {
         let entries = netroute::list_routes().context("read routing table")?;
         #[cfg(target_os = "macos")]
@@ -37,10 +61,7 @@ impl Routes {
             "raw probes require a unicast target: {destination}"
         );
         ensure!(
-            !self
-                .interfaces
-                .iter()
-                .any(|iface| iface.ip_addrs().contains(&destination)),
+            !self.is_local(destination),
             "raw scans of local addresses are unsupported; use a TCP connect scan"
         );
         ensure!(
@@ -238,6 +259,50 @@ fn common_prefix(a: IpAddr, b: IpAddr) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn host_discovery_excludes_local_addresses_and_preserves_remote_targets() {
+        use crate::endpoint::Endpoint;
+        let mut lan = Interface::dummy();
+        lan.ipv4 = vec!["192.168.10.103/24".parse().unwrap()];
+        let mut other = Interface::dummy();
+        other.ipv6 = vec!["fd00::103/64".parse().unwrap()];
+        let routes = Routes {
+            interfaces: vec![lan, other],
+            entries: vec![],
+        };
+        for local in ["192.168.10.103", "fd00::103", "127.0.0.1", "::1"] {
+            let local: IpAddr = local.parse().unwrap();
+            for position in 0..=2 {
+                let mut targets = vec![
+                    Endpoint::with_hostname("192.168.10.71".parse().unwrap(), "ubuntu".into()),
+                    Endpoint::new("fd00::72".parse().unwrap()),
+                ];
+                targets.insert(position, Endpoint::new(local));
+                routes.prepare_host_targets(&mut targets).unwrap();
+                assert_eq!(targets.len(), 2);
+                assert_eq!(targets[0].ip, "192.168.10.71".parse::<IpAddr>().unwrap());
+                assert_eq!(targets[0].hostname.as_deref(), Some("ubuntu"));
+                assert_eq!(targets[1].ip, "fd00::72".parse::<IpAddr>().unwrap());
+            }
+            assert!(
+                routes
+                    .prepare_host_targets(&mut vec![Endpoint::new(local)])
+                    .is_err()
+            );
+            assert!(routes.resolve(local, 0).is_err());
+        }
+        let mut locals = vec![
+            Endpoint::new("192.168.10.103".parse().unwrap()),
+            Endpoint::new("fd00::103".parse().unwrap()),
+        ];
+        assert!(routes.prepare_host_targets(&mut locals).is_err());
+        // Filtering local addresses must not hide unrelated routing errors.
+        let mut invalid = vec![Endpoint::new("224.0.0.1".parse().unwrap())];
+        routes.prepare_host_targets(&mut invalid).unwrap();
+        assert!(routes.resolve(invalid[0].ip, 0).is_err());
+    }
+
     fn entry(network: &str, gateway: Option<&str>, index: u32, metric: u32) -> RouteEntry {
         let net: ipnet::IpNet = network.parse().unwrap();
         RouteEntry {

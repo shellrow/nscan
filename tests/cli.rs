@@ -71,14 +71,42 @@ fn logging_setup_errors_are_visible() {
 
 #[test]
 fn raw_loopback_scans_fail_explicitly() {
-    for args in [
-        vec!["port", "127.0.0.1", "--method", "syn", "--no-ping"],
-        vec!["host", "::1"],
+    for (args, message) in [
+        (
+            vec!["port", "127.0.0.1", "--method", "syn", "--no-ping"],
+            "raw scans on loopback",
+        ),
+        (
+            vec!["host", "::1"],
+            "raw host scans require at least one non-local target",
+        ),
+        (
+            vec!["host", "127.0.0.1", "::1"],
+            "raw host scans require at least one non-local target",
+        ),
     ] {
         let output = nscan().args(args).output().unwrap();
         assert_eq!(output.status.code(), Some(1));
         assert!(output.stdout.is_empty());
-        assert!(String::from_utf8_lossy(&output.stderr).contains("raw scans on loopback"));
+        assert!(String::from_utf8_lossy(&output.stderr).contains(message));
+    }
+}
+
+#[test]
+fn host_scan_skips_local_targets_without_hiding_other_errors() {
+    for protocol in ["icmp", "tcp", "udp"] {
+        let output = nscan()
+            .args(["host", "::1", "224.0.0.1", "--proto", protocol, "--ordered"])
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1));
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("Skipping local address ::1"), "{stderr}");
+        assert!(stderr.contains("Scanning 1 non-local host(s)"), "{stderr}");
+        assert!(
+            stderr.contains("raw probes require a unicast target"),
+            "{stderr}"
+        );
     }
 }
 
