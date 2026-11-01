@@ -18,9 +18,12 @@ pub(crate) struct Routes {
 
 impl Routes {
     pub fn load() -> Result<Self> {
+        let entries = netroute::list_routes().context("read routing table")?;
+        #[cfg(target_os = "macos")]
+        let entries = entries.into_iter().map(normalize_darwin_route).collect();
         Ok(Self {
             interfaces: netdev::get_interfaces(),
-            entries: netroute::list_routes().context("read routing table")?,
+            entries,
         })
     }
 
@@ -107,6 +110,25 @@ impl Routes {
             next_hop,
         })
     }
+}
+
+// Darwin embeds the interface index in bytes 2..4 of link-local route
+// addresses. The route's ifindex carries the scope; wire addresses must not.
+#[cfg(any(target_os = "macos", test))]
+fn normalize_darwin_route(mut entry: RouteEntry) -> RouteEntry {
+    fn address(ip: IpAddr) -> IpAddr {
+        match ip {
+            IpAddr::V6(ip) if ip.is_unicast_link_local() => {
+                let mut bytes = ip.octets();
+                bytes[2..4].fill(0);
+                std::net::Ipv6Addr::from(bytes).into()
+            }
+            ip => ip,
+        }
+    }
+    entry.destination.addr = address(entry.destination.addr);
+    entry.gateway = entry.gateway.map(address);
+    entry
 }
 
 fn kernel_source(destination: IpAddr, index: u32) -> std::io::Result<IpAddr> {
@@ -275,6 +297,27 @@ mod tests {
         policy.table = Some(100);
         let entries = vec![entry("192.0.2.0/24", None, 1, 0), policy];
         assert!(select_route(&entries, "192.0.2.2".parse().unwrap(), 0).is_err());
+    }
+
+    #[test]
+    fn darwin_link_local_routes_keep_scope_out_of_wire_addresses() {
+        let direct = normalize_darwin_route(entry("fe80:7::/64", None, 7, 0));
+        let gateway = normalize_darwin_route(entry("::/0", Some("fe80:7::1"), 7, 0));
+        assert_eq!(gateway.gateway, Some("fe80::1".parse().unwrap()));
+        let routes = vec![gateway, direct];
+        let selected = select_route(&routes, "fe80::2".parse().unwrap(), 7).unwrap();
+        assert_eq!(
+            selected.destination.addr,
+            "fe80::".parse::<IpAddr>().unwrap()
+        );
+        assert_eq!(selected.ifindex, Some(7));
+        assert!(selected.gateway.is_none());
+        assert!(select_route(&routes, "fe80::2".parse().unwrap(), 8).is_err());
+        let global = normalize_darwin_route(entry("2001:db8::/32", None, 7, 0));
+        assert_eq!(
+            global.destination.addr,
+            "2001:db8::".parse::<IpAddr>().unwrap()
+        );
     }
 
     #[test]
