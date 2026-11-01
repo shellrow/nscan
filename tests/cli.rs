@@ -1,7 +1,10 @@
 use std::process::Command;
 
 fn nscan() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_nscan"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_nscan"));
+    // Keep parallel subprocess tests from creating a runtime thread per CPU.
+    command.env("TOKIO_WORKER_THREADS", "2");
+    command
 }
 
 #[test]

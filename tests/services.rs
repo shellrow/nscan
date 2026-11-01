@@ -24,6 +24,7 @@ async fn scan(addr: SocketAddr, extra: &[&str]) -> Value {
     let path = dir.path().join("scan result.json");
     let mut command = tokio::process::Command::new(env!("CARGO_BIN_EXE_nscan"));
     command
+        .env("TOKIO_WORKER_THREADS", "2")
         .kill_on_drop(true)
         .args([
             "port",
@@ -44,6 +45,9 @@ async fn scan(addr: SocketAddr, extra: &[&str]) -> Value {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(output.stdout.is_empty());
+    if !output.stderr.is_empty() {
+        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+    }
     serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
 }
 
@@ -54,14 +58,16 @@ async fn default_connect_scan_distinguishes_open_and_closed_on_both_ip_families(
         let addr = listener.local_addr().unwrap();
         let report = scan(addr, &[]).await;
         assert_eq!(report["endpoints"][ip]["ports"][0]["state"], "open");
-        // Reserve a port without listening so parallel tests cannot reuse it.
+        // A bound, non-listening socket drops SYNs on macOS; release it first.
         let closed = if addr.is_ipv4() {
             tokio::net::TcpSocket::new_v4().unwrap()
         } else {
             tokio::net::TcpSocket::new_v6().unwrap()
         };
         closed.bind(SocketAddr::new(addr.ip(), 0)).unwrap();
-        let report = scan(closed.local_addr().unwrap(), &[]).await;
+        let closed_addr = closed.local_addr().unwrap();
+        drop(closed);
+        let report = scan(closed_addr, &[]).await;
         assert_eq!(report["endpoints"][ip]["ports"][0]["state"], "closed");
         assert_eq!(report["stats"]["open_ports"], 0);
     }
@@ -164,6 +170,15 @@ async fn quic_http3_probe_and_combined_transport_reports() {
                         request.uri().authority().unwrap().as_str(),
                         format!("localhost:{}", addr.port())
                     );
+                    // Consume the request FIN before dropping its receive side;
+                    // otherwise Quinn can cancel it while the client finishes sending.
+                    loop {
+                        match stream.recv_data().await {
+                            Ok(Some(_)) => {}
+                            Ok(None) => break,
+                            Err(_) => return,
+                        }
+                    }
                     let response = http::Response::builder()
                         .status(200)
                         .header("server", "nscan-http3-test")
