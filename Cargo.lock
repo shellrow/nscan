@@ -1262,9 +1262,9 @@ dependencies = [
 
 [[package]]
 name = "nex"
-version = "0.28.0"
+version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3abd7e3710a9f87e7377f7d0815ed77c13a21277b5525a76cae46bd39539ccf"
+checksum = "d8508037c660de0f9864fdf65d326dffbdaaf907e62bc9516ded29e84462d34e"
 dependencies = [
  "nex-core",
  "nex-datalink",
@@ -1274,9 +1274,9 @@ dependencies = [
 
 [[package]]
 name = "nex-core"
-version = "0.28.0"
+version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c5bd7f8d358c2e0012c0c6dc670b9249d36ce31ea6ebe8f26b69284382acd7c"
+checksum = "ae581a2bf8dba5672d5f0a29bd4679751514e4630feb3622c17bba2ba90fb110"
 dependencies = [
  "ipnet",
  "libc",
@@ -1288,9 +1288,9 @@ dependencies = [
 
 [[package]]
 name = "nex-datalink"
-version = "0.28.0"
+version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33b5bbdd41bc95e9149aa9dad1a26425dd046e3d8a9956a313c37624edc5a312"
+checksum = "fb73baf55c46100799bcb032e7a6c2bd8392f8d9fd38e1ac42070b72d0a49e6f"
 dependencies = [
  "bytes",
  "futures-core",
@@ -1303,9 +1303,9 @@ dependencies = [
 
 [[package]]
 name = "nex-packet"
-version = "0.28.0"
+version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79b586dea4b4df08efe8031029417f595e506f0c18f7472b429ed26281969616"
+checksum = "44be67d485e40f5b4aca06f8f48e02c1879813166bd995181d4bca28da177226"
 dependencies = [
  "bytes",
  "nex-core",
@@ -1314,9 +1314,9 @@ dependencies = [
 
 [[package]]
 name = "nex-socket"
-version = "0.28.0"
+version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30fbed4b93147d5dd983ff8095f627d7949d0a3c16f3a1c024c025f8df06f8ec"
+checksum = "4e3b602ef90a9c00ec3611dd2b32ad74b213bb4a562c6ce0c4acfea72613ad45"
 dependencies = [
  "libc",
  "nex-core",
@@ -1329,9 +1329,9 @@ dependencies = [
 
 [[package]]
 name = "nex-sys"
-version = "0.28.0"
+version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "feee56144328a8276be0ba360385470cb4227b940640dfc990946a753a37e439"
+checksum = "64fe5f418cb8376038a1a7ae48d7648ff3931771685f9f949b7f908128fa5161"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
