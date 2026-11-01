@@ -182,7 +182,16 @@ impl Probe {
                                 == ((self.nonce >> 32) as u32) & 0xfffff
                     }
                 };
-                (ip_matches && quoted.get(offset..offset + 8)? == &expected[..8])
+                let udp = quoted.get(offset..offset + 8)?;
+                // Some stacks clear UDP checksums in ICMP error quotes. Keep
+                // checking the reserved tuple, length, and IP identifier/flow
+                // label. IPv6 quotes without a checksum must include the nonce.
+                let payload = quoted.get(offset + 8..)?;
+                let checksum_matches = udp[6..8] == expected[6..8]
+                    || (udp[6..8] == [0, 0]
+                        && (self.route.source.is_ipv4() || payload == &expected[8..]));
+                let payload_matches = expected[8..].starts_with(payload);
+                (ip_matches && udp[..6] == expected[..6] && checksum_matches && payload_matches)
                     .then_some(PortState::Closed)
             }
         }
@@ -588,6 +597,47 @@ pub(crate) mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn ipv4_udp_errors_allow_cleared_checksum_without_losing_tuple_validation() {
+        let probe = probe(false, Kind::Udp);
+        let mut frame = reply(&probe);
+        let checksum = 4 + 20 + 6;
+        let mut payload = frame.payload.to_vec();
+        payload[checksum..checksum + 2].fill(0);
+        frame.payload = payload.into();
+        assert_eq!(probe.matches(&frame), Some(PortState::Closed));
+        let mut other = probe.clone();
+        other.local_port += 1;
+        assert!(other.matches(&frame).is_none());
+        other = probe.clone();
+        other.nonce ^= 1 << 32;
+        assert!(other.matches(&frame).is_none());
+        let mut payload = frame.payload.to_vec();
+        payload.extend_from_slice(&probe.nonce.to_be_bytes());
+        frame.payload = payload.clone().into();
+        assert_eq!(probe.matches(&frame), Some(PortState::Closed));
+        *payload.last_mut().unwrap() ^= 1;
+        frame.payload = payload.into();
+        assert!(probe.matches(&frame).is_none());
+    }
+
+    #[test]
+    fn ipv6_udp_errors_with_cleared_checksum_require_the_quoted_nonce() {
+        let probe = probe(true, Kind::Udp);
+        let mut frame = reply(&probe);
+        let checksum = 4 + 40 + 6;
+        let mut payload = frame.payload.to_vec();
+        payload[checksum..checksum + 2].fill(0);
+        frame.payload = payload.clone().into();
+        assert!(probe.matches(&frame).is_none());
+        payload.extend_from_slice(&probe.nonce.to_be_bytes());
+        frame.payload = payload.clone().into();
+        assert_eq!(probe.matches(&frame), Some(PortState::Closed));
+        *payload.last_mut().unwrap() ^= 1;
+        frame.payload = payload.into();
+        assert!(probe.matches(&frame).is_none());
     }
 
     #[test]
